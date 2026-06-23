@@ -7,6 +7,11 @@
 </head>
 <body>
   <div id="app"></div>
+  <script>
+    // Polyfill: some bundled libraries (Vue dev mode, etc.) reference `process`
+    // which doesn't exist in the browser. Define a minimal stub.
+    window.process = window.process || { env: {} };
+  </script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

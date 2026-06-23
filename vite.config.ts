@@ -8,11 +8,10 @@ export default defineConfig({
     vue(),
     federation({
       name: 'auto-os-config',
-      // Host: no exposes, but remotes are loaded dynamically at runtime
-      // via useModules.ts (import() from remote URLs).
-      // We don't declare remotes here because the remote URLs come from
-      // ~/.config/autoos/modules.json at runtime, not build time.
-      shared: ['vue', 'vue-router'],
+      remotes: {
+        'aaid-config': 'http://127.0.0.1:17654/remoteEntry.js',
+      },
+      // Don't share Vue — each app loads its own. More reliable for MVP.
     }),
   ],
   resolve: {
@@ -26,6 +25,6 @@ export default defineConfig({
   },
   server: {
     port: 17700,
-    open: true,
+    open: false, // don't auto-open (headless testing)
   },
 })
