@@ -1,0 +1,114 @@
+/* AutoOS Settings — Win11-inspired design system */
+
+:root {
+  /* Layout */
+  --sidebar-width: 280px;
+  --header-height: 48px;
+
+  /* Colors (Win11 light theme) */
+  --bg-app: #f3f3f3;
+  --bg-sidebar: #f9f9f9;
+  --bg-card: #ffffff;
+  --bg-hover: #ededed;
+  --bg-active: #e8eef7;
+  --bg-input: #ffffff;
+  --bg-search: #f0f0f0;
+
+  --border: #e0e0e0;
+  --border-focus: #4a9eff;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #616161;
+  --text-muted: #8a8a8a;
+
+  --accent: #0067c0;
+  --accent-hover: #0078d4;
+  --accent-light: #e8eef7;
+
+  --danger: #c42b1c;
+  --success: #107c10;
+
+  /* Typography */
+  --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-size-base: 14px;
+  --font-size-sm: 12px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+
+  /* Spacing */
+  --radius: 8px;
+  --radius-sm: 4px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background: var(--bg-app);
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  transition: background 0.15s;
+}
+.btn:hover { background: var(--bg-hover); }
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card h2 {
+  font-size: var(--font-size-lg);
+  margin-bottom: 12px;
+}
+
+/* Inputs */
+input[type="text"], input[type="password"], input[type="number"], select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus { border-color: var(--border-focus); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
