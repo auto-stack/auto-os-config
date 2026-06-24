@@ -1,10 +1,12 @@
 import { chromium } from 'playwright';
 
-// End-to-end verification that BOTH remote config modules load real, reactive
-// data inside the host. A passing run proves:
-//   1. aaid (AI Daemon) config page loads + its providers render reactively
-//   2. musk (AI Agent) config page loads + its modes render reactively
-//   3. a single shared Vue runtime backs both (no dual-instance reactivity bug)
+// End-to-end verification that all THREE remote config modules load real,
+// reactive data inside the host:
+//   1. AI Daemon (aaid :17654)   — providers
+//   2. AI Agents (musk :8080)    — modes + professions
+//   3. AI Skills (musk :8080)    — skill cards
+// Also implicitly proves a single shared Vue runtime backs them (no dual-
+// instance reactivity bug).
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 
@@ -14,7 +16,9 @@ page.on('console', msg => {
   if (msg.type() === 'error') errors.push(`CONSOLE_ERROR: ${msg.text()}`);
 });
 
-const results = { aaid: null, musk: null, passed: true };
+const results = { passed: true };
+const fail = (msg) => { results.passed = false; console.log('  ✗ FAIL: ' + msg); };
+const pass = (msg) => console.log('  ✓ PASS: ' + msg);
 
 console.log('=== Opening http://localhost:17700 ===');
 await page.goto('http://localhost:17700', { waitUntil: 'networkidle', timeout: 10000 });
@@ -25,55 +29,57 @@ console.log('Nav items:', navItems);
 
 // ── Module 1: AI Daemon (aaid :17654) ──────────────────────────────────────
 console.log('\n=== Module 1: AI Daemon ===');
-await page.click('text=AI Daemon');
+await page.click('.nav-item:has-text("AI Daemon")');
 await page.waitForTimeout(4000);
 
 let info = await page.evaluate(() => ({
   providers: document.querySelectorAll('.provider-card').length,
-  listen: document.querySelector('.field input')?.value || '',
   hasError: !!document.querySelector('.state-msg.error'),
-  bodyText: document.querySelector('.content-body')?.textContent?.slice(0, 80),
 }));
-results.aaid = info;
 console.log(`  provider cards: ${info.providers}`);
-console.log(`  listen addr: "${info.listen}"`);
 console.log(`  error shown: ${info.hasError}`);
-// aaid should render at least 1 provider (the configured Zhipu one)
-if (info.providers < 1 || info.hasError) {
-  results.passed = false;
-  console.log('  ✗ FAIL: no providers rendered or error shown');
-} else {
-  console.log('  ✓ PASS: providers rendered reactively');
-}
+if (info.providers < 1 || info.hasError) fail('no providers rendered or error shown');
+else pass('providers rendered reactively');
 await page.screenshot({ path: 'screenshot-aaid.png', fullPage: true });
 
-// ── Module 2: AI Agent (musk :8080) ────────────────────────────────────────
-console.log('\n=== Module 2: AI Agent ===');
-await page.click('text=AI Agent');
+// ── Module 2: AI Agents (musk :8080) — modes + professions ─────────────────
+console.log('\n=== Module 2: AI Agents ===');
+await page.click('.nav-item:has-text("AI Agents")');
 await page.waitForTimeout(4000);
 
 info = await page.evaluate(() => ({
   modes: document.querySelectorAll('.mode-card').length,
   professions: document.querySelectorAll('tbody tr').length,
-  skills: document.querySelectorAll('.skill-row').length,
+  // the agents page must NOT show skills (those moved to their own module)
+  hasSkillsSection: !!document.querySelector('.skill-card, .skill-row'),
   hasError: !!document.querySelector('.state-msg.error'),
   hasLoading: document.querySelector('.content-body')?.textContent?.includes('Loading'),
-  bodyText: document.querySelector('.content-body')?.textContent?.slice(0, 80),
 }));
-results.musk = info;
 console.log(`  mode cards: ${info.modes}`);
 console.log(`  profession rows: ${info.professions}`);
-console.log(`  skill rows: ${info.skills}`);
-console.log(`  still loading: ${info.hasLoading}`);
+console.log(`  has skills section (should be false): ${info.hasSkillsSection}`);
+if (info.modes < 1 || info.hasError || info.hasLoading) fail('modes not rendered, loading, or error');
+else pass('modes rendered reactively');
+if (info.hasSkillsSection) fail('agents page should not contain skills (split incomplete)');
+await page.screenshot({ path: 'screenshot-agents.png', fullPage: true });
+
+// ── Module 3: AI Skills (musk :8080) ───────────────────────────────────────
+console.log('\n=== Module 3: AI Skills ===');
+await page.click('.nav-item:has-text("AI Skills")');
+await page.waitForTimeout(4000);
+
+info = await page.evaluate(() => ({
+  skills: document.querySelectorAll('.skill-card').length,
+  count: document.querySelector('.stat-num')?.textContent || '0',
+  hasError: !!document.querySelector('.state-msg.error'),
+  hasLoading: document.querySelector('.content-body')?.textContent?.includes('Loading'),
+}));
+console.log(`  skill cards: ${info.skills}`);
+console.log(`  stat count: ${info.count}`);
 console.log(`  error shown: ${info.hasError}`);
-// musk should render its 4 built-in modes + professions + skills
-if (info.modes < 1 || info.hasError || info.hasLoading) {
-  results.passed = false;
-  console.log('  ✗ FAIL: modes not rendered, loading, or error');
-} else {
-  console.log('  ✓ PASS: modes rendered reactively');
-}
-await page.screenshot({ path: 'screenshot-musk.png', fullPage: true });
+if (info.skills < 1 || info.hasError || info.hasLoading) fail('skills not rendered, loading, or error');
+else pass('skills rendered reactively');
+await page.screenshot({ path: 'screenshot-skills.png', fullPage: true });
 
 // ── Verdict ─────────────────────────────────────────────────────────────────
 console.log('\n=== Console errors ===');

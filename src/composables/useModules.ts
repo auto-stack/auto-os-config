@@ -35,11 +35,18 @@ export async function loadModules() {
         remote: 'http://127.0.0.1:17654/config-page.js',
       },
       {
-        id: 'ai-musk',
-        name: 'AI Agent',
+        id: 'ai-agents',
+        name: 'AI Agents',
         icon: '🤖',
-        description: 'Agent modes, professions, skills',
+        description: 'Agent modes and professions',
         remote: 'http://127.0.0.1:8080/config-page.js',
+      },
+      {
+        id: 'ai-skills',
+        name: 'AI Skills',
+        icon: '🧩',
+        description: 'Skill registry and prompts',
+        remote: 'http://127.0.0.1:8080/skills-config-page.js',
       },
     ]
   } catch (e) {

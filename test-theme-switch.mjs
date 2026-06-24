@@ -18,9 +18,13 @@ async function aaidPrimaryButtonBg() {
   // aaid's "Save Configuration" button uses background: var(--accent)
   return page.$eval('.aaid-config .btn-primary', el => getComputedStyle(el).backgroundColor);
 }
-async function muskBadgeBg() {
-  // musk's profession badge uses background: var(--accent-light)
-  return page.$eval('.musk-config tbody .badge', el => getComputedStyle(el).backgroundColor);
+async function agentsBadgeBg() {
+  // agents page profession badge uses background: var(--accent-light)
+  return page.$eval('.agents-config tbody .badge', el => getComputedStyle(el).backgroundColor);
+}
+async function skillsStatColor() {
+  // skills page count number uses color: var(--accent)
+  return page.$eval('.skills-config .stat-num', el => getComputedStyle(el).color);
 }
 
 await page.goto('http://localhost:17700', { waitUntil: 'networkidle', timeout: 10000 });
@@ -45,27 +49,35 @@ console.log(`  --accent = ${accentAfter}`);
 console.log(`  aaid save button bg = ${btnAfter}`);
 await page.screenshot({ path: 'screenshot-theme-aaid-coral.png', fullPage: true });
 
-console.log('\n=== now AI Agent (musk) — still Coral ===');
-await page.click('text=AI Agent');
+console.log('\n=== now AI Agents (musk) — still Coral ===');
+await page.click('.nav-item:has-text("AI Agents")');
 await page.waitForTimeout(3500);
-const muskBadge = toRgb(await muskBadgeBg());
-console.log(`  musk profession badge bg = ${muskBadge}`);
-await page.screenshot({ path: 'screenshot-theme-musk-coral.png', fullPage: true });
+const agentsBadge = toRgb(await agentsBadgeBg());
+console.log(`  agents profession badge bg = ${agentsBadge}`);
+await page.screenshot({ path: 'screenshot-theme-agents-coral.png', fullPage: true });
 
-// Switch back to OCEAN (3rd swatch) while on musk page
+console.log('\n=== AI Skills — still Coral ===');
+await page.click('.nav-item:has-text("AI Skills")');
+await page.waitForTimeout(3000);
+const skillsColor = toRgb(await skillsStatColor());
+console.log(`  skills stat count color = ${skillsColor}`);
+await page.screenshot({ path: 'screenshot-theme-skills-coral.png', fullPage: true });
+
+// Switch back to OCEAN (3rd swatch) while on skills page
 console.log('\n=== switch to Ocean ===');
 await page.$$eval('.theme-picker .swatch', (els, i) => els[i].click(), 2);
 await page.waitForTimeout(400);
-const muskBadgeOcean = toRgb(await muskBadgeBg());
-console.log(`  musk profession badge bg = ${muskBadgeOcean}`);
-await page.screenshot({ path: 'screenshot-theme-musk-ocean.png', fullPage: true });
+const skillsColorOcean = toRgb(await skillsStatColor());
+console.log(`  skills stat count color = ${skillsColorOcean}`);
+await page.screenshot({ path: 'screenshot-theme-skills-ocean.png', fullPage: true });
 
 // Verdict
-const passed = btnBefore !== btnAfter && muskBadge !== muskBadgeOcean;
+const passed = btnBefore !== btnAfter && skillsColor !== skillsColorOcean;
 console.log(`\n=== RESULT: ${passed ? '✅ theme switch works across all pages' : '❌ colors did not change'} ===`);
 if (passed) {
-  console.log(`  aaid button: ${btnBefore} → ${btnAfter} (changed ✓)`);
-  console.log(`  musk badge:  ${muskBadge} → ${muskBadgeOcean} (changed ✓)`);
+  console.log(`  aaid button:   ${btnBefore} → ${btnAfter} (changed ✓)`);
+  console.log(`  agents badge:  ${agentsBadge} (coral ✓)`);
+  console.log(`  skills count:  ${skillsColor} → ${skillsColorOcean} (changed ✓)`);
 }
 if (!passed) process.exitCode = 1;
 await browser.close();
