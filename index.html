@@ -4,6 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AutoOS Settings</title>
+  <!-- Apply the saved accent BEFORE the app mounts, so there's no flash of the
+       default color. Must stay in <head> so it runs before first paint. The HSL
+       map mirrors src/composables/useTheme.ts — keep them in sync. -->
+  <script>
+    (function () {
+      try {
+        var m = { indigo: '239 84% 67%', coral: '350 75% 64%', ocean: '217 91% 60%', sage: '160 84% 39%', amber: '38 92% 50%' };
+        var s = localStorage.getItem('autoos-accent-color');
+        var h = m[s] || m.indigo;
+        document.documentElement.style.setProperty('--primary', h);
+      } catch (e) { /* ignore — styles.css has a sensible default */ }
+    })();
+  </script>
 </head>
 <body>
   <div id="app"></div>

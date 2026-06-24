@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { ConfigModule } from '../composables/useModules'
+import { useTheme } from '../composables/useTheme'
 
 const props = defineProps<{
   modules: ConfigModule[]
@@ -11,6 +12,8 @@ const props = defineProps<{
 const emit = defineEmits<{ select: [id: string] }>()
 
 const search = ref('')
+
+const { current: accent, setAccent, options: accentOptions } = useTheme()
 
 const filtered = computed(() => {
   if (!search.value.trim()) return props.modules
@@ -67,6 +70,28 @@ const filtered = computed(() => {
     <!-- Empty state -->
     <div v-if="!loading && filtered.length === 0" class="sidebar-empty">
       No modules found.
+    </div>
+
+    <!-- Accent color picker — pinned to the bottom.
+         Writes --primary on <html>; every page (incl. remote modules) follows. -->
+    <div class="theme-picker">
+      <div class="theme-label">Accent color</div>
+      <div class="swatches">
+        <button
+          v-for="opt in accentOptions"
+          :key="opt.name"
+          class="swatch"
+          :class="{ active: accent === opt.name }"
+          :style="{ background: opt.swatch }"
+          :title="opt.label"
+          :aria-label="opt.label"
+          @click="setAccent(opt.name)"
+        >
+          <svg v-if="accent === opt.name" class="check" viewBox="0 0 16 16" width="12" height="12">
+            <path d="M3.5 8.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </aside>
 </template>
@@ -145,6 +170,10 @@ const filtered = computed(() => {
 .nav-item.active {
   background: var(--bg-active);
 }
+.nav-item.active .nav-name {
+  color: var(--accent);
+  font-weight: 600;
+}
 
 .nav-icon {
   font-size: 18px;
@@ -176,5 +205,43 @@ const filtered = computed(() => {
   text-align: center;
   color: var(--text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* ── Accent color picker (pinned to sidebar bottom) ────────────────────────── */
+.theme-picker {
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.theme-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.swatches {
+  display: flex;
+  gap: 10px;
+}
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.swatch:hover {
+  transform: scale(1.12);
+}
+.swatch.active {
+  box-shadow: 0 0 0 2px var(--bg-sidebar), 0 0 0 4px currentColor;
+}
+.swatch .check {
+  pointer-events: none;
 }
 </style>
