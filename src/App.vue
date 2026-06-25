@@ -3,7 +3,10 @@ import { onMounted } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import { useModules } from './composables/useModules'
 
-const { modules, activeModuleId, activeComponent, loading, error, loadModules, selectModule } = useModules()
+const {
+  modules, groups, expandedGroups, activeModuleId, activeComponent, loading, error,
+  loadModules, selectModule, standaloneModules, groupMembers, toggleGroup,
+} = useModules()
 
 onMounted(() => {
   loadModules()
@@ -14,8 +17,13 @@ onMounted(() => {
   <div class="layout">
     <Sidebar
       :modules="modules"
+      :groups="groups"
+      :expanded-groups="expandedGroups"
       :active-id="activeModuleId"
       :loading="loading"
+      :standalone="standaloneModules()"
+      :group-members="groupMembers"
+      :toggle-group="toggleGroup"
       @select="selectModule"
     />
     <main class="content">

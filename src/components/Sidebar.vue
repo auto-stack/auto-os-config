@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { ConfigModule } from '../composables/useModules'
+import type { ConfigModule, ModuleGroup } from '../composables/useModules'
 import { useTheme } from '../composables/useTheme'
 
 const props = defineProps<{
   modules: ConfigModule[]
+  groups: ModuleGroup[]
+  expandedGroups: Set<string>
   activeId: string | null
   loading: boolean
+  standalone: ConfigModule[]
+  groupMembers: (groupId: string) => ConfigModule[]
+  toggleGroup: (groupId: string) => void
 }>()
 
 const emit = defineEmits<{ select: [id: string] }>()
@@ -15,15 +20,30 @@ const search = ref('')
 
 const { current: accent, setAccent, options: accentOptions } = useTheme()
 
-const filtered = computed(() => {
-  if (!search.value.trim()) return props.modules
+// When searching, flatten everything into one list (groups don't make sense
+// when filtering).
+const searching = computed(() => search.value.trim().length > 0)
+
+const filteredStandalone = computed(() => {
+  if (!searching.value) return props.standalone
   const q = search.value.toLowerCase()
-  return props.modules.filter(
-    (m) =>
-      m.name.toLowerCase().includes(q) ||
-      m.description.toLowerCase().includes(q),
+  return props.standalone.filter(
+    (m) => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q),
   )
 })
+
+function filteredGroupMembers(g: ModuleGroup): ConfigModule[] {
+  const members = props.groupMembers(g.id)
+  if (!searching.value) return members
+  const q = search.value.toLowerCase()
+  return members.filter(
+    (m) => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q),
+  )
+}
+
+const hasGroupResults = computed(() =>
+  props.groups.some((g) => filteredGroupMembers(g).length > 0),
+)
 </script>
 
 <template>
@@ -44,22 +64,74 @@ const filtered = computed(() => {
       />
     </div>
 
-    <!-- Module list -->
+    <!-- Nav: standalone modules + collapsible groups -->
     <nav class="nav-list">
-      <div class="nav-group-label">System</div>
-      <button
-        v-for="mod in filtered"
-        :key="mod.id"
-        class="nav-item"
-        :class="{ active: mod.id === activeId }"
-        @click="emit('select', mod.id)"
-      >
-        <span class="nav-icon">{{ mod.icon }}</span>
-        <div class="nav-text">
-          <div class="nav-name">{{ mod.name }}</div>
-          <div class="nav-desc">{{ mod.description }}</div>
-        </div>
-      </button>
+      <!-- Standalone modules (not in any group) -->
+      <template v-if="!searching">
+        <button
+          v-for="mod in filteredStandalone"
+          :key="mod.id"
+          class="nav-item"
+          :class="{ active: mod.id === activeId }"
+          @click="emit('select', mod.id)"
+        >
+          <span class="nav-icon">{{ mod.icon }}</span>
+          <div class="nav-text">
+            <div class="nav-name">{{ mod.name }}</div>
+            <div class="nav-desc">{{ mod.description }}</div>
+          </div>
+        </button>
+      </template>
+
+      <!-- Collapsible groups -->
+      <template v-for="g in groups" :key="g.id">
+        <template v-if="searching">
+          <!-- When searching, show group members inline (no collapse) -->
+          <button
+            v-for="mod in filteredGroupMembers(g)"
+            :key="mod.id"
+            class="nav-item indented"
+            :class="{ active: mod.id === activeId }"
+            @click="emit('select', mod.id)"
+          >
+            <span class="nav-icon">{{ mod.icon }}</span>
+            <div class="nav-text">
+              <div class="nav-name">{{ mod.name }}</div>
+              <div class="nav-desc">{{ mod.description }}</div>
+            </div>
+          </button>
+        </template>
+        <template v-else>
+          <!-- Group header (click to collapse/expand) -->
+          <button
+            class="group-header"
+            :class="{ expanded: expandedGroups.has(g.id) }"
+            @click="toggleGroup(g.id)"
+          >
+            <span class="group-chevron">{{ expandedGroups.has(g.id) ? '▾' : '▸' }}</span>
+            <span class="group-label">{{ g.label }}</span>
+          </button>
+          <!-- Group members (indented) -->
+          <div v-show="expandedGroups.has(g.id)" class="group-members">
+            <button
+              v-for="mod in groupMembers(g.id)"
+              :key="mod.id"
+              class="nav-item indented"
+              :class="{ active: mod.id === activeId }"
+              @click="emit('select', mod.id)"
+            >
+              <span class="nav-icon">{{ mod.icon }}</span>
+              <div class="nav-text">
+                <div class="nav-name">{{ mod.name }}</div>
+                <div class="nav-desc">{{ mod.description }}</div>
+              </div>
+            </button>
+          </div>
+        </template>
+      </template>
+
+      <!-- Search-mode: also show standalone here (already shown above, but
+           when searching they're in filteredStandalone which renders first) -->
     </nav>
 
     <!-- Loading indicator -->
@@ -68,12 +140,11 @@ const filtered = computed(() => {
     </div>
 
     <!-- Empty state -->
-    <div v-if="!loading && filtered.length === 0" class="sidebar-empty">
+    <div v-if="!loading && filteredStandalone.length === 0 && !hasGroupResults" class="sidebar-empty">
       No modules found.
     </div>
 
-    <!-- Accent color picker — pinned to the bottom.
-         Writes --primary on <html>; every page (incl. remote modules) follows. -->
+    <!-- Accent color picker -->
     <div class="theme-picker">
       <div class="theme-label">Accent color</div>
       <div class="swatches">
@@ -116,13 +187,9 @@ const filtered = computed(() => {
   font-weight: 600;
 }
 
-.logo {
-  font-size: 20px;
-}
+.logo { font-size: 20px; }
 
-.search-bar {
-  padding: 8px 16px 12px;
-}
+.search-bar { padding: 8px 16px 12px; }
 
 .search-input {
   width: 100%;
@@ -144,11 +211,36 @@ const filtered = computed(() => {
   padding: 0 8px;
 }
 
-.nav-group-label {
-  font-size: var(--font-size-sm);
+/* Group header (collapsible) */
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+  margin-top: 8px;
+}
+.group-header:hover { background: var(--bg-hover); }
+.group-chevron {
+  font-size: 11px;
   color: var(--text-muted);
-  padding: 12px 12px 4px;
+  width: 14px;
+  flex-shrink: 0;
+}
+.group-label {
+  font-size: var(--font-size-base);
   font-weight: 600;
+  color: var(--text-primary);
+}
+
+.group-members {
+  /* children indented below the header */
 }
 
 .nav-item {
@@ -164,33 +256,18 @@ const filtered = computed(() => {
   text-align: left;
   transition: background 0.12s;
 }
-.nav-item:hover {
-  background: var(--bg-hover);
-}
-.nav-item.active {
-  background: var(--bg-active);
-}
-.nav-item.active .nav-name {
-  color: var(--accent);
-  font-weight: 600;
-}
+.nav-item:hover { background: var(--bg-hover); }
+.nav-item.active { background: var(--bg-active); }
+.nav-item.active .nav-name { color: var(--accent); font-weight: 600; }
+.nav-item.indented { padding-left: 28px; }
 
 .nav-icon {
   font-size: 18px;
   flex-shrink: 0;
   padding-top: 1px;
 }
-
-.nav-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.nav-name {
-  font-size: var(--font-size-base);
-  font-weight: 500;
-}
-
+.nav-text { flex: 1; min-width: 0; }
+.nav-name { font-size: var(--font-size-base); font-weight: 500; }
 .nav-desc {
   font-size: var(--font-size-sm);
   color: var(--text-muted);
@@ -207,7 +284,7 @@ const filtered = computed(() => {
   font-size: var(--font-size-sm);
 }
 
-/* ── Accent color picker (pinned to sidebar bottom) ────────────────────────── */
+/* Accent color picker */
 .theme-picker {
   padding: 12px 20px 16px;
   border-top: 1px solid var(--border);
@@ -219,13 +296,9 @@ const filtered = computed(() => {
   font-weight: 600;
   margin-bottom: 10px;
 }
-.swatches {
-  display: flex;
-  gap: 10px;
-}
+.swatches { display: flex; gap: 10px; }
 .swatch {
-  width: 24px;
-  height: 24px;
+  width: 24px; height: 24px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
@@ -235,13 +308,7 @@ const filtered = computed(() => {
   justify-content: center;
   transition: transform 0.12s, box-shadow 0.12s;
 }
-.swatch:hover {
-  transform: scale(1.12);
-}
-.swatch.active {
-  box-shadow: 0 0 0 2px var(--bg-sidebar), 0 0 0 4px currentColor;
-}
-.swatch .check {
-  pointer-events: none;
-}
+.swatch:hover { transform: scale(1.12); }
+.swatch.active { box-shadow: 0 0 0 2px var(--bg-sidebar), 0 0 0 4px currentColor; }
+.swatch .check { pointer-events: none; }
 </style>
