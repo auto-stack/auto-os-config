@@ -1,10 +1,11 @@
 import { chromium } from 'playwright';
 
-// End-to-end verification that all THREE remote config modules load real,
+// End-to-end verification that all FOUR remote config modules load real,
 // reactive data inside the host:
 //   1. AI Daemon (aaid :17654)   — providers
-//   2. AI Agents (musk :8080)    — modes + professions
+//   2. AI Agents (musk :8080)    — modes (professions moved to Roles)
 //   3. AI Skills (musk :8080)    — skill cards
+//   4. AI Roles  (musk :8080)    — role list (Plan 004)
 // Also implicitly proves a single shared Vue runtime backs them (no dual-
 // instance reactivity bug).
 const browser = await chromium.launch({ headless: true });
@@ -50,14 +51,15 @@ await page.waitForTimeout(4000);
 info = await page.evaluate(() => ({
   modes: document.querySelectorAll('.mode-card').length,
   professions: document.querySelectorAll('tbody tr').length,
-  // the agents page must NOT show skills (those moved to their own module)
+  // the agents page must NOT show skills/professions (moved to own modules)
   hasSkillsSection: !!document.querySelector('.skill-card, .skill-row'),
+  hasProfessionsNote: !!document.querySelector('.note'),
   hasError: !!document.querySelector('.state-msg.error'),
   hasLoading: document.querySelector('.content-body')?.textContent?.includes('Loading'),
 }));
 console.log(`  mode cards: ${info.modes}`);
-console.log(`  profession rows: ${info.professions}`);
-console.log(`  has skills section (should be false): ${info.hasSkillsSection}`);
+console.log(`  has professions table (should be 0 rows): ${info.professions}`);
+console.log(`  has roles-pointer note: ${info.hasProfessionsNote}`);
 if (info.modes < 1 || info.hasError || info.hasLoading) fail('modes not rendered, loading, or error');
 else pass('modes rendered reactively');
 if (info.hasSkillsSection) fail('agents page should not contain skills (split incomplete)');
@@ -80,6 +82,25 @@ console.log(`  error shown: ${info.hasError}`);
 if (info.skills < 1 || info.hasError || info.hasLoading) fail('skills not rendered, loading, or error');
 else pass('skills rendered reactively');
 await page.screenshot({ path: 'screenshot-skills.png', fullPage: true });
+
+// ── Module 4: AI Roles (musk :8080) — Plan 004 ─────────────────────────────
+console.log('\n=== Module 4: AI Roles ===');
+await page.click('.nav-item:has-text("AI Roles")');
+await page.waitForTimeout(4000);
+
+info = await page.evaluate(() => ({
+  roles: document.querySelectorAll('.role-item').length,
+  // built-in coder should be present and flagged read-only
+  hasBuiltinLock: !!document.querySelector('.lock'),
+  hasError: !!document.querySelector('.state-msg.error'),
+  hasLoading: document.querySelector('.content-body')?.textContent?.includes('Loading'),
+}));
+console.log(`  role items: ${info.roles}`);
+console.log(`  built-in lock present: ${info.hasBuiltinLock}`);
+console.log(`  error shown: ${info.hasError}`);
+if (info.roles < 7 || info.hasError || info.hasLoading) fail('roles not rendered, loading, or error (expect ≥7 built-ins)');
+else pass('roles rendered reactively');
+await page.screenshot({ path: 'screenshot-roles.png', fullPage: true });
 
 // ── Verdict ─────────────────────────────────────────────────────────────────
 console.log('\n=== Console errors ===');

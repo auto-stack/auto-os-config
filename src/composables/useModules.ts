@@ -48,6 +48,13 @@ export async function loadModules() {
         description: 'Skill registry and prompts',
         remote: 'http://127.0.0.1:8080/skills-config-page.js',
       },
+      {
+        id: 'ai-roles',
+        name: 'AI Roles',
+        icon: '🎭',
+        description: 'Agent roles: soul, skills, tiers',
+        remote: 'http://127.0.0.1:8080/roles-config-page.js',
+      },
     ]
   } catch (e) {
     error.value = `Failed to load modules: ${e}`
