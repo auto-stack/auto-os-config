@@ -57,9 +57,9 @@ export async function loadModules() {
       },
       {
         id: 'ai-musk',
-        name: 'AI Musk',
-        icon: '🦊',
-        description: 'Musk runtime: daemon, defaults',
+        name: 'Auto Musk',
+        icon: '🦌',
+        description: 'Musk app: daemon, defaults',
         remote: 'http://127.0.0.1:8080/app-config-page.js',
       },
     ]
