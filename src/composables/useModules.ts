@@ -55,6 +55,13 @@ export async function loadModules() {
         description: 'Agent roles: soul, skills, tiers',
         remote: 'http://127.0.0.1:8080/roles-config-page.js',
       },
+      {
+        id: 'ai-musk',
+        name: 'AI Musk',
+        icon: '🦊',
+        description: 'Musk runtime: daemon, defaults',
+        remote: 'http://127.0.0.1:8080/app-config-page.js',
+      },
     ]
   } catch (e) {
     error.value = `Failed to load modules: ${e}`

@@ -1,11 +1,12 @@
 import { chromium } from 'playwright';
 
-// End-to-end verification that all FOUR remote config modules load real,
+// End-to-end verification that all FIVE remote config modules load real,
 // reactive data inside the host:
 //   1. AI Daemon (aaid :17654)   — providers
 //   2. AI Agents (musk :8080)    — modes (professions moved to Roles)
 //   3. AI Skills (musk :8080)    — skill cards
 //   4. AI Roles  (musk :8080)    — role list (Plan 004)
+//   5. AI Musk   (musk :8080)    — runtime: daemon connection, defaults
 // Also implicitly proves a single shared Vue runtime backs them (no dual-
 // instance reactivity bug).
 const browser = await chromium.launch({ headless: true });
@@ -101,6 +102,24 @@ console.log(`  error shown: ${info.hasError}`);
 if (info.roles < 7 || info.hasError || info.hasLoading) fail('roles not rendered, loading, or error (expect ≥7 built-ins)');
 else pass('roles rendered reactively');
 await page.screenshot({ path: 'screenshot-roles.png', fullPage: true });
+
+// ── Module 5: AI Musk (runtime config) ─────────────────────────────────────
+console.log('\n=== Module 5: AI Musk ===');
+await page.click('.nav-item:has-text("AI Musk")');
+await page.waitForTimeout(4000);
+
+info = await page.evaluate(() => ({
+  daemonUrlInput: document.querySelector('.card input[type="text"]')?.value || '',
+  statusPill: document.querySelector('.status-pill')?.textContent?.trim() || '',
+  hasError: !!document.querySelector('.state-msg.error'),
+  hasLoading: document.querySelector('.content-body')?.textContent?.includes('Loading'),
+}));
+console.log(`  daemon url field: "${info.daemonUrlInput}"`);
+console.log(`  status pill: "${info.statusPill}"`);
+console.log(`  error shown: ${info.hasError}`);
+if (!info.daemonUrlInput || info.hasError || info.hasLoading) fail('musk app-config not rendered, loading, or error');
+else pass('musk runtime config rendered reactively');
+await page.screenshot({ path: 'screenshot-musk-config.png', fullPage: true });
 
 // ── Verdict ─────────────────────────────────────────────────────────────────
 console.log('\n=== Console errors ===');
