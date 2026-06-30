@@ -94,6 +94,14 @@ export async function loadModules() {
   } finally {
     loading.value = false
   }
+
+  // Deep-link: if the URL has a hash like #ai-musk, auto-select that module.
+  // This lets app web UIs (e.g. musk's ⚙️ Settings button) link directly to
+  // their config page in auto-os-config.
+  const hash = window.location.hash.slice(1)
+  if (hash && modules.value.some((m) => m.id === hash)) {
+    await selectModule(hash)
+  }
 }
 
 /** Modules NOT in any group — rendered standalone at the top level. */
