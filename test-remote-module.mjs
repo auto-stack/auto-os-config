@@ -5,7 +5,7 @@
 //   - vite on :17700
 //   - the example remote module built + served on :17720
 //     (cd examples/remote-module && npm i && npm run build && node serve.mjs)
-//   - a drop-in at ~/.config/autoos/modules.d/example-remote.toml (kind=custom)
+//   - a drop-in at ~/.config/autoos/modules.d/example-remote.at (kind=custom)
 //
 // Verifies the protocol's core promise: a remote component loaded via dynamic
 // import() renders, its reactivity works (mutating a ref re-renders the

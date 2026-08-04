@@ -411,6 +411,7 @@ async fn action_test_daemon(
     // Resolve defaults + provider details from the file (no network yet).
     let (content, _root, _file) = read_file_module(&state, "ai-daemon")?;
     let node = project::parse_root(&content, "daemon")?;
+    let aaid_addr = aaid_listen_addr(&node);
     let default_provider = node.get_prop_of("default_provider");
     let provider_name = default_provider.as_str().to_string();
     let default_model = node.get_prop_of("default_model");
@@ -443,7 +444,7 @@ async fn action_test_daemon(
         "model": model,
     });
     let resp = client
-        .post("http://127.0.0.1:17654/v1/config/test")
+        .post(format!("http://{aaid_addr}/v1/config/test"))
         .json(&req_body)
         .timeout(std::time::Duration::from_secs(15))
         .send()
@@ -452,7 +453,7 @@ async fn action_test_daemon(
     match resp {
         Err(_) => Err(ApiError::Status(
             StatusCode::SERVICE_UNAVAILABLE,
-            "AI Daemon (aaid) offline on :17654".into(),
+            format!("AI Daemon (aaid) offline on {aaid_addr}"),
         )),
         Ok(r) => {
             let status = r.status();
@@ -460,6 +461,22 @@ async fn action_test_daemon(
             Ok((status, Json(j)).into_response())
         }
     }
+}
+
+/// Resolve where aaid listens from the daemon config's `listen_addr`
+/// (`host:port`), falling back to the default `127.0.0.1:17654`. We always
+/// dial 127.0.0.1 — aaid binds loopback or 0.0.0.0 locally and 127.0.0.1
+/// reaches both (IPv6-only binds are out of scope for a local tool).
+fn aaid_listen_addr(node: &auto_val::Node) -> String {
+    let default_port = "17654";
+    let listen = node.get_prop_of("listen_addr"); // owned Value (get_prop_of)
+    let port = listen
+        .as_str()
+        .rsplit(':')
+        .next()
+        .filter(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()))
+        .unwrap_or(default_port);
+    format!("127.0.0.1:{port}")
 }
 
 #[derive(serde::Deserialize)]
@@ -503,5 +520,43 @@ impl IntoResponse for ApiError {
             ApiError::Status(c, m) => (c, m),
         };
         (code, Json(json!({ "error": msg }))).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use auto_atom::{Atom, AtomParser};
+
+    /// Parse a `daemon { … }` node from a snippet (helper for handler tests).
+    fn daemon_node(src: &str) -> auto_val::Node {
+        let atom = AtomParser::parse(src).unwrap();
+        match atom {
+            Atom::Node(n) => n,
+            other => panic!("expected node, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aaid_listen_addr_parses_config_port() {
+        let n = daemon_node("daemon { listen_addr : \"127.0.0.1:18000\" }");
+        assert_eq!(aaid_listen_addr(&n), "127.0.0.1:18000");
+    }
+
+    #[test]
+    fn aaid_listen_addr_handles_wildcard_host() {
+        // 0.0.0.0 → dial 127.0.0.1 with the configured port.
+        let n = daemon_node("daemon { listen_addr : \"0.0.0.0:19001\" }");
+        assert_eq!(aaid_listen_addr(&n), "127.0.0.1:19001");
+    }
+
+    #[test]
+    fn aaid_listen_addr_defaults_when_unset_or_garbage() {
+        // No listen_addr → default port.
+        let n = daemon_node("daemon { }");
+        assert_eq!(aaid_listen_addr(&n), "127.0.0.1:17654");
+        // Non-numeric port suffix → default port.
+        let n = daemon_node("daemon { listen_addr : \"127.0.0.1:abc\" }");
+        assert_eq!(aaid_listen_addr(&n), "127.0.0.1:17654");
     }
 }

@@ -18,7 +18,6 @@ use serde::Serialize;
 use serde_json::{json, Value as JsonValue};
 use std::sync::Arc;
 
-use crate::config_root;
 use crate::project;
 use crate::registry::{CollectionModule, EntityFormat, Module};
 use crate::{ApiError, AppState};
@@ -38,7 +37,7 @@ fn require_collection(state: &AppState, id: &str) -> Result<CollectionModule, Ap
 }
 
 fn collection_dir(state: &AppState, c: &CollectionModule) -> PathBuf {
-    config_root::config_root().unwrap_or_else(|_| state.config_root.clone()).join(&c.dir)
+    state.config_root.join(&c.dir)
 }
 
 // ---- list -----------------------------------------------------------------

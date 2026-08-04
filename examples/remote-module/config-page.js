@@ -7,7 +7,8 @@
 //
 // Build with `npm run build` (vite lib mode, `vue` externalized) and serve the
 // resulting dist/config-page.js from any HTTP server. Register it via a drop-in
-// TOML with `kind = "custom"` and `remote = "<url>"`.
+// `.at` file with `kind : "custom"` and `remote : "<url>"` (auto-atom format,
+// same as every module declaration — see docs/plans/archive/003).
 //
 // Two hard rules (documented in plans/003):
 //   1. Pre-compiled: use vite lib mode + @vitejs/plugin-vue so <template>
