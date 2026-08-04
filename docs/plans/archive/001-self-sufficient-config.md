@@ -1,6 +1,6 @@
 # Plan 001: auto-os-config 自给自足重构
 
-> **状态**：已被 Plan 002 取代(superseded)
+> **状态**：已被 Plan 002 取代(superseded) → 已归档(2026-08-04)
 > **仓库**：`auto-os-config`（主）、`auto-musk`（清理）
 > **设计文档**：`auto-ai/docs/os-config-self-sufficient-design.md`
 >

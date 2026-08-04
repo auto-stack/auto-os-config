@@ -1,6 +1,6 @@
 # Plan 003: 模块自注册机制
 
-> **状态**:已实施(Step 1–5)
+> **状态**:已实施(Step 1–6 + 修正) → 已归档(2026-08-04, E2E 复审全过)
 > **日期**:2026-08-04
 > **目标**:第三方模块(如 auto-musk)在自己的代码/安装流程里声明自己,**零侵入 auto-os-config 源码**就能出现在设置中心。通用编辑器模块零成本;需要定制 UX 的模块通过一个干净的远程组件协议接入(不再用旧的 importmap/vendor-Vue hack)。
 > **前置**:Plan 002 已完成(统一 daemon + 通用编辑器)。
@@ -183,7 +183,7 @@ Step 6 把 registry 从 TOML 迁到 auto-atom 时,我手写了 `opt_string`/`req
 **目标**:给 `auto-val::Value` 加一个 serde `Deserializer` 适配器(feature-gated),让任何 `#[derive(Deserialize)]` 的 struct 能直接从 `Value`(或 `Node`)反序列化——一行替代几十行 `opt_*`。
 
 ### 8.2 为什么是 serde 适配器而非 Plan 332 的 derive ToAtom/FromAtom
-auto-lang 已有 [Plan 332](../../../../auto-lang/docs/plans/332-derive-to-atom-proc-macro.md)(`#[derive(FromAtom)]`,未实施),用自定义 trait + proc-macro。本 phase 走 **serde Deserializer 适配器** 路线,理由:
+auto-lang 已有 [Plan 332](../../../../../auto-lang/docs/plans/332-derive-to-atom-proc-macro.md)(`#[derive(FromAtom)]`,未实施),用自定义 trait + proc-macro。本 phase 走 **serde Deserializer 适配器** 路线,理由:
 - **零新 trait、零新 crate**:复用 Rust 生态主流 serde,任何已 `#[derive(Deserialize)]` 的 struct 直接可用。
 - **Plan 332 可基于它构建**:未来的 `#[derive(FromAtom)]` 宏生成的代码可以调用 serde 路径(而非新 trait),332 标注为"未来基于本 phase"。两套不冲突,本 phase 是底座。
 - **配置子集足够**:静态 `.at` 只产生 8 种 `Value` 变体(Str/Int/Uint/Double/Bool/Nil/Array/Obj),Deserializer 只需覆盖这些;VM 变体(Fn/Closure/Widget…)报错即可。
