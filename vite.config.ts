@@ -19,6 +19,11 @@ export default defineConfig({
   },
   server: {
     port: 17700,
+    // Pin to IPv4 loopback: on Windows `localhost` can resolve to ::1 and vite
+    // then binds IPv6-only, silently breaking tools that probe 127.0.0.1 (and
+    // splitting localhost across two stacks). Explicit 127.0.0.1 keeps every
+    // consumer (browser, E2E tests, health checks) on one deterministic stack.
+    host: '127.0.0.1',
     open: false, // don't auto-open (headless testing)
     // Proxy API calls to the unified config daemon (backend/, axum :17701).
     // Phase 1 of Plan 002: the front-end talks same-origin /api/* and Vite
