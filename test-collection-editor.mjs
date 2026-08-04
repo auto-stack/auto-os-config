@@ -25,6 +25,13 @@ const results = { passed: true };
 const fail = (m) => { results.passed = false; console.log('  ✗ FAIL: ' + m); };
 const pass = (m) => console.log('  ✓ PASS: ' + m);
 
+/** Click a sidebar module by its exact display name (avoids the ambiguity of
+ *  :has-text, which also matches description text). */
+async function clickModule(page, name) {
+  // .nav-name holds the exact label; its parent .nav-item is the button.
+  await page.locator('.nav-item .nav-name', { hasText: name }).locator('..').click();
+}
+
 console.log('=== Opening http://localhost:17700 ===');
 await page.goto('http://localhost:17700', { waitUntil: 'domcontentloaded', timeout: 10000 });
 await page.waitForTimeout(800);
@@ -36,7 +43,7 @@ for (const f of ['_e2e_role.at', '_e2e_role.at.bak', '_e2e_role.soul.md']) {
 
 // ── Roles module ──────────────────────────────────────────────────────────
 console.log('\n=== Module: Roles (collection browser) ===');
-await page.click('.nav-item:has-text("Roles")');
+await clickModule(page, 'Roles');
 await page.waitForTimeout(1500);
 
 let listItems = await page.$$eval('.entity-list li .e-name', (els) => els.map((e) => e.textContent));
@@ -131,7 +138,7 @@ try { unlinkSync(soulMd); } catch {}
 
 // ── Skills module (read-only) ─────────────────────────────────────────────
 console.log('\n=== Module: Skills (read-only collection) ===');
-await page.click('.nav-item:has-text("Skills")');
+await clickModule(page, 'Skills');
 await page.waitForTimeout(1500);
 const skillList = await page.$$eval('.entity-list li .e-name', (els) => els.map((e) => e.textContent));
 console.log('  skills:', skillList.length, 'items:', skillList.slice(0, 3).join(', '), '...');

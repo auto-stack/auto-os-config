@@ -46,8 +46,12 @@ onMounted(() => {
           <p>Select a module from the left to configure it.</p>
         </div>
 
-        <!-- Module config page (local built-in view, or federated remote). -->
-        <component v-else :is="activeComponent" v-bind="activeModuleProps" />
+        <!-- Module config page. The :key forces a fresh component instance per
+             module so composables that run at setup (useConfig/useCollection)
+             rebind to the new moduleId — otherwise switching between two modules
+             that render the SAME component (e.g. Roles→Skills, both
+             CollectionBrowser) would keep the old module's loaded state. -->
+        <component v-else :is="activeComponent" :key="activeModuleId" v-bind="activeModuleProps" />
       </div>
     </main>
   </div>

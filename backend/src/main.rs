@@ -28,15 +28,25 @@ use registry::{Module, Registry};
 
 #[tokio::main]
 async fn main() {
-    let registry = Registry::from_toml(registry::DEFAULT_REGISTRY_TOML)
-        .expect("default registry must parse");
     let root = config_root().expect("config root must resolve");
+    let mut registry = Registry::from_toml(registry::DEFAULT_REGISTRY_TOML)
+        .expect("default registry must parse");
+    // Merge third-party drop-in declarations from ~/.config/autoos/modules.d/.
+    // A missing directory is fine (no third-party modules installed); malformed
+    // files are skipped with a warning so one bad drop-in can't break the daemon.
+    let dropins_dir = root.join("modules.d");
+    match registry.merge_dropins(&dropins_dir) {
+        Ok(n) => println!("loaded {n} drop-in module(s) from {}", dropins_dir.display()),
+        Err(e) => eprintln!("[registry] drop-in scan failed: {e}"),
+    }
     let state = Arc::new(AppState {
         registry,
         config_root: root,
     });
 
     let app = Router::new()
+        // Module discovery — the front-end fetches this to build the sidebar.
+        .route("/api/modules", get(list_modules))
         // Single-file config (Shape A).
         .route("/api/config/:module_id", get(get_config).put(put_config))
         // Collection config (Shape B): a directory of homogeneous entities.
@@ -313,6 +323,47 @@ async fn enum_self_models(
 
 async fn health() -> Json<serde_json::Value> {
     Json(json!({ "ok": true }))
+}
+
+// ---- handler: module discovery --------------------------------------------
+
+/// A sidebar-ready module entry (the shape the frontend consumes).
+#[derive(Serialize)]
+struct ModuleEntry {
+    id: String,
+    kind: String,
+    name: String,
+    icon: String,
+    description: String,
+    group: String,
+    /// Present only for `custom` modules (the remote bundle URL).
+    remote: Option<String>,
+}
+
+/// `GET /api/modules` → the merged registry, flattened for the sidebar.
+///
+/// This is the single source of truth the frontend fetches (Plan 003): it
+/// replaces the hardcoded sidebar list. Drop-in modules appear here
+/// automatically. `name` falls back to `id` when a module didn't declare one.
+async fn list_modules(State(state): State<Arc<AppState>>) -> Json<Vec<ModuleEntry>> {
+    let entries = state
+        .registry
+        .modules
+        .iter()
+        .map(|m| {
+            let d = m.display();
+            ModuleEntry {
+                id: m.id().to_string(),
+                kind: m.kind().to_string(),
+                name: d.name.clone().unwrap_or_else(|| m.id().to_string()),
+                icon: d.icon.clone().unwrap_or_default(),
+                description: d.description.clone().unwrap_or_default(),
+                group: d.group.clone().unwrap_or_default(),
+                remote: m.remote().map(|s| s.to_string()),
+            }
+        })
+        .collect();
+    Json(entries)
 }
 
 // ---- handler: test daemon connection (proxies to aaid) --------------------

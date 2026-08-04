@@ -10,7 +10,11 @@
 import { ref, watch } from 'vue'
 import ConfigEditor from './ConfigEditor.vue'
 
-const moduleId = 'ai-daemon'
+// The module id is passed in (Plan 003 unified front/back ids); it's 'ai-daemon'
+// for the built-in daemon, but a DaemonView could wrap any file module that
+// exposes a test-connection action.
+const props = defineProps<{ moduleId: string }>()
+const moduleId = props.moduleId
 
 // ---- connection test ----
 type Status = 'idle' | 'checking' | 'ok' | 'fail' | 'unreachable'

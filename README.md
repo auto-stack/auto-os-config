@@ -78,28 +78,64 @@ node test-collection-editor.mjs   # roles + skills (Shape B)
 
 Each does a full create → edit → save → verify-file round-trip headlessly.
 
-## Registering a new module
+## Registering a new module (zero edits to auto-os-config)
 
-1. **Backend** — add a `[[module]]` block to the registry in
-   `backend/src/registry.rs` (`DEFAULT_REGISTRY_TOML`):
+A third-party module registers itself by dropping **one TOML file** into
+`~/.config/autoos/modules.d/`. The daemon scans that directory at startup and
+merges it with the built-in registry; the frontend fetches the result from
+`/api/modules`. No edits to auto-os-config's source.
+
+### Generic editor module (the common case)
+
+Create `~/.config/autoos/modules.d/my-module.toml`:
+```toml
+[[module]]
+kind = "file"            # or "collection" for a directory of entities
+id = "my-module"
+file = "my-module.at"    # relative to ~/.config/autoos/
+root = "mymod"           # expected root node name
+name = "My Module"       # sidebar display (optional; falls back to id)
+icon = "🔧"              # emoji or short string
+description = "What it configures"
+group = ""               # optional; non-empty clusters into a collapsible section
+```
+Restart the daemon. The module appears in the sidebar and renders a working,
+validated form (selects, multi-selects, password fields, tables) from its `.at`
+shape — **no frontend code at all**.
+
+### Custom-UX module (when you need bespoke UI)
+
+If the generic editor isn't enough, ship a remote component via the
+`createComponent(Vue)` factory protocol:
+
+1. **Build a remote bundle** that exports `createComponent(Vue)` and does NOT
+   import `vue` (externalize it — the host injects its own single Vue instance).
+   See [`examples/remote-module/`](examples/remote-module/) for a complete,
+   buildable reference (vite lib mode, `external: ['vue']`, `h()` render fns).
+2. **Serve** the built `dist/config-page.js` from your module's HTTP server
+   (with permissive CORS, since the host loads it cross-origin).
+3. **Declare** it as `kind = "custom"`:
    ```toml
    [[module]]
-   kind = "file"            # or "collection"
+   kind = "custom"
    id = "my-module"
-   file = "my-module.at"    # relative to ~/.config/autoos/
-   root = "mymod"           # expected root node name
+   remote = "http://127.0.0.1:9000/config-page.js"
+   name = "My Module"
+   icon = "🔧"
    ```
-2. **Frontend** — add a sidebar entry in `src/composables/useModules.ts`
-   (`loadModules()`) and a `LOCAL_VIEWS` mapping pointing at `ConfigEditor.vue`
-   (single file) or `CollectionBrowser.vue` (a directory of entities):
-   ```ts
-   'my-module': { load: () => import('../components/ConfigEditor.vue'), configId: 'my-module' }
-   ```
-3. **Done.** The module gets a working, validated form (selects, multi-selects,
-   password fields, tables…) rendered from its `.at` shape.
 
-Write a custom `.vue` component only when you need special UX (an action button,
-a non-form visualization) and point `load` at it instead.
+The remote component receives `{ moduleId }` as a prop and reads/writes its
+config through the same daemon endpoints (`/api/config/:id`) as the generic
+editor — the data layer stays unified; only the view is custom.
+
+> **Why `createComponent(Vue)` instead of an importmap?** The old architecture
+> used a page-global importmap + a vendored 383 KB Vue file, and silently broke
+> reactivity if the host's and remote's `vue` URLs didn't match byte-for-byte
+> (two Vue instances → template never re-renders). The factory protocol makes
+> the remote **never import vue at all** — it gets the host's instance as an
+> argument — eliminating the failure mode entirely. No importmap, no vendored
+> file, no `vite.config.ts` changes. See [`plans/003`](plans/003-module-self-registration.md)
+> §2 for the full rationale.
 
 ## Notes & limitations
 

@@ -33,6 +33,12 @@ const results = { passed: true };
 const fail = (msg) => { results.passed = false; console.log('  ✗ FAIL: ' + msg); };
 const pass = (msg) => console.log('  ✓ PASS: ' + msg);
 
+/** Click a sidebar module by its exact display name (avoids :has-text matching
+ *  description text). */
+async function clickModule(page, name) {
+  await page.locator('.nav-item .nav-name', { hasText: name }).locator('..').click();
+}
+
 // Snapshot the original musk config so we can restore it after the save test.
 const originalMusk = readFileSync(MUSK_AT, 'utf8');
 
@@ -42,7 +48,7 @@ await page.waitForTimeout(1000);
 
 // ── Module 1: AI Daemon (generic ConfigEditor) ───────────────────────────
 console.log('\n=== Module 1: AI Daemon (generic editor) ===');
-await page.click('.nav-item:has-text("AI Daemon")');
+await clickModule(page, "AI Daemon");
 await page.waitForTimeout(1500);
 
 let info = await page.evaluate(() => {
@@ -92,27 +98,33 @@ if (providerOptions.includes('zhipu') && providerOptions.includes('deepseek') &&
 }
 
 // ── Test connection button (aaid offline or online) ───────────────────────
+// ai-daemon renders DaemonView (a built-in bespoke file view) which includes
+// the test-connection button. If absent, something regressed — fail loudly.
 console.log('\n=== Test connection (aaid may be online or offline) ===');
-await page.click('button:has-text("Test")');
-// The test call proxies to aaid which issues a real LLM completion — give it
-// up to 20s (it's usually ~1s when the daemon is up).
-await page.waitForFunction(() => {
-  const s = document.querySelector('.test-status')?.textContent?.trim();
-  return s && !s.includes('testing');
-}, { timeout: 20000 });
-const testStatus = await page.evaluate(() => document.querySelector('.test-status')?.textContent?.trim());
-console.log('  status:', testStatus);
-if (testStatus && (testStatus.includes('offline') || testStatus.includes('failed'))) {
-  pass(`test-connection handled offline daemon (${testStatus})`);
+const hasTestBtn = await page.evaluate(() => !!document.querySelector('.test-card'));
+if (!hasTestBtn) {
+  fail('ai-daemon should render DaemonView (test-card), but it is absent');
+  console.log('  (skipped: ai-daemon currently renders the generic editor; DaemonView restored in Plan 003 Step 4)');
 } else {
-  // might actually be online if aaid runs — accept ok too
-  if (testStatus && (testStatus.includes('online') || testStatus.includes('ok'))) pass(`daemon online (${testStatus})`);
-  else fail(`unexpected test status: ${testStatus}`);
+  await page.click('button:has-text("Test")');
+  await page.waitForFunction(() => {
+    const s = document.querySelector('.test-status')?.textContent?.trim();
+    return s && !s.includes('testing');
+  }, { timeout: 20000 });
+  const testStatus = await page.evaluate(() => document.querySelector('.test-status')?.textContent?.trim());
+  console.log('  status:', testStatus);
+  if (testStatus && (testStatus.includes('offline') || testStatus.includes('failed'))) {
+    pass(`test-connection handled offline daemon (${testStatus})`);
+  } else if (testStatus && (testStatus.includes('online') || testStatus.includes('ok'))) {
+    pass(`daemon online (${testStatus})`);
+  } else {
+    fail(`unexpected test status: ${testStatus}`);
+  }
 }
 
 // ── Module 2: Auto Musk (generic ConfigEditor) ───────────────────────────
 console.log('\n=== Module 2: Auto Musk (generic editor) ===');
-await page.click('.nav-item:has-text("Auto Musk")');
+await clickModule(page, "Auto Musk");
 await page.waitForTimeout(1500);
 
 info = await page.evaluate(() => ({
@@ -165,8 +177,13 @@ writeFileSync(MUSK_AT, originalMusk);
 try { unlinkSync(MUSK_AT + '.bak'); } catch {}
 
 console.log('\n=== Page errors during run ===');
-if (errors.length === 0) pass('no page/console errors');
-else errors.forEach((e) => fail(e));
+// The test-connection action legitimately 503s when aaid is offline (the
+// expected "offline" path) — filter that expected network response.
+const realErrors = errors.filter(
+  (e) => !e.includes('503 (Service Unavailable)') && !/Failed to load resource.*503/.test(e),
+);
+if (realErrors.length === 0) pass('no unexpected page/console errors');
+else realErrors.forEach((e) => fail(e));
 
 await browser.close();
 console.log(`\n=== RESULT: ${results.passed ? 'PASS' : 'FAIL'} ===`);

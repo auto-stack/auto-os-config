@@ -1,40 +1,43 @@
 import { ref, shallowRef, type Component } from 'vue'
+import * as Vue from 'vue'
 
-// Local (built-in) views for modules that the unified daemon serves directly.
-// Plan 002: file-kind modules render via the generic ConfigEditor; ai-daemon
-// has a custom DaemonView (ConfigEditor + test-connection). Modules not listed
-// here fall back to the legacy remote `import()` path (until Phase 4 removes it).
-//
-// The key is the SIDEBAR module id (from useModules' module list). The value
-// passed to ConfigEditor as `moduleId` is the BACKEND registry id (which names
-// the config file); they differ for historical reasons and are unified in
-// Phase 4. The `configId` field carries that mapping.
-const LOCAL_VIEWS: Record<string, {
-  load: () => Promise<{ default: Component }>
-  configId: string
-  /** For CollectionBrowser modules that are read-only (frontmatter-md). */
-  readOnly?: boolean
-}> = {
-  'ai-daemon': { load: () => import('../components/DaemonView.vue'), configId: 'ai-daemon' },
-  'ai-musk': { load: () => import('../components/ConfigEditor.vue'), configId: 'auto-musk' },
-  'ai-roles': { load: () => import('../components/CollectionBrowser.vue'), configId: 'roles' },
-  'ai-skills': { load: () => import('../components/CollectionBrowser.vue'), configId: 'skills', readOnly: true },
+// The generic, built-in editor components. A `file`-kind module renders via
+// ConfigEditor; a `collection`-kind module renders via CollectionBrowser.
+// A `custom`-kind module serves its own component via the createComponent(Vue)
+// factory protocol (Plan 003 §2). Importing these statically keeps them in the
+// host bundle; only `custom` modules hit the network.
+import ConfigEditor from '../components/ConfigEditor.vue'
+import CollectionBrowser from '../components/CollectionBrowser.vue'
+import DaemonView from '../components/DaemonView.vue'
+
+/** File-kind modules that ship a bespoke in-house view INSTEAD of the generic
+ *  ConfigEditor. These are first-party components (statically imported, in the
+ *  host bundle) — distinct from third-party `custom`-kind modules, which load a
+ *  remote bundle via the createComponent(Vue) factory. Today only ai-daemon
+ *  needs custom UX (the test-connection button); every other file module uses
+ *  the generic editor. */
+const BUILTIN_FILE_VIEWS: Record<string, Component> = {
+  'ai-daemon': DaemonView,
 }
 
+/** A module as advertised by `GET /api/modules` (the single source of truth). */
 export interface ConfigModule {
   id: string
+  /** "file" | "collection" | "custom" — drives which view renders. */
+  kind: string
   name: string
   icon: string
   description: string
+  /** Sidebar group label; empty string = top-level standalone item. */
+  group: string
+  /** Present only for `custom` modules: the remote bundle URL. */
+  remote?: string
 }
 
-/** A group of related modules rendered as a collapsible section in the
- *  sidebar (Win11 "System > sub-items" style). Top-level modules (no group)
- *  render as standalone items. */
+/** A group of related modules rendered as a collapsible sidebar section. */
 export interface ModuleGroup {
   id: string
   label: string
-  /** module ids that belong to this group. */
   memberIds: string[]
 }
 
@@ -42,7 +45,7 @@ const modules = ref<ConfigModule[]>([])
 const groups = ref<ModuleGroup[]>([])
 /** Which groups are expanded (collapsed by default except the one containing
  *  the active module). */
-const expandedGroups = ref<Set<string>>(new Set(['harness']))
+const expandedGroups = ref<Set<string>>(new Set())
 const activeModuleId = ref<string | null>(null)
 const activeComponent = shallowRef<Component | null>(null)
 /** Props passed to the active component (e.g. { moduleId } for ConfigEditor). */
@@ -50,62 +53,48 @@ const activeModuleProps = ref<Record<string, unknown>>({})
 const loading = ref(false)
 const error = ref('')
 
-/** Load the module registry.
+/** Load the module registry from the daemon.
  *
- * Plan 002: every module is served by the unified daemon and rendered by a
- * local built-in component (see LOCAL_VIEWS). The "Agents" module was removed
- * in Phase 4 — it listed agent modes, which are built into the musk binary
- * (not file-backed config), so it doesn't belong in the config center. The
- * default mode for an app is chosen in that app's own config (Auto Musk).
- */
+ * Plan 003: the sidebar is no longer hardcoded. The backend merges built-in
+ * modules with drop-in declarations from `~/.config/autoos/modules.d/` and
+ * exposes them at `/api/modules`. Groups are derived from each module's
+ * `group` field (modules sharing a non-empty group cluster into one section,
+ * preserving first-seen order). */
 export async function loadModules() {
   loading.value = true
   error.value = ''
   try {
-    modules.value = [
-      {
-        id: 'ai-daemon',
-        name: 'AI Daemon',
-        icon: '🔌',
-        description: 'LLM providers, API keys, model tiers',
-      },
-      {
-        id: 'ai-skills',
-        name: 'Skills',
-        icon: '🧩',
-        description: 'Skill registry and prompts',
-      },
-      {
-        id: 'ai-roles',
-        name: 'Roles',
-        icon: '🎭',
-        description: 'Agent roles: soul, skills, tiers',
-      },
-      {
-        id: 'ai-musk',
-        name: 'Auto Musk',
-        icon: '🦌',
-        description: 'Musk app: daemon, defaults, harness',
-      },
-    ]
-    groups.value = [
-      {
-        id: 'harness',
-        label: 'Harness',
-        memberIds: ['ai-skills', 'ai-roles'],
-      },
-    ]
-  } catch (e) {
-    error.value = `Failed to load modules: ${e}`
+    const resp = await fetch('/api/modules')
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    const list = (await resp.json()) as ConfigModule[]
+    modules.value = list
+    // Derive groups from the `group` field, in first-seen order.
+    const seen = new Map<string, string[]>()
+    for (const m of list) {
+      if (!m.group) continue
+      if (!seen.has(m.group)) seen.set(m.group, [])
+      seen.get(m.group)!.push(m.id)
+    }
+    groups.value = [...seen.entries()].map(([label, memberIds]) => ({
+      // Stable id derived from the label (lowercased) — used as the expand key.
+      id: label.toLowerCase().replace(/\s+/g, '-'),
+      label,
+      memberIds,
+    }))
+    // Re-seed expanded groups so the (newly-derived) harness group stays open
+    // by default, matching the previous UX.
+    if (groups.value.length && expandedGroups.value.size === 0) {
+      expandedGroups.value = new Set([groups.value[0].id])
+    }
+  } catch (e: any) {
+    error.value = `Failed to load modules: ${e.message || e}`
     modules.value = []
     groups.value = []
   } finally {
     loading.value = false
   }
 
-  // Deep-link: if the URL has a hash like #ai-musk, auto-select that module.
-  // This lets app web UIs (e.g. musk's ⚙️ Settings button) link directly to
-  // their config page in auto-os-config.
+  // Deep-link: if the URL has a hash like #auto-musk, auto-select that module.
   const hash = window.location.hash.slice(1)
   if (hash && modules.value.some((m) => m.id === hash)) {
     await selectModule(hash)
@@ -137,14 +126,19 @@ function toggleGroup(groupId: string) {
   expandedGroups.value = new Set(expandedGroups.value)
 }
 
-/** Dynamically load a module's config page component.
+/** Load and activate a module's view, dispatched by `kind`.
  *
- * Resolution order:
- *  1. LOCAL_VIEWS — built-in component served by the unified daemon (Plan 002).
- *     These are passed `moduleId` as a prop so the generic editor knows which
- *     file to load.
- *  2. Legacy remote `import()` of the module's own ESM bundle (musk/aaid). This
- *     path is removed in Phase 4. */
+ *  - `file`       → ConfigEditor (generic; the module's id IS the config id)
+ *  - `collection` → CollectionBrowser (generic; skills is read-only via a
+ *                   daemon-side convention — detected here by the frontmatter
+ *                   format, which the list endpoint doesn't expose directly, so
+ *                   we treat `skills`-style read-only-ness heuristically: any
+ *                   collection whose id is `skills`. TODO: surface format.)
+ *  - `custom`     → dynamically import the remote bundle and call its
+ *                   `createComponent(Vue)` factory (Plan 003 §2). The remote
+ *                   never imports vue — it receives the host's single instance,
+ *                   which is what keeps reactivity working without an importmap.
+ */
 export async function selectModule(moduleId: string) {
   const mod = modules.value.find((m) => m.id === moduleId)
   if (!mod) return
@@ -161,21 +155,46 @@ export async function selectModule(moduleId: string) {
   }
 
   try {
-    const local = LOCAL_VIEWS[moduleId]
-    if (!local) {
-      error.value = `Module "${mod.name}" has no built-in view registered.`
-      return
+    if (mod.kind === 'file') {
+      // An in-house bespoke view (e.g. ai-daemon's test-connection wrapper)
+      // takes precedence over the generic ConfigEditor for the modules that
+      // declare one. Third-party modules never land here — they're `custom`.
+      activeComponent.value = BUILTIN_FILE_VIEWS[mod.id] ?? ConfigEditor
+      // The module id IS the backend config id now (Plan 003 unified them).
+      activeModuleProps.value = { moduleId: mod.id }
+    } else if (mod.kind === 'collection') {
+      activeComponent.value = CollectionBrowser
+      // skills is the only frontmatter-md (read-only) collection today. The
+      // backend list endpoint doesn't expose `format`, so we key off the id;
+      // a future endpoint can make this declarative. See Plan 003 §4.2 note.
+      const readOnly = mod.id === 'skills'
+      activeModuleProps.value = { moduleId: mod.id, readOnly }
+    } else if (mod.kind === 'custom') {
+      if (!mod.remote) {
+        throw new Error(`custom module "${mod.name}" has no remote URL`)
+      }
+      // Plan 003 §2: the remote exports createComponent(Vue). Passing the
+      // host's Vue module guarantees one shared reactivity system — the remote
+      // never imports vue, so there's no second-instance failure mode.
+      const exposed = await import(/* @vite-ignore */ mod.remote)
+      const factory = exposed.createComponent
+      if (typeof factory !== 'function') {
+        throw new Error(
+          `remote ${mod.remote} did not export a createComponent(Vue) factory`,
+        )
+      }
+      activeComponent.value = factory(Vue)
+      activeModuleProps.value = { moduleId: mod.id }
+    } else {
+      throw new Error(`unknown module kind "${mod.kind}" for "${mod.name}"`)
     }
-    const exposed = await local.load()
-    activeComponent.value = exposed.default || exposed
-    // Pass the BACKEND config id (the file's registry key) — distinct from the
-    // sidebar id. DaemonView is internally keyed to ai-daemon, so this prop is
-    // a no-op for it; ConfigEditor/CollectionBrowser use it to fetch/save.
-    // `readOnly` lets CollectionBrowser hide New/Edit before a selection loads
-    // (frontmatter-md modules like skills).
-    activeModuleProps.value = { moduleId: local.configId, readOnly: local.readOnly ?? false }
   } catch (e: any) {
-    error.value = `Failed to load "${mod.name}": ${e.message || e}`
+    if (mod.kind === 'custom') {
+      error.value = `Failed to load "${mod.name}": ${e.message || e}. ` +
+        `Make sure the module is running and serving its bundle at ${mod.remote}.`
+    } else {
+      error.value = `Failed to load "${mod.name}": ${e.message || e}`
+    }
   } finally {
     loading.value = false
   }
