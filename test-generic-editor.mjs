@@ -34,9 +34,10 @@ const fail = (msg) => { results.passed = false; console.log('  ✗ FAIL: ' + msg
 const pass = (msg) => console.log('  ✓ PASS: ' + msg);
 
 /** Click a sidebar module by its exact display name (avoids :has-text matching
- *  description text). */
+ *  description text, and exact-match guards against name prefixes like
+ *  "Roles" vs "Harness Roles"). */
 async function clickModule(page, name) {
-  await page.locator('.nav-item .nav-name', { hasText: name }).locator('..').click();
+  await page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('..').click();
 }
 
 // Snapshot the original musk config so we can restore it after the save test.

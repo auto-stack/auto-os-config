@@ -378,6 +378,40 @@ modules {
         description : "Skill registry and prompts"
         group : "Harness"
     }
+
+    module {
+        kind : file
+        id : "ai-client"
+        file : "ai-client.at"
+        root : "client"
+        name : "AI Client"
+        icon : "📡"
+        description : "Client-side provider registry + model validation"
+    }
+
+    module {
+        kind : collection
+        id : "modes"
+        dir : "modes"
+        entity_suffix : ".at"
+        entity_root : "mode"
+        name : "Modes"
+        icon : "⚙️"
+        description : "Agent run modes (custom .at override builtins)"
+        group : "Harness"
+    }
+
+    module {
+        kind : collection
+        id : "musk-harness-roles"
+        dir : "apps/musk/harness/roles"
+        entity_suffix : ".at"
+        entity_root : "role"
+        name : "Harness Roles"
+        icon : "🧑‍🔧"
+        description : "Musk harness role definitions (consumed by auto-ai-agent)"
+        group : "Harness"
+    }
 }
 "#;
 
@@ -388,11 +422,15 @@ mod tests {
     #[test]
     fn default_registry_loads() {
         let r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
-        assert_eq!(r.modules.len(), 4);
+        assert_eq!(r.modules.len(), 7);
         assert!(matches!(r.find("ai-daemon"), Some(Module::File(_))));
         assert!(matches!(r.find("auto-musk"), Some(Module::File(_))));
         assert!(matches!(r.find("roles"), Some(Module::Collection(_))));
         assert!(matches!(r.find("skills"), Some(Module::Collection(_))));
+        // Newer first-party modules (config architecture coverage).
+        assert!(matches!(r.find("ai-client"), Some(Module::File(_))));
+        assert!(matches!(r.find("modes"), Some(Module::Collection(_))));
+        assert!(matches!(r.find("musk-harness-roles"), Some(Module::Collection(_))));
     }
 
     #[test]
@@ -478,7 +516,7 @@ mod tests {
         let mut r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
         let n = r.merge_dropins(std::path::Path::new("/nonexistent/path/xyz")).unwrap();
         assert_eq!(n, 0);
-        assert_eq!(r.modules.len(), 4); // unchanged
+        assert_eq!(r.modules.len(), 7); // unchanged
     }
 
     #[test]
@@ -551,8 +589,11 @@ mod tests {
         let r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
         // file modules carry no format
         assert_eq!(r.find("ai-daemon").unwrap().format(), None);
+        assert_eq!(r.find("ai-client").unwrap().format(), None);
         // atom collections → "atom"
         assert_eq!(r.find("roles").unwrap().format(), Some("atom"));
+        assert_eq!(r.find("modes").unwrap().format(), Some("atom"));
+        assert_eq!(r.find("musk-harness-roles").unwrap().format(), Some("atom"));
         // frontmatter-md collections → "frontmatter-md" (drives read-only UI)
         assert_eq!(r.find("skills").unwrap().format(), Some("frontmatter-md"));
     }

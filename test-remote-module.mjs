@@ -25,7 +25,9 @@ const fail = (m) => { results.passed = false; console.log('  ✗ FAIL: ' + m); }
 const pass = (m) => console.log('  ✓ PASS: ' + m);
 
 async function clickModule(page, name) {
-  await page.locator('.nav-item .nav-name', { hasText: name }).locator('..').click();
+  // Exact match: :has-text is substring-based and would also hit name
+  // prefixes (e.g. "Roles" vs "Harness Roles").
+  await page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('..').click();
 }
 
 console.log('=== Opening http://localhost:17700 ===');

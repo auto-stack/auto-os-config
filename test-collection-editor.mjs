@@ -26,10 +26,11 @@ const fail = (m) => { results.passed = false; console.log('  ✗ FAIL: ' + m); }
 const pass = (m) => console.log('  ✓ PASS: ' + m);
 
 /** Click a sidebar module by its exact display name (avoids the ambiguity of
- *  :has-text, which also matches description text). */
+ *  :has-text, which also matches description text and name prefixes like
+ *  "Roles" vs "Harness Roles"). */
 async function clickModule(page, name) {
   // .nav-name holds the exact label; its parent .nav-item is the button.
-  await page.locator('.nav-item .nav-name', { hasText: name }).locator('..').click();
+  await page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('..').click();
 }
 
 console.log('=== Opening http://localhost:17700 ===');
