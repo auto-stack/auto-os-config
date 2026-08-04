@@ -1,0 +1,21 @@
+[package]
+name = "auto-os-config-daemon"
+version = "0.1.0"
+edition = "2021"
+description = "Unified config daemon for AutoOS — reads/writes any .at config file via a generic auto-atom AST projection."
+
+[dependencies]
+# Generic .at parse/serialize (shared with auto-ai / auto-musk). Path deps point
+# at the sibling auto-lang repo, same convention as auto-ai/crates/ai-config.
+auto-atom = { path = "../../auto-lang/crates/auto-atom" }
+auto-val = { path = "../../auto-lang/crates/auto-val" }
+
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "5"
+toml = "0.8"
+thiserror = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

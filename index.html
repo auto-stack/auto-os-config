@@ -25,21 +25,6 @@
     // which doesn't exist in the browser. Define a minimal stub.
     window.process = window.process || { env: {} };
   </script>
-  <!--
-    Import map: resolve the bare specifier `vue` to a single, shared Vue
-    runtime. Remote config-page bundles (aaid, musk) externalize vue, so their
-    `import { ref } from 'vue'` is resolved here — to THIS copy. Sharing one Vue
-    instance is what keeps component reactivity (ref/onMounted/v-if) working
-    when a remote component is rendered inside this host. Two separate Vue
-    copies would each have their own reactivity system and break.
-  -->
-  <script type="importmap">
-  {
-    "imports": {
-      "vue": "/public/vendor/vue.runtime.esm-browser.js"
-    }
-  }
-  </script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

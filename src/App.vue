@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar.vue'
 import { useModules } from './composables/useModules'
 
 const {
-  modules, groups, expandedGroups, activeModuleId, activeComponent, loading, error,
+  modules, groups, expandedGroups, activeModuleId, activeComponent, activeModuleProps, loading, error,
   loadModules, selectModule, standaloneModules, groupMembers, toggleGroup,
 } = useModules()
 
@@ -46,8 +46,8 @@ onMounted(() => {
           <p>Select a module from the left to configure it.</p>
         </div>
 
-        <!-- Module config page (federated remote component) -->
-        <component v-else :is="activeComponent" />
+        <!-- Module config page (local built-in view, or federated remote). -->
+        <component v-else :is="activeComponent" v-bind="activeModuleProps" />
       </div>
     </main>
   </div>

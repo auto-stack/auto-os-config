@@ -1,117 +1,117 @@
 # auto-os-config
 
-AutoOS unified settings center — a Vue3 SPA that provides a Win11-style
-configuration interface for all AutoOS system modules (AI Daemon, AI Agent, …).
+AutoOS unified settings center — one daemon, one generic editor, for **every**
+config module. A Vue 3 SPA + a small Rust backend that read/write any `.at`
+(auto-atom) config file directly, with zero per-module code.
 
 ```
 ┌─────────────┬──────────────────────────────────────────┐
-│  Sidebar    │  <component :is="activeComponent" />     │
-│             │                                          │
-│ 🔌 AI Daemon│  The selected module's config page,      │
-│ 🤖 AI Agent │  loaded at runtime as a standalone ESM   │
-│  …          │  bundle from the module's own server.    │
+│  Sidebar    │  <ConfigEditor :module-id="…" />         │
+│             │     or <CollectionBrowser />             │
+│ 🔌 AI Daemon│     or <DaemonView />  (the one custom)  │
+│ ▼ Harness   │                                          │
+│    🧩 Skills│  A form auto-rendered from the config    │
+│    🎭 Roles │  file's shape — no hand-written page.    │
+│ 🦌 Auto Musk│                                          │
 └─────────────┴──────────────────────────────────────────┘
-   auto-os-config host (:17700)          aaid (:17654) / musk (:8080)
+   vite (:17700)  ──/api──▶  auto-os-config-daemon (:17701)
+                                  reads/writes ~/.config/autoos/*.at
 ```
 
-## How the plugin system works
+The whole point: **different config modules are registered separately, but their
+implementation is unified** — as if they lived in one project. A new module with
+a new `.at` shape gets a working, validated editor for free; only genuinely
+custom UX (e.g. "test the daemon connection") needs a hand-written component.
 
-Each module ships a **standalone ESM config-page bundle** (built with Vite *lib
-mode*), served by the module's own HTTP server at `/config-page.js`. The host
-loads it at runtime via dynamic `import()` — **no build-time dependency** on any
-module.
+## Architecture (Plan 002)
 
-```
-selectModule(id) → import('http://<module-host>/config-page.js') → render default export
-```
+Three pillars:
 
-The one subtlety: **a single shared Vue runtime**. Each module's bundle
-externalizes `vue` (emits a bare `import 'vue'`), and the host's
-`<script type="importmap">` in `index.html` resolves that specifier to one
-vendored copy of Vue (`public/vendor/vue.runtime.esm-browser.js`). The host's
-own `resolve.alias` points `vue` at the *same* file/URL.
+| Pillar | Role | Location |
+|---|---|---|
+| **① Unified daemon** | The only config read/write service. URL → file path by convention (`~/.config/autoos/`). Replaces each module shipping its own config API. | `backend/` |
+| **② Generic editor** | Renders a form from the `.at` data *shape* + a few key-name conventions. New module = zero frontend work. | `src/components/ConfigEditor.vue`, `src/editor/` |
+| **③ Module registry** | Declares each module's id + file/dir (+ optional custom component). | `backend/src/registry.rs`, `src/composables/useModules.ts` |
 
-> ⚠️ Why this matters: if the host and a remote each load their own Vue, they
-> get **two separate reactivity systems**. A remote component's `ref`/`onMounted`
-> then updates correctly in its script but its template never re-renders — data
-> fetches succeed yet the UI stays on "Loading…". Sharing one Vue instance is
-> what makes remote component reactivity work.
+See [`plans/002-unified-config-daemon.md`](plans/002-unified-config-daemon.md) for
+the full design, decisions, and trade-offs.
+
+### How the generic editor decides which control to use
+
+No per-file schema. `inferField(key, value)` maps the value's shape + a few
+key-name conventions to a control:
+
+| auto-atom shape | convention | control |
+|---|---|---|
+| `bool` | — | toggle |
+| number | — | number input |
+| string + key matches `/_key$|api_key|secret|token|password/i` | secret | **password** (masked) |
+| `[roles\|skills\|modes]` | harness trio | **multi-select** (options from the dir scan) |
+| other scalar array | — | tag input |
+| `tier` / `model_tier` | closed enum | **select** (min/lite/mid/pro/max) |
+| `default_provider` | self-referential | select (providers defined in the same file) |
+| `default_mode` | dir enum (empty if builtin) | select, falls back to free text + hint |
+| `[{obj, obj}]` | homogeneous objects | **table** (add/remove rows) |
+| nested object | — | collapsible subform (recursive) |
 
 ## Quick start
 
 ```sh
-npm install
-npm run dev    # → http://localhost:17700
+# 1. Backend daemon (axum, :17701) — reads/writes ~/.config/autoos/*.at
+cd backend && cargo run                 # → http://127.0.0.1:17701
+
+# 2. Frontend (vite, :17700) — proxies /api → :17701
+cd .. && npm install && npm run dev     # → http://localhost:17700
 ```
 
-Then start the module servers the pages load from:
+Open http://localhost:17700. The sidebar lists the modules; click one to edit.
+**Only the AI Daemon's "Test connection" button needs another service online**
+(aaid :17654, to actually call the LLM) — everything else works offline against
+the config files.
+
+### End-to-end tests (Playwright)
 
 ```sh
-# AI Daemon (auto-ai)
-cd ../auto-ai && cargo run -p auto-ai-daemon        # :17654
-
-# AI Agent (auto-musk)
-cd ../auto-musk/backend && cargo run -p musk -- serve # :8080
+node test-generic-editor.mjs      # ai-daemon + auto-musk (Shape A)
+node test-collection-editor.mjs   # roles + skills (Shape B)
 ```
 
-Open http://localhost:17700 — the sidebar lists **AI Daemon** and **AI Agent**.
-Click either to load its config page.
-
-### End-to-end test (Playwright)
-
-```sh
-node test-both-modules.mjs
-```
-
-Headless browser check that both modules load **reactive** data (provider cards
-for aaid, mode/profession/skill cards for musk). Screenshots are written to
-`screenshot-aaid.png` / `screenshot-musk.png`.
+Each does a full create → edit → save → verify-file round-trip headlessly.
 
 ## Registering a new module
 
-1. **Build a config-page bundle.** In the module's frontend, use Vite lib mode
-   with `vue` externalized:
-
+1. **Backend** — add a `[[module]]` block to the registry in
+   `backend/src/registry.rs` (`DEFAULT_REGISTRY_TOML`):
+   ```toml
+   [[module]]
+   kind = "file"            # or "collection"
+   id = "my-module"
+   file = "my-module.at"    # relative to ~/.config/autoos/
+   root = "mymod"           # expected root node name
+   ```
+2. **Frontend** — add a sidebar entry in `src/composables/useModules.ts`
+   (`loadModules()`) and a `LOCAL_VIEWS` mapping pointing at `ConfigEditor.vue`
+   (single file) or `CollectionBrowser.vue` (a directory of entities):
    ```ts
-   // vite.config.ts
-   export default defineConfig({
-     plugins: [vue()],
-     build: {
-       target: 'esnext',
-       lib: { entry: './src/config-page.vue', formats: ['es'], fileName: 'config-page' },
-       rollupOptions: { external: ['vue'] },   // ← share the host's Vue
-       outDir: './frontend-dist',
-     },
-   })
+   'my-module': { load: () => import('../components/ConfigEditor.vue'), configId: 'my-module' }
    ```
+3. **Done.** The module gets a working, validated form (selects, multi-selects,
+   password fields, tables…) rendered from its `.at` shape.
 
-   The component reads its base URL from `import.meta.url` so `fetch()` hits the
-   module's own server regardless of where the bundle is loaded from:
+Write a custom `.vue` component only when you need special UX (an action button,
+a non-form visualization) and point `load` at it instead.
 
-   ```ts
-   const API_BASE = `${new URL(import.meta.url).origin}`
-   ```
+## Notes & limitations
 
-2. **Serve the bundle** from the module's HTTP server at `/config-page.js`,
-   with permissive CORS (so the host can load it cross-origin).
-
-3. **Register it** in `src/composables/useModules.ts` (the `modules` default
-   list), or a future `~/.config/autoos/modules.json`:
-
-   ```jsonc
-   { "id": "my-module", "name": "My Module", "icon": "🔧",
-     "description": "…",
-     "remote": "http://127.0.0.1:XXXX/config-page.js" }
-   ```
-
-4. Reload auto-os-config — the module appears in the sidebar.
-
-## Notes
-
-- The vendored Vue (`public/vendor/vue.runtime.esm-browser.js`) is the
-  **runtime-only** ESM build. Remote config pages are pre-compiled by Vite lib
-  mode into render functions, so no compiler is needed in the browser.
-- The import map URL must **exactly match** the URL the host's own `import
-  'vue'` resolves to (via the Vite alias) — otherwise the browser loads two Vue
-  copies and reactivity silently breaks. See the comments in `index.html` and
-  `vite.config.ts`.
+- **Write-back reformatting.** Saving rewrites the file from its parsed AST: it
+  normalizes indentation, re-quotes bare identifiers (`zhipu` → `"zhipu"`,
+  semantically identical), and **drops comments**. A `.bak` backup is written
+  next to every file before each save; the first save in a browser asks for
+  confirmation. Field order is preserved (insertion-ordered).
+- **No new top-level blocks via the editor (v1).** The merge updates existing
+  fields/rows; adding a brand-new named block (e.g. a whole new provider in
+  `ai-daemon.at`) isn't supported — edit the file by hand for that.
+- **Config root** is `~/.config/autoos/` (resolved via `dirs::home_dir()`),
+  matching the convention used across auto-ai / auto-musk. On Windows this is
+  `C:\Users\<user>\.config\autoos\`.
+- **Skills are read-only** in v1 (they're Markdown prompts, not settings).
