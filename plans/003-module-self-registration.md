@@ -168,4 +168,38 @@ module {
 - ⏸ 运行期热注册(drop-in 重启即生效)
 - ⏸ 远程组件沙箱/安全(本地 trusted 模型)
 - ⏸ 远程组件版本协商(v1 固定 `createComponent(Vue)` 签名)
-- ⏸ `/api/modules` 暴露 collection format(消除 §5.3 启发式)
+- ⏸ `/api/modules` 暴露 collection format(消除 §5.3 启式)
+
+---
+
+## 8. 衍生 Phase:让 `Value` 支持 `Deserialize`(auto-lang 仓库)
+
+> **位置**:本 phase 的**实现**在 `auto-lang` 仓库(`crates/auto-val`),不在本仓库。
+> 此处只记录动机与衔接。完整设计见 auto-lang Plan 381。
+
+### 8.1 动机(从本计划衍生)
+Step 6 把 registry 从 TOML 迁到 auto-atom 时,我手写了 `opt_string`/`required_string` 抽字段。这不是个例——`auto-ai` 的 `role_config.rs`、`loader.rs`、`app_config.rs` 全都是同一套手写模式。痛点真实且重复。
+
+**目标**:给 `auto-val::Value` 加一个 serde `Deserializer` 适配器(feature-gated),让任何 `#[derive(Deserialize)]` 的 struct 能直接从 `Value`(或 `Node`)反序列化——一行替代几十行 `opt_*`。
+
+### 8.2 为什么是 serde 适配器而非 Plan 332 的 derive ToAtom/FromAtom
+auto-lang 已有 [Plan 332](../../../auto-lang/docs/plans/332-derive-to-atom-proc-macro.md)(`#[derive(FromAtom)]`,未实施),用自定义 trait + proc-macro。本 phase 走 **serde Deserializer 适配器** 路线,理由:
+- **零新 trait、零新 crate**:复用 Rust 生态主流 serde,任何已 `#[derive(Deserialize)]` 的 struct 直接可用。
+- **Plan 332 可基于它构建**:未来的 `#[derive(FromAtom)]` 宏生成的代码可以调用 serde 路径(而非新 trait),332 标注为"未来基于本 phase"。两套不冲突,本 phase 是底座。
+- **配置子集足够**:静态 `.at` 只产生 8 种 `Value` 变体(Str/Int/Uint/Double/Bool/Nil/Array/Obj),Deserializer 只需覆盖这些;VM 变体(Fn/Closure/Widget…)报错即可。
+
+### 8.3 状态:已实施(auto-lang feat/value-serde-deserializer 分支)
+- `auto-val` 加 `serde` feature(optional,默认关);`ValueDeserializer` 实现 `serde::de::Deserializer`,覆盖标量/Array/Obj/Node(props)/Option/enum。
+- `Value::deserialize_into<T>()` + `Node::deserialize<T>()` 便捷入口。
+- 160 单测通过(含 15 个 de 测试);默认配置不拉 serde 依赖。
+- 阻碍 `AutoStr = ecow::EcoString`(无 Deserialize)通过"适配器内部取 `&str`"绕开,**不改 ecow**。
+
+### 8.4 本仓库的后续迁移(等 381 合并后)
+`registry.rs` 的 `parse_module_node`/`opt_string`/`required_string` 可换成:
+```rust
+#[derive(Deserialize)]
+struct ModuleDecl { kind: String, id: String, file: Option<String>, /* … */ }
+let decl: ModuleDecl = node.deserialize()?;
+```
+但**不阻塞本计划**——当前手写版本已验证通过(22 单测),迁移是独立的小改进。
+
