@@ -33,7 +33,7 @@ Three pillars:
 | **② Generic editor** | Renders a form from the `.at` data *shape* + a few key-name conventions. New module = zero frontend work. | `src/components/ConfigEditor.vue`, `src/editor/` |
 | **③ Module registry** | Declares each module's id + file/dir (+ optional custom component). | `backend/src/registry.rs`, `src/composables/useModules.ts` |
 
-See [`plans/002-unified-config-daemon.md`](plans/002-unified-config-daemon.md) for
+See [`docs/plans/002-unified-config-daemon.md`](docs/plans/002-unified-config-daemon.md) for
 the full design, decisions, and trade-offs.
 
 ### How the generic editor decides which control to use
@@ -139,7 +139,7 @@ editor — the data layer stays unified; only the view is custom.
 > (two Vue instances → template never re-renders). The factory protocol makes
 > the remote **never import vue at all** — it gets the host's instance as an
 > argument — eliminating the failure mode entirely. No importmap, no vendored
-> file, no `vite.config.ts` changes. See [`plans/003`](plans/003-module-self-registration.md)
+> file, no `vite.config.ts` changes. See [`docs/plans/003`](docs/plans/003-module-self-registration.md)
 > §2 for the full rationale.
 
 ## Notes & limitations
