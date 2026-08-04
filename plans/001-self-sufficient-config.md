@@ -1,8 +1,17 @@
 # Plan 001: auto-os-config 自给自足重构
 
-> **状态**：实施计划，待执行
+> **状态**：已被 Plan 002 取代(superseded)
 > **仓库**：`auto-os-config`（主）、`auto-musk`（清理）
 > **设计文档**：`auto-ai/docs/os-config-self-sufficient-design.md`
+>
+> **与 Plan 002 的关系**:本计划的 Phase 1(给 os-config 加 Rust 后端)被
+> Plan 002 吸收并**通用化**(Plan 002 的后端是 generic AST 投影,而非 Plan 001
+> 设想的 per-entity typed API)。本计划的 Phase 2–4(搬 4 个手写 .vue 页面)
+> 被 Plan 002 **取代**——Plan 002 用一个 schema 驱动的通用编辑器
+> (ConfigEditor/CollectionBrowser)替代了所有手写页面,新模块零前端成本。
+> 详见 [`002-unified-config-daemon.md`](002-unified-config-daemon.md)。
+>
+> 下方原文保留作为历史记录。
 
 ---
 

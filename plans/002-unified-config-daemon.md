@@ -109,7 +109,7 @@ label = key humanized(`listen_addr`→"Listen Addr")。
 | **2** | 通用编辑器 Shape A + 迁移 ai-daemon/auto-musk + DaemonView | `test-generic-editor.mjs` 14/14 |
 | **3** | 集合编辑器 Shape B + 迁移 roles/skills + sidecar | `test-collection-editor.mjs` 14/14 |
 | **4** | 移除插件机制(importmap/vendor vue/remote import)+ 注册表驱动 + 删 Agents 模块 | build 通过,两套 E2E 无回归,nav 4 模块 |
-| **5** | README 重写 + 本文档 + modes 降级提示 + 注释丢失提示 | — |
+| **5** | README 重写 + 本文档 + modes 降级提示 + 注释丢失提示 | modes 降级 E2E 验证(空枚举→自由文本+提示);typecheck + build 通过 |
 
 ---
 
@@ -128,8 +128,8 @@ auto-atom parser 用 `Node::add_kid(child)` → 整数 key;child 身份在 `.nam
 ### 4.4 Agents 模块被移除
 原 Agents 页面列出 agent modes,但 modes 是 **builtin**(编译进 musk,非文件配置)。统一架构下它不属于配置中心;app 的 default_mode 在该 app 自己的 config(Auto Musk)里选。
 
-### 4.5 modes 约定枚举返回空
-`/api/enums/dir/modes` 在无 `modes/` 目录时返回 `[]`(modes builtin-only)。`default_mode` 字段回退为自由文本输入(约定规则未命中 key 白名单之外的数组才走 multiselect;`default_mode` 是标量 → text)。这是 graceful degradation。
+### 4.5 modes 约定枚举返回空 → 优雅降级
+`default_mode` 被约定为 `select`,选项来自 `/api/enums/dir/modes`。但 modes 是 **builtin**(编译进 musk,无磁盘目录),所以该端点返回 `[]`。控件层(ScalarFields.vue)检测到空选项时**自动回退**为自由文本输入 + 提示"no options available (e.g. builtin-only) — type freely"。用户仍可手动输入 mode 名(如 `superpowers`)。这是 graceful degradation,已 E2E 验证。
 
 ### 4.6 sidebar id ≠ backend config id(历史遗留)
 前端侧栏 id:`ai-daemon`/`ai-musk`/`ai-roles`/`ai-skills`。后端 registry id:`ai-daemon`/`auto-musk`/`roles`/`skills`。`LOCAL_VIEWS` 的 `configId` 字段做映射。Phase 4 未统一(改动面大,可后续收敛)。
