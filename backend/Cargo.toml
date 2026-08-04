@@ -8,7 +8,7 @@ description = "Unified config daemon for AutoOS — reads/writes any .at config 
 # Generic .at parse/serialize (shared with auto-ai / auto-musk). Path deps point
 # at the sibling auto-lang repo, same convention as auto-ai/crates/ai-config.
 auto-atom = { path = "../../auto-lang/crates/auto-atom" }
-auto-val = { path = "../../auto-lang/crates/auto-val" }
+auto-val = { path = "../../auto-lang/crates/auto-val", features = ["serde"] }
 
 axum = "0.7"
 tokio = { version = "1", features = ["full"] }

@@ -37,11 +37,19 @@
 //! ```
 
 use auto_atom::{Atom, AtomParser};
-use auto_val::{Kid, Node, Value};
+use auto_val::{Kid, Node};
+use serde::Deserialize;
 use std::path::Path;
 
 /// A registered config module.
-#[derive(Debug, Clone)]
+///
+/// Deserializes directly from a parsed `module { … }` node via auto-val's serde
+/// feature (Plan 381). The `kind` prop is the internal tag (`file`/`collection`/
+/// `custom`); the remaining fields are the variant payload. Display fields are
+/// `#[serde(flatten)]`-ed from [`DisplayMeta`] so they appear at the module's
+/// top level in the `.at` source.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
 pub enum Module {
     /// A single config file holding one root node (e.g. `daemon { … }`).
     File(FileModule),
@@ -56,56 +64,68 @@ pub enum Module {
 /// Display metadata shared by all kinds (optional; the sidebar falls back to
 /// the `id` for the name when absent). Centralized here so a drop-in `.at`
 /// can declare how a third-party module appears without touching frontend code.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct DisplayMeta {
+    #[serde(default)]
     pub name: Option<String>,
+    #[serde(default)]
     pub icon: Option<String>,
+    #[serde(default)]
     pub description: Option<String>,
     /// Sidebar group label; empty/None = top-level standalone item.
+    #[serde(default)]
     pub group: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct FileModule {
     pub id: String,
     /// Path relative to the config root (`~/.config/autoos/`).
     pub file: String,
     /// Expected root node name (e.g. "daemon", "musk"). Guards merges.
     pub root: String,
+    #[serde(flatten)]
     pub display: DisplayMeta,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct CollectionModule {
     pub id: String,
     /// Directory relative to the config root (e.g. "roles", "skills").
     pub dir: String,
     /// Per-entity file suffix (default `.at`).
+    #[serde(default = "default_entity_suffix")]
     pub entity_suffix: String,
     /// Expected root node name for atom-format entities (e.g. "role").
     /// Required for `format = atom`; ignored for `frontmatter-md`.
+    #[serde(default)]
     pub entity_root: Option<String>,
     /// Optional paired sidecar suffix (e.g. `.soul.md` for roles).
+    #[serde(default)]
     pub sidecar_suffix: Option<String>,
     /// Entity format: `atom` (default) or `frontmatter-md` (SKILL.md + YAML).
+    #[serde(default)]
     pub format: EntityFormat,
+    #[serde(flatten)]
     pub display: DisplayMeta,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct CustomModule {
     pub id: String,
     /// URL of the remote ESM bundle exporting `createComponent(Vue)`.
     pub remote: String,
+    #[serde(flatten)]
     pub display: DisplayMeta,
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 pub enum EntityFormat {
     /// auto-atom `.at` file (default).
     #[default]
     Atom,
     /// Markdown with YAML frontmatter (e.g. SKILL.md).
+    #[serde(rename = "frontmatter-md")]
     FrontmatterMd,
 }
 
@@ -156,7 +176,9 @@ impl Registry {
     pub fn from_atom(src: &str) -> Result<Self, RegistryError> {
         let atom = AtomParser::parse(src).map_err(|e| RegistryError::Parse(e.to_string()))?;
         let node = expect_module_node(&atom)?;
-        let module = parse_module_node(node)?;
+        let module = node
+            .deserialize()
+            .map_err(|e| RegistryError::Deserialize(e.to_string()))?;
         Ok(Registry { modules: vec![module] })
     }
 
@@ -172,12 +194,17 @@ impl Registry {
                 )))
             }
         };
-        // Children named "module" are the entries; parse each.
+        // Children named "module" are the entries; deserialize each via auto-val's
+        // serde support (Plan 381) — no hand-written opt_* field extraction.
         let mut modules = Vec::new();
         for (_key, kid) in root.kids_iter() {
             if let Kid::Node(child) = kid {
                 if child.name.as_str() == "module" {
-                    modules.push(parse_module_node(child)?);
+                    modules.push(
+                        child
+                            .deserialize()
+                            .map_err(|e| RegistryError::Deserialize(e.to_string()))?,
+                    );
                 }
             }
         }
@@ -240,11 +267,20 @@ impl Registry {
 pub enum RegistryError {
     #[error("registry parse error: {0}")]
     Parse(String),
+    #[error("registry deserialize error: {0}")]
+    Deserialize(String),
 }
 
-// ---- auto-atom field extraction (mirrors role_config.rs / loader.rs) ------
+fn default_entity_suffix() -> String {
+    ".at".into()
+}
 
-/// Expect the parsed atom to be a single `module { … }` node.
+// ---- root-node shape guard (field extraction is now via auto-val serde) ---
+
+/// Expect the parsed atom to be a single `module { … }` node. The actual
+/// field extraction is done by auto-val's serde `Deserialize` (Plan 381):
+/// `node.deserialize::<Module>()` replaces the old hand-written
+/// `parse_module_node`/`opt_string`/`required_string` helpers.
 fn expect_module_node(atom: &Atom) -> Result<&Node, RegistryError> {
     match atom {
         Atom::Node(n) if n.name.as_str() == "module" => Ok(n),
@@ -256,83 +292,6 @@ fn expect_module_node(atom: &Atom) -> Result<&Node, RegistryError> {
             "expected a 'module' node, found {other:?}"
         ))),
     }
-}
-
-/// Parse one `module { kind : …, id : …, … }` node into a [`Module`].
-fn parse_module_node(node: &Node) -> Result<Module, RegistryError> {
-    let kind = opt_string(node, "kind").unwrap_or_default();
-    let id = opt_string(node, "id").ok_or_else(|| {
-        RegistryError::Parse("module is missing its `id` field".into())
-    })?;
-    let display = parse_display(node);
-
-    match kind.as_str() {
-        "file" => {
-            let file = required_string(node, "file", &id)?;
-            let root = required_string(node, "root", &id)?;
-            Ok(Module::File(FileModule { id, file, root, display }))
-        }
-        "collection" => {
-            let dir = required_string(node, "dir", &id)?;
-            let entity_suffix = opt_string(node, "entity_suffix").unwrap_or_else(|| ".at".into());
-            let entity_root = opt_string(node, "entity_root");
-            let sidecar_suffix = opt_string(node, "sidecar_suffix");
-            let format = match opt_string(node, "format").as_deref() {
-                Some("frontmatter-md") => EntityFormat::FrontmatterMd,
-                _ => EntityFormat::Atom,
-            };
-            Ok(Module::Collection(CollectionModule {
-                id,
-                dir,
-                entity_suffix,
-                entity_root,
-                sidecar_suffix,
-                format,
-                display,
-            }))
-        }
-        "custom" => {
-            let remote = required_string(node, "remote", &id)?;
-            Ok(Module::Custom(CustomModule { id, remote, display }))
-        }
-        other => Err(RegistryError::Parse(format!(
-            "module '{id}' has unknown kind '{other}' (expected file|collection|custom)"
-        ))),
-    }
-}
-
-/// Extract the optional display fields (name/icon/description/group).
-fn parse_display(node: &Node) -> DisplayMeta {
-    DisplayMeta {
-        name: opt_string(node, "name"),
-        icon: opt_string(node, "icon"),
-        description: opt_string(node, "description"),
-        group: opt_string(node, "group"),
-    }
-}
-
-/// Read a string-valued prop, returning None if absent or non-string.
-/// Bare idents and quoted strings both parse to `Value::Str`.
-fn opt_string(node: &Node, key: &str) -> Option<String> {
-    match node.get_prop_of(key) {
-        Value::Str(s) => {
-            let s = s.to_string();
-            if s.is_empty() {
-                None
-            } else {
-                Some(s)
-            }
-        }
-        Value::Nil | Value::Null | Value::Void => None,
-        _ => None,
-    }
-}
-
-/// A required string prop with a helpful error naming the offending module.
-fn required_string(node: &Node, key: &str, id: &str) -> Result<String, RegistryError> {
-    opt_string(node, key).ok_or_else(|| {
-        RegistryError::Parse(format!("module '{id}' is missing required field `{key}`"))
-    })
 }
 
 /// The default registry, embedded so the daemon works with zero config.
@@ -464,14 +423,19 @@ mod tests {
     fn missing_id_is_an_error() {
         let src = "module { kind : file\nfile : \"x.at\" }";
         let err = Registry::from_atom(src).unwrap_err();
-        assert!(err.to_string().contains("missing its `id`"));
+        // serde reports the missing required field by name.
+        assert!(err.to_string().contains("missing field `id`"), "got: {err}");
     }
 
     #[test]
     fn unknown_kind_is_an_error() {
         let src = "module { kind : wat\nid : \"x\" }";
         let err = Registry::from_atom(src).unwrap_err();
-        assert!(err.to_string().contains("unknown kind 'wat'"));
+        // serde's tagged-enum variant check rejects an unknown `kind`.
+        assert!(
+            err.to_string().to_lowercase().contains("wat"),
+            "got: {err}"
+        );
     }
 
     #[test]
