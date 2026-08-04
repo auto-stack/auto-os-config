@@ -30,20 +30,23 @@ use registry::{Module, Registry};
 #[tokio::main]
 async fn main() {
     let root = config_root().expect("config root must resolve");
-    let mut registry = Registry::from_atom_baseline(registry::DEFAULT_REGISTRY_ATOM)
-        .expect("default registry must parse");
-    // Merge third-party drop-in declarations from ~/.config/autoos/modules.d/.
-    // A missing directory is fine (no third-party modules installed); malformed
-    // files are skipped with a warning so one bad drop-in can't break the daemon.
-    let dropins_dir = root.join("modules.d");
-    match registry.merge_dropins(&dropins_dir) {
-        Ok(n) => println!("loaded {n} drop-in module(s) from {}", dropins_dir.display()),
-        Err(e) => eprintln!("[registry] drop-in scan failed: {e}"),
-    }
+    let baseline = Registry::from_atom_baseline(registry::DEFAULT_REGISTRY_ATOM)
+        .expect("default registry must parse")
+        .modules;
     let state = Arc::new(AppState {
-        registry,
+        baseline,
         config_root: root,
     });
+    // Startup log: how many third-party drop-in modules are installed. Drop-in
+    // files added later are picked up per request (hot registration), so this
+    // is informational only.
+    let dropins_dir = state.config_root.join("modules.d");
+    let dropin_count = state
+        .merged()
+        .modules
+        .len()
+        .saturating_sub(state.baseline.len());
+    println!("loaded {dropin_count} drop-in module(s) from {}", dropins_dir.display());
 
     let app = Router::new()
         // Module discovery — the front-end fetches this to build the sidebar.
@@ -88,17 +91,30 @@ async fn main() {
 
 /// Shared app state.
 pub(crate) struct AppState {
-    pub(crate) registry: Registry,
+    /// Built-in module declarations, parsed once at startup. Drop-in modules
+    /// from `modules.d/` are merged per request (see [`AppState::merged`]) so
+    /// third-party registration is **live** — no daemon restart needed
+    /// (Plan 003 §7 "运行期热注册").
+    baseline: Vec<Module>,
     pub(crate) config_root: PathBuf,
+}
+
+impl AppState {
+    /// The registry as of right now: built-in baseline + current `modules.d/*.at`.
+    fn merged(&self) -> Registry {
+        Registry::merged_with_dropins(&self.baseline, &self.config_root.join("modules.d"))
+    }
 }
 
 // ---- helpers --------------------------------------------------------------
 
-/// Resolve a module from the registry, or 404.
-fn require_module<'a>(state: &'a AppState, id: &str) -> Result<&'a Module, ApiError> {
+/// Resolve a module from the registry, or 404. Uses the fresh merged view so a
+/// drop-in registered at runtime is found without a daemon restart.
+fn require_module(state: &AppState, id: &str) -> Result<Module, ApiError> {
     state
-        .registry
+        .merged()
         .find(id)
+        .cloned()
         .ok_or_else(|| ApiError::not_found(format!("module '{id}' not registered")))
 }
 
@@ -339,16 +355,22 @@ struct ModuleEntry {
     group: String,
     /// Present only for `custom` modules (the remote bundle URL).
     remote: Option<String>,
+    /// Entity format for `collection` modules (`"atom"` | `"frontmatter-md"`);
+    /// `null` for file/custom. Lets the frontend derive read-only-ness without
+    /// an id heuristic (Plan 003 §5.3).
+    format: Option<String>,
 }
 
 /// `GET /api/modules` → the merged registry, flattened for the sidebar.
 ///
 /// This is the single source of truth the frontend fetches (Plan 003): it
 /// replaces the hardcoded sidebar list. Drop-in modules appear here
-/// automatically. `name` falls back to `id` when a module didn't declare one.
+/// automatically — recomputed per request, so a drop-in added at runtime shows
+/// up without a daemon restart. `name` falls back to `id` when a module didn't
+/// declare one.
 async fn list_modules(State(state): State<Arc<AppState>>) -> Json<Vec<ModuleEntry>> {
     let entries = state
-        .registry
+        .merged()
         .modules
         .iter()
         .map(|m| {
@@ -361,6 +383,7 @@ async fn list_modules(State(state): State<Arc<AppState>>) -> Json<Vec<ModuleEntr
                 description: d.description.clone().unwrap_or_default(),
                 group: d.group.clone().unwrap_or_default(),
                 remote: m.remote().map(|s| s.to_string()),
+                format: m.format().map(|s| s.to_string()),
             }
         })
         .collect();

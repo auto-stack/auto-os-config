@@ -129,6 +129,16 @@ pub enum EntityFormat {
     FrontmatterMd,
 }
 
+impl EntityFormat {
+    /// The format's stable string form, as exposed via `/api/modules`.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            EntityFormat::Atom => "atom",
+            EntityFormat::FrontmatterMd => "frontmatter-md",
+        }
+    }
+}
+
 impl Module {
     pub fn id(&self) -> &str {
         match self {
@@ -159,6 +169,17 @@ impl Module {
     pub fn remote(&self) -> Option<&str> {
         match self {
             Module::Custom(c) => Some(&c.remote),
+            _ => None,
+        }
+    }
+
+    /// For `collection` modules, the entity format (`"atom"` | `"frontmatter-md"`);
+    /// `None` for file/custom modules. Exposed via `/api/modules` so the
+    /// frontend can derive read-only-ness declaratively (Plan 003 §5.3 — no
+    /// more `id === 'skills'` heuristic).
+    pub fn format(&self) -> Option<&'static str> {
+        match self {
+            Module::Collection(c) => Some(c.format.as_str()),
             _ => None,
         }
     }
@@ -260,6 +281,20 @@ impl Registry {
             }
         }
         Ok(added)
+    }
+
+    /// Baseline + current drop-ins from `dir`, recomputed on every call.
+    ///
+    /// This is the hot-registration path (Plan 003 §7: "运行期热注册"): a
+    /// drop-in added to `modules.d/` is picked up on the next call — no daemon
+    /// restart. The scan is cheap (a small directory of tiny `.at` files), so
+    /// callers use this per request instead of caching a merged registry.
+    pub fn merged_with_dropins(baseline: &[Module], dir: &Path) -> Registry {
+        let mut r = Registry {
+            modules: baseline.to_vec(),
+        };
+        let _ = r.merge_dropins(dir);
+        r
     }
 }
 
@@ -482,6 +517,44 @@ mod tests {
         assert_eq!(r.modules.iter().filter(|m| m.id() == "ai-daemon").count(), 1);
 
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn merged_with_dropins_is_hot() {
+        // A drop-in file added to the directory after "startup" is picked up by
+        // a later merged_with_dropins call — no re-parse of the baseline needed.
+        let baseline = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM)
+            .unwrap()
+            .modules;
+        let tmp = tempfile_dir();
+
+        let before = Registry::merged_with_dropins(&baseline, &tmp);
+        assert_eq!(before.modules.len(), baseline.len());
+        assert!(before.find("hot-mod").is_none());
+
+        // Drop a new module in "at runtime" (hot registration).
+        std::fs::write(
+            tmp.join("hot.at"),
+            "module {\n    kind : file\n    id : \"hot-mod\"\n    file : \"hot.at\"\n    root : \"hot\"\n}",
+        )
+        .unwrap();
+
+        let after = Registry::merged_with_dropins(&baseline, &tmp);
+        assert_eq!(after.modules.len(), baseline.len() + 1);
+        assert!(matches!(after.find("hot-mod"), Some(Module::File(_))));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn module_format_exposed() {
+        let r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
+        // file modules carry no format
+        assert_eq!(r.find("ai-daemon").unwrap().format(), None);
+        // atom collections → "atom"
+        assert_eq!(r.find("roles").unwrap().format(), Some("atom"));
+        // frontmatter-md collections → "frontmatter-md" (drives read-only UI)
+        assert_eq!(r.find("skills").unwrap().format(), Some("frontmatter-md"));
     }
 
     /// Create a unique temp directory for a test.

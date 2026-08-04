@@ -23,13 +23,11 @@ use crate::project;
 use crate::registry::{CollectionModule, EntityFormat, Module};
 use crate::{ApiError, AppState};
 
-/// Resolve a collection module from the registry.
-fn require_collection<'a>(
-    state: &'a AppState,
-    id: &str,
-) -> Result<&'a CollectionModule, ApiError> {
-    match state.registry.find(id) {
-        Some(Module::Collection(c)) => Ok(c),
+/// Resolve a collection module from the registry. Uses the fresh merged view
+/// (hot drop-in registration) and returns an owned clone.
+fn require_collection(state: &AppState, id: &str) -> Result<CollectionModule, ApiError> {
+    match state.merged().find(id) {
+        Some(Module::Collection(c)) => Ok(c.clone()),
         Some(_) => Err(ApiError::bad_request(format!(
             "module '{id}' is a single file, not a collection"
         ))),
@@ -59,7 +57,7 @@ pub(crate) async fn list_collection(
     State(state): State<Arc<AppState>>,
     Path(module_id): Path<String>,
 ) -> Result<Json<Vec<EntitySummary>>, ApiError> {
-    let c = require_collection(&state, &module_id)?.clone();
+    let c = require_collection(&state, &module_id)?;
     let dir = collection_dir(&state, &c);
     let mut out: Vec<EntitySummary> = Vec::new();
 
@@ -138,7 +136,7 @@ pub(crate) async fn get_entity(
     Path((module_id, name)): Path<(String, String)>,
 ) -> Result<Response, ApiError> {
     validate_entity_name(&name)?;
-    let c = require_collection(&state, &module_id)?.clone();
+    let c = require_collection(&state, &module_id)?;
     let dir = collection_dir(&state, &c);
 
     match c.format {
@@ -200,7 +198,7 @@ pub(crate) async fn create_entity(
     Json(body): Json<CreateBody>,
 ) -> Result<Response, ApiError> {
     validate_entity_name(&body.name)?;
-    let c = require_collection(&state, &module_id)?.clone();
+    let c = require_collection(&state, &module_id)?;
     if c.format != EntityFormat::Atom {
         return Err(ApiError::bad_request(
             "creating frontmatter-md entities is not supported in v1",
@@ -247,7 +245,7 @@ pub(crate) async fn put_entity(
     Json(body): Json<PutEntityBody>,
 ) -> Result<Response, ApiError> {
     validate_entity_name(&name)?;
-    let c = require_collection(&state, &module_id)?.clone();
+    let c = require_collection(&state, &module_id)?;
     if c.format != EntityFormat::Atom {
         return Err(ApiError::bad_request(
             "editing frontmatter-md entities is not supported in v1",
@@ -298,7 +296,7 @@ pub(crate) async fn delete_entity(
     Path((module_id, name)): Path<(String, String)>,
 ) -> Result<Response, ApiError> {
     validate_entity_name(&name)?;
-    let c = require_collection(&state, &module_id)?.clone();
+    let c = require_collection(&state, &module_id)?;
     let dir = collection_dir(&state, &c);
     let entity_path = dir.join(format!("{}{}", name, c.entity_suffix));
     if !entity_path.exists() {

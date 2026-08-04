@@ -32,6 +32,10 @@ export interface ConfigModule {
   group: string
   /** Present only for `custom` modules: the remote bundle URL. */
   remote?: string
+  /** Present only for `collection` modules: "atom" | "frontmatter-md".
+   *  frontmatter-md collections (skills) are read-only; declared by the
+   *  backend so the UI needs no per-id heuristic (Plan 003 §5.3). */
+  format?: string
 }
 
 /** A group of related modules rendered as a collapsible sidebar section. */
@@ -129,11 +133,9 @@ function toggleGroup(groupId: string) {
 /** Load and activate a module's view, dispatched by `kind`.
  *
  *  - `file`       → ConfigEditor (generic; the module's id IS the config id)
- *  - `collection` → CollectionBrowser (generic; skills is read-only via a
- *                   daemon-side convention — detected here by the frontmatter
- *                   format, which the list endpoint doesn't expose directly, so
- *                   we treat `skills`-style read-only-ness heuristically: any
- *                   collection whose id is `skills`. TODO: surface format.)
+ *  - `collection` → CollectionBrowser (generic; read-only-ness is declared by
+ *                   the registry's `format` field — frontmatter-md collections
+ *                   like skills are read-only — not a per-id heuristic)
  *  - `custom`     → dynamically import the remote bundle and call its
  *                   `createComponent(Vue)` factory (Plan 003 §2). The remote
  *                   never imports vue — it receives the host's single instance,
@@ -164,10 +166,9 @@ export async function selectModule(moduleId: string) {
       activeModuleProps.value = { moduleId: mod.id }
     } else if (mod.kind === 'collection') {
       activeComponent.value = CollectionBrowser
-      // skills is the only frontmatter-md (read-only) collection today. The
-      // backend list endpoint doesn't expose `format`, so we key off the id;
-      // a future endpoint can make this declarative. See Plan 003 §4.2 note.
-      const readOnly = mod.id === 'skills'
+      // frontmatter-md collections (skills) are read-only; the backend also
+      // refuses writes to them, so this only hides the edit UI.
+      const readOnly = mod.format === 'frontmatter-md'
       activeModuleProps.value = { moduleId: mod.id, readOnly }
     } else if (mod.kind === 'custom') {
       if (!mod.remote) {
