@@ -26,15 +26,16 @@ npm run serve     # → http://127.0.0.1:17720  (serves dist/)
 
 ## Register it
 
-Drop a TOML into `~/.config/autoos/modules.d/`:
-```toml
-[[module]]
-kind = "custom"
-id = "example-remote"
-remote = "http://127.0.0.1:17720/config-page.js"
-name = "Example Remote"
-icon = "🧪"
-description = "Plan 003 remote-component protocol demo"
+Drop an auto-atom `.at` file into `~/.config/autoos/modules.d/`:
+```text
+module {
+    kind : "custom"
+    id : "example-remote"
+    remote : "http://127.0.0.1:17720/config-page.js"
+    name : "Example Remote"
+    icon : "🧪"
+    description : "Plan 003 remote-component protocol demo"
+}
 ```
 Restart the auto-os-config daemon. "Example Remote" appears in the sidebar.
 

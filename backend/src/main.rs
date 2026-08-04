@@ -3,7 +3,8 @@
 //! One axum server serves every module's config via a generic auto-atom AST
 //! projection (see `project.rs`). URL → file mapping is driven by the module
 //! registry (`registry.rs`). No per-module typed code: any `.at` config file
-//! registered in `registry.toml` is editable through the same endpoints.
+//! registered in `registry.rs` (built-in) or a `modules.d/*.at` drop-in is
+//! editable through the same endpoints.
 
 mod config_root;
 mod project;
@@ -29,7 +30,7 @@ use registry::{Module, Registry};
 #[tokio::main]
 async fn main() {
     let root = config_root().expect("config root must resolve");
-    let mut registry = Registry::from_toml(registry::DEFAULT_REGISTRY_TOML)
+    let mut registry = Registry::from_atom_baseline(registry::DEFAULT_REGISTRY_ATOM)
         .expect("default registry must parse");
     // Merge third-party drop-in declarations from ~/.config/autoos/modules.d/.
     // A missing directory is fine (no third-party modules installed); malformed

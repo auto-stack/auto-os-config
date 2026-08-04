@@ -9,7 +9,7 @@
 
 ## 0. 解决了什么
 
-Plan 002 之后,注册分散在 auto-os-config 的 **3 个源文件**里(全是编译期硬编码):后端 `registry.rs` 的 `DEFAULT_REGISTRY_TOML`、前端 `useModules.ts` 的 `loadModules()` 侧栏数组 + `LOCAL_VIEWS` 映射。第三方模块无法自己注册——必须提 PR 改 auto-os-config 源码。
+Plan 002 之后,注册分散在 auto-os-config 的 **3 个源文件**里(全是编译期硬编码):后端 `registry.rs` 的 `DEFAULT_REGISTRY_ATOM`、前端 `useModules.ts` 的 `loadModules()` 侧栏数组 + `LOCAL_VIEWS` 映射。第三方模块无法自己注册——必须提 PR 改 auto-os-config 源码。
 
 本计划补一层**运行期发现**,并重新引入远程组件能力(比旧架构更干净)。
 
@@ -18,24 +18,25 @@ Plan 002 之后,注册分散在 auto-os-config 的 **3 个源文件**里(全是�
 ## 1. 核心机制
 
 ### 1.1 磁盘 drop-in 声明
-模块往约定目录丢一个 TOML:
+模块往约定目录丢一个 **auto-atom** 声明文件(与 `~/.config/autoos/` 下所有配置同格式):
 ```
-~/.config/autoos/modules.d/<id>.toml
+~/.config/autoos/modules.d/<id>.at
 ```
-auto-os-config 启动时扫描该目录(`Registry::merge_dropins`),合并进内置注册表。**一个模块 = 一个文件,零侵入 auto-os-config 仓库**。drop-in 按 `id` 去重——同名 drop-in **覆盖**内置项(支持重新定义/重命名)。
+auto-os-config 启动时扫描该目录(`Registry::merge_dropins`),合并进内置注册表。**一个模块 = 一个文件,零侵入 auto-os-config 仓库**。drop-in 按 `id` 去重——同名 drop-in **覆盖**内置项(支持重新定义/重命名)。用 auto-atom 而非 TOML 是为了和整个配置树保持一致(drop-in 文件本身也能被通用编辑器编辑)。
 
-### 1.2 声明格式(扩展现有 TOML,加展示字段)
-```toml
-# ~/.config/autoos/modules.d/auto-musk.toml
-[[module]]
-kind = "file"          # 或 "collection" / "custom"
-id = "auto-musk"
-file = "apps/musk/config.at"
-root = "musk"
-name = "Auto Musk"     # 可选展示字段(侧栏用)
-icon = "🦌"
-description = "Musk app: daemon, defaults, harness"
-group = ""             # 可选,空 = 顶层
+### 1.2 声明格式(auto-atom,一个文件一个 `module {}` 块)
+```text
+# ~/.config/autoos/modules.d/auto-musk.at
+module {
+    kind : file          # 或 collection / custom
+    id : "auto-musk"
+    file : "apps/musk/config.at"
+    root : "musk"
+    name : "Auto Musk"   # 可选展示字段(侧栏用)
+    icon : "🦌"
+    description : "Musk app: daemon, defaults, harness"
+    group : ""           # 可选,空 = 顶层
+}
 ```
 
 ### 1.3 `/api/modules` 发现端点
@@ -113,6 +114,7 @@ activeComponent.value = mod.createComponent(Vue)
 | **3** | 远程协议 `createComponent(Vue)` 加载分支 + `examples/remote-module/` 示例 | `test-remote-module.mjs` 通过(反应性 0→1→2、单 Vue 实例、daemon 数据集成) |
 | **4** | 迁移内置 4 模块(统一 id)+ DaemonView 作为第一方定制视图(BUILTIN_FILE_VIEWS) | test-connection 恢复通过;三套 E2E 全过 |
 | **5** | 文档:本计划 + README 注册流程重写 + 示例 README | — |
+| **6**(修正) | **格式统一:drop-in 从 TOML 改为 auto-atom**。初版图省事用了 `toml` crate,但 `~/.config/autoos/` 下所有配置都是 auto-atom,模块声明不应例外。改为手写从 `AtomParser` 的 `Node`/`Value` 抽字段(同 `role_config.rs` 模式),`DEFAULT_REGISTRY_ATOM` 常量 + `modules.d/*.at` drop-in。移除 `toml` 依赖。drop-in 文件本身也能被通用编辑器编辑(闭环)。 | 22 单测(含 3 新增 atom 解析错误用例)+ `.at` drop-in curl 验证 + 两套 E2E 通过 |
 
 ---
 
@@ -135,22 +137,23 @@ name/icon/description/group 集中在一个 struct,三种 Module 变体复用,�
 ## 6. 如何注册一个新模块(零侵入)
 
 ### 通用编辑器模块(最常见)
-往 `~/.config/autoos/modules.d/my-module.toml` 丢:
-```toml
-[[module]]
-kind = "file"            # 或 "collection"
-id = "my-module"
-file = "my-module.at"    # 相对 ~/.config/autoos/
-root = "mymod"
-name = "My Module"
-icon = "🔧"
-description = "..."
+往 `~/.config/autoos/modules.d/my-module.at` 丢一个 auto-atom 声明:
+```text
+module {
+    kind : file            # 或 collection
+    id : "my-module"
+    file : "my-module.at"  # 相对 ~/.config/autoos/
+    root : "mymod"
+    name : "My Module"
+    icon : "🔧"
+    description : "..."
+}
 ```
 重启 auto-os-config daemon → 侧栏自动出现 → 通用编辑器自动渲染表单。**不改 auto-os-config 一行代码。**
 
 ### 需要定制 UX 的模块
 1. 构建远程 bundle(导出 `createComponent(Vue)`,externalize vue),用你自己的 HTTP server serve。参考 `examples/remote-module/`。
-2. drop-in 声明 `kind = "custom"` + `remote = "<url>"`。
+2. drop-in 声明 `kind : "custom"` + `remote : "<url>"`(同样 auto-atom 格式)。
 
 详见 README "Registering a new module"。
 
