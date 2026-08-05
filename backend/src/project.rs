@@ -110,17 +110,26 @@ pub fn value_to_json(val: &Value) -> Json {
 /// `json` is the editor's full view of the node body (same shape
 /// [`node_body_to_json`] produced). For each top-level key in `json`:
 ///   - matches an existing child node (by node name) → recurse into it
-///   - matches an existing prop, or is brand-new → set as a prop
+///   - is an object but has no existing child → **create a new child block**
+///     (`name { … }`), not a prop
+///   - otherwise (scalar/array) → set as a prop (new or updated)
 ///
 /// Children present in the AST but absent from `json` are preserved untouched
 /// (the editor sent a partial view — e.g. only changed scalars). Returns the
 /// count of keys applied, for logging.
 ///
+/// # Object values always mean blocks
+/// In the static-config subset an object can only be a named child block
+/// (`zhipu { … }`). Treating a brand-new object key as an inline prop was a
+/// bug: it serialized as `zhipu : { … }`, which `kids_iter()`-based loaders
+/// never read, so providers added from the editor silently vanished at runtime
+/// (Plan 005 §1.1).
+///
 /// # Rebuild, not mutate
 /// The `Kids` map is private upstream, so to recurse-and-keep a child we
 /// rebuild the parent: clone each existing child, fold `json`'s matching key
 /// into it, and re-add all children (originals for untouched keys, folded for
-/// edited keys) to a fresh root.
+/// edited keys, brand-new for new object keys) to a fresh root.
 pub fn merge_node_body(root: &mut Node, json: &Json) -> usize {
     let obj = match json {
         Json::Object(o) => o,
@@ -152,7 +161,10 @@ pub fn merge_node_body(root: &mut Node, json: &Json) -> usize {
         props.iter().map(|(k, _)| k.clone()).collect();
 
     let mut applied = 0usize;
-    let mut new_children: Vec<(String, Node)> = Vec::new();
+    // Folded (edited) existing children, keyed by name for the rebuild pass.
+    let mut folded: std::collections::HashMap<String, Node> = std::collections::HashMap::new();
+    // Brand-new child blocks created from object keys (appended at the end).
+    let mut brand_new: Vec<Node> = Vec::new();
 
     for (key, jval) in obj {
         if child_names.contains(key.as_str()) {
@@ -160,12 +172,17 @@ pub fn merge_node_body(root: &mut Node, json: &Json) -> usize {
             if let Some(pos) = children.iter().position(|(n, _)| n == key) {
                 let (_, mut child) = children.remove(pos);
                 applied += merge_node_body(&mut child, jval);
-                new_children.push((key.clone(), child));
+                folded.insert(key.clone(), child);
             } else {
                 // Was consumed by an earlier duplicate name — re-attach as-is.
             }
+        } else if let Json::Object(_) = jval {
+            // Brand-new object → a new child block, not a prop.
+            let mut child = Node::new(key.as_str());
+            applied += merge_node_body(&mut child, jval);
+            brand_new.push(child);
         } else if let Some(v) = json_to_value(jval) {
-            // Scalar / array / obj prop.
+            // Scalar / array prop.
             if prop_names.contains(key) {
                 if let Some(slot) = props.iter_mut().find(|(k, _)| k == key) {
                     slot.1 = v;
@@ -177,19 +194,8 @@ pub fn merge_node_body(root: &mut Node, json: &Json) -> usize {
         }
     }
 
-    // 3. Rebuild the root node: fresh props + (folded children first, then any
-    //    untouched children that weren't in json, in original order).
-    //    Order: folded (edited) children interleave with untouched ones
-    //    according to their original positions. Simplest faithful approach:
-    //    walk the original kid order, replacing children we folded; then any
-    //    child we didn't touch is appended from `children` in original order.
-
-    // Reconstruct original kid order by re-walking; we already moved folded
-    // children out of `children`, so `children` now holds ONLY untouched ones.
-    let folded_by_name: std::collections::HashMap<String, Node> =
-        new_children.into_iter().collect();
-
-    // Re-emit kids in original order: iterate root.kids_iter() once more.
+    // 3. Rebuild the root node: fresh props + kids in original order (folded
+    //    children replace their originals), then any brand-new blocks.
     let ordered_kids: Vec<Node> = root
         .kids_iter()
         .filter_map(|(_, kid)| match kid {
@@ -197,11 +203,7 @@ pub fn merge_node_body(root: &mut Node, json: &Json) -> usize {
                 let node: &Node = c.as_ref();
                 let name = node.name.to_string();
                 // If we folded this name, use the folded copy; else keep original.
-                if let Some(folded) = folded_by_name.get(&name) {
-                    Some(folded.clone())
-                } else {
-                    Some(node.clone())
-                }
+                Some(folded.get(&name).cloned().unwrap_or_else(|| node.clone()))
             }
             Kid::Lazy(_) => None, // never in static config
         })
@@ -215,7 +217,7 @@ pub fn merge_node_body(root: &mut Node, json: &Json) -> usize {
     for (k, v) in props {
         root.set_prop(k.as_str(), v);
     }
-    for child in ordered_kids {
+    for child in ordered_kids.into_iter().chain(brand_new) {
         root.add_kid(child);
     }
 
@@ -282,6 +284,47 @@ pub fn write_file_body(
     Ok(node.to_at_source())
 }
 
+/// Remove a child block by node name and serialize the rest back (Plan 005
+/// §1.2 — the structured delete that merge semantics can't express).
+///
+/// Only removes a named child **node** (`zhipu { … }`), never a prop, and only
+/// at the root level (nesting stays hand-edited). Returns
+/// [`ProjectError::NotFound`] when no child with that name exists.
+pub fn delete_child_node(
+    current_content: &str,
+    expected_root: &str,
+    name: &str,
+) -> Result<String, ProjectError> {
+    let mut node = parse_root(current_content, expected_root)?;
+    let mut found = false;
+    let mut kept: Vec<Node> = Vec::new();
+    for (_, kid) in node.kids_iter() {
+        if let Kid::Node(child) = kid {
+            let n: &Node = child.as_ref();
+            if n.name.as_str() == name {
+                found = true;
+            } else {
+                kept.push(n.clone());
+            }
+        }
+    }
+    if !found {
+        return Err(ProjectError::NotFound(format!("child block '{name}' not found")));
+    }
+    let props: Vec<(String, Value)> = node
+        .props_iter()
+        .map(|(k, v)| (k.to_string(), v.clone()))
+        .collect();
+    node = Node::new(node.name.as_str());
+    for (k, v) in props {
+        node.set_prop(k.as_str(), v);
+    }
+    for child in kept {
+        node.add_kid(child);
+    }
+    Ok(node.to_at_source())
+}
+
 /// Error type for projection failures.
 #[derive(Debug, thiserror::Error)]
 pub enum ProjectError {
@@ -291,6 +334,8 @@ pub enum ProjectError {
     RootMismatch { expected: String, found: String },
     #[error("{0}")]
     UnexpectedTop(String),
+    #[error("{0}")]
+    NotFound(String),
 }
 
 #[cfg(test)]
@@ -410,5 +455,64 @@ mod tests {
         let out = write_file_body(DAEMON_AT, "daemon", &edit).unwrap();
         assert!(out.contains("provider : \"deepseek\""), "out = {out}");
         assert!(out.contains("model : \"v4-pro\""));
+    }
+
+    #[test]
+    fn merge_creates_new_child_block_not_prop() {
+        // A brand-new object key must become a child block `newprov { … }`,
+        // NOT a `newprov : { … }` inline prop (Plan 005 §1.1).
+        let edit = serde_json::json!({
+            "newprov": {
+                "kind": "openai",
+                "base_url": "http://x.test",
+                "api_key": "k",
+                "models": ["m1", "m2"],
+            }
+        });
+        let out = write_file_body(DAEMON_AT, "daemon", &edit).unwrap();
+        // Serializes as a block, not a prop-with-object.
+        assert!(out.contains("newprov {"), "out = {out}");
+        assert!(!out.contains("newprov : {"), "must be a block, got: {out}");
+        assert!(out.contains("kind : \"openai\""));
+        assert!(out.contains("models : [\"m1\", \"m2\"]"));
+
+        // And it round-trips as a *child node* that a kids_iter() loader sees.
+        let node = parse_root(&out, "daemon").unwrap();
+        let kids: Vec<String> = node
+            .kids_iter()
+            .filter_map(|(_, k)| match k {
+                Kid::Node(c) => Some(c.name.to_string()),
+                _ => None,
+            })
+            .collect();
+        assert!(kids.iter().any(|n| n == "newprov"), "kids = {kids:?}");
+    }
+
+    #[test]
+    fn merge_new_block_keeps_existing_structure() {
+        // Adding a block must not disturb existing props/kids.
+        let edit = serde_json::json!({ "extra": { "a": 1 } });
+        let out = write_file_body(DAEMON_AT, "daemon", &edit).unwrap();
+        assert!(out.contains("extra {"));
+        assert!(out.contains("listen_addr : \"127.0.0.1:17654\""));
+        assert!(out.contains("tier_routing {"));
+        assert!(out.contains("zhipu {"));
+    }
+
+    #[test]
+    fn delete_child_block_removes_and_persists() {
+        let out = delete_child_node(DAEMON_AT, "daemon", "zhipu").unwrap();
+        assert!(!out.contains("zhipu {"), "out = {out}");
+        assert!(out.contains("tier_routing {"), "untouched child survives");
+        assert!(out.contains("listen_addr : \"127.0.0.1:17654\""));
+        // Round-trips: the removed child is gone from the projection too.
+        let body = read_file_body(&out, "daemon").unwrap();
+        assert!(body.as_object().unwrap().get("zhipu").is_none());
+    }
+
+    #[test]
+    fn delete_missing_child_is_not_found() {
+        let err = delete_child_node(DAEMON_AT, "daemon", "nope").unwrap_err();
+        assert!(matches!(err, ProjectError::NotFound(_)));
     }
 }

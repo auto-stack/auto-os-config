@@ -8,7 +8,7 @@
 // render as tables. There is NO per-module code here: any registered file
 // module gets a working form for free.
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useConfig } from '../editor/useConfig'
 import { humanize, inferField } from '../editor/types'
 import ScalarFields from '../editor/controls/ScalarFields.vue'
@@ -32,6 +32,61 @@ const selectedProvider = computed(() => (body.value?.default_provider as string)
 function markDirty() {
   dirty.value = true
 }
+
+// ── Block add/delete (Plan 005 §1.3) ────────────────────────────────────────
+// The parity gap: the generic editor couldn't add/remove whole child blocks
+// (providers). Add goes through the normal Save→PUT path (merge_node_body now
+// creates a child block for a new object key); delete uses the structured
+// DELETE /api/config/:id/blocks/:name endpoint then reloads.
+
+const addingBlock = ref(false)
+const newBlockName = ref('')
+const blockError = ref('')
+
+/// A child block is "provider-shaped" (gets a delete affordance) when it
+/// carries a `kind` prop — same convention as the daemon's enum_self_providers
+/// and auto-ai's parse_provider_blocks. Non-provider blocks (e.g. tier_routing,
+/// musk's harness) are left alone.
+function isProviderBlock(v: Record<string, unknown>): boolean {
+  return 'kind' in v
+}
+
+function addBlock() {
+  const name = newBlockName.value.trim()
+  if (!name) return
+  const b = body.value as Record<string, unknown> | null
+  if (!b) return
+  if (name in b) {
+    blockError.value = `"${name}" already exists in this config`
+    return
+  }
+  b[name] = { kind: 'openai', base_url: '', api_key: '', models: [] }
+  newBlockName.value = ''
+  addingBlock.value = false
+  blockError.value = ''
+  markDirty()
+}
+
+async function deleteBlock(name: string) {
+  if (!confirm(`Delete block "${name}"? It is removed from the file (original preserved in .bak).`)) {
+    return
+  }
+  blockError.value = ''
+  try {
+    const resp = await fetch(
+      `/api/config/${props.moduleId}/blocks/${encodeURIComponent(name)}`,
+      { method: 'DELETE' },
+    )
+    if (!resp.ok) {
+      const j = await resp.json().catch(() => null)
+      blockError.value = `Delete failed: ${(j as { error?: string } | null)?.error ?? resp.status}`
+      return
+    }
+    await reload() // the server rewrote the file; re-read it
+  } catch (e: any) {
+    blockError.value = `Delete failed: ${e.message || e}`
+  }
+}
 </script>
 
 <template>
@@ -49,6 +104,18 @@ function markDirty() {
           <span v-if="dirty" class="dirty">● unsaved</span>
         </div>
         <div class="actions">
+          <span v-if="blockError" class="block-error">{{ blockError }}</span>
+          <template v-if="addingBlock">
+            <input
+              v-model="newBlockName"
+              class="block-name"
+              placeholder="block name"
+              @keyup.enter="addBlock"
+            />
+            <button class="btn" @click="addBlock">Add</button>
+            <button class="btn" @click="addingBlock = false; newBlockName = ''; blockError = ''">Cancel</button>
+          </template>
+          <button v-else class="btn" @click="addingBlock = true">＋ Add block</button>
           <button class="btn" :disabled="saving" @click="reload">Reload</button>
           <button class="btn primary" :disabled="saving || !dirty" @click="save">
             {{ saving ? 'Saving…' : 'Save' }}
@@ -60,7 +127,15 @@ function markDirty() {
         <template v-for="(v, k) in body" :key="k">
           <!-- nested object → SubForm block -->
           <div v-if="isObject(v)" class="subform">
-            <div class="subform-header">{{ humanize(k as string) }}</div>
+            <div class="subform-header">
+              <span class="subform-title">{{ humanize(k as string) }}</span>
+              <button
+                v-if="isProviderBlock(v)"
+                class="btn danger btn-sm"
+                title="Delete this block from the file"
+                @click="deleteBlock(k as string)"
+              >🗑</button>
+            </div>
             <div class="subform-body">
               <template v-for="(sv, sk) in v" :key="sk">
                 <!-- table inside a sub-form (e.g. tier_routing.max) -->
@@ -189,6 +264,35 @@ function markDirty() {
   border-radius: var(--radius, 8px) var(--radius, 8px) 0 0;
   font-weight: 600;
   font-size: var(--font-size-base);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.btn.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: transparent;
+}
+.btn.danger:hover:not(:disabled) {
+  background: rgba(196, 43, 28, 0.08);
+}
+.btn-sm {
+  padding: 2px 8px;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+.block-name {
+  width: 160px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--font-size-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+.block-error {
+  color: var(--danger);
+  font-size: var(--font-size-sm);
 }
 .subform-body {
   padding: 8px 14px;

@@ -53,6 +53,12 @@ async fn main() {
         .route("/api/modules", get(list_modules))
         // Single-file config (Shape A).
         .route("/api/config/:module_id", get(get_config).put(put_config))
+        // Structured delete of a child block (e.g. a whole provider) — merge
+        // semantics can't express removal (Plan 005 §1.2).
+        .route(
+            "/api/config/:module_id/blocks/:name",
+            axum::routing::delete(delete_block),
+        )
         // Collection config (Shape B): a directory of homogeneous entities.
         .route(
             "/api/collection/:module_id",
@@ -205,6 +211,28 @@ async fn put_config(
 #[derive(serde::Deserialize)]
 struct PutBody {
     value: JsonValue,
+}
+
+/// `DELETE /api/config/:module_id/blocks/:name` — remove a child block
+/// (e.g. a whole `zhipu { … }` provider) and persist. Merge semantics can't
+/// express removal, so this is a structured endpoint (Plan 005 §1.2).
+/// Writes a `.bak` first, same as `put_config`.
+async fn delete_block(
+    State(state): State<Arc<AppState>>,
+    Path((module_id, name)): Path<(String, String)>,
+) -> Result<Response, ApiError> {
+    let (content, root, _file) = read_file_module(&state, &module_id)?;
+    let new_source = project::delete_child_node(&content, &root, &name).map_err(|e| match e {
+        project::ProjectError::NotFound(m) => ApiError::not_found(m),
+        other => ApiError::bad_request(other.to_string()),
+    })?;
+    let written = write_file_module(&state, &module_id, &new_source)?;
+    Ok(Json(json!({
+        "ok": true,
+        "file": written,
+        "note": "block deleted; original preserved in the .bak file"
+    }))
+    .into_response())
 }
 
 // ---- handlers: convention enums -------------------------------------------
