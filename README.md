@@ -33,8 +33,9 @@ Three pillars:
 | **② Generic editor** | Renders a form from the `.at` data *shape* + a few key-name conventions. New module = zero frontend work. | `src/components/ConfigEditor.vue`, `src/editor/` |
 | **③ Module registry** | Declares each module's id + file/dir (+ optional custom component). | `backend/src/registry.rs`, `src/composables/useModules.ts` |
 
-See [`docs/plans/archive/002-unified-config-daemon.md`](docs/plans/archive/002-unified-config-daemon.md) for
-the full design, decisions, and trade-offs.
+See [`docs/designs/config-plugin-architecture.md`](docs/designs/config-plugin-architecture.md) for
+the architecture design, and [`docs/plans/archive/002-unified-config-daemon.md`](docs/plans/archive/002-unified-config-daemon.md)
+for the implementation plan, decisions, and trade-offs.
 
 ### How the generic editor decides which control to use
 
