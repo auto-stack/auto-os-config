@@ -11,6 +11,7 @@
 | 002 | 已知限制 | `POST /api/action/test-daemon` 硬编码 `:17654` → **已改为读配置 `listen_addr` 的端口**（`aaid_listen_addr`，含 3 单测）。 | `backend/src/main.rs` |
 | 003 | 未来增强 | E2E 脚本需手动起 daemon+vite → **新增 `scripts/e2e.sh` 一键运行**（自动起服务/复用既有/清理，三套全绿）。 | `scripts/e2e.sh` |
 | 004 | 一致性遗漏 | 配置覆盖审计：modes/、ai-client.at、apps/musk/harness/roles/ 三个真实配置未注册 → **已注册**（modes + musk-harness-roles 为 collection，ai-client 为 file + 创建默认文件），`/api/modules` 现暴露 7 模块。顺带修复 E2E 点击选择器为精确匹配（"Roles" vs "Harness Roles" 子串歧义）。 | `registry.rs` DEFAULT_REGISTRY_ATOM |
+| 002 | 已知限制 | **§4.2 "v1 不支持新增整个 provider 块" → 已闭合（Plan 005）**：merge 对对象值+非现有子节点创建子节点块；新增 `DELETE /api/config/:id/blocks/:name`；ConfigEditor 增删按钮。实机 ADD→enum 可见→DELETE→消失闭环验证。 | `project.rs` merge_node_body / `main.rs` delete_block |
 
 ## 🟡 一致性遗漏
 
