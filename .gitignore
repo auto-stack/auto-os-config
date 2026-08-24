@@ -21,3 +21,5 @@ auto/gen/*
 
 # auto-man cache
 auto/.am/
+auto/vm/.am/
+auto/vm/.am/
