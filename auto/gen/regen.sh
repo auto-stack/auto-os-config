@@ -9,6 +9,10 @@ AUTO=${AUTO:-D:/autostack/auto-lang/target/debug/auto.exe}
 shopt -s nullglob
 
 mkdir -p gen
+# Clean generated components/stores first: `auto build` does NOT remove
+# outputs of deleted widgets — without this, stale SFCs from removed .at
+# files keep getting re-deployed (bit us with ProbeB.vue after Phase 5).
+rm -rf gen/front/vue/src/components gen/front/vue/src/stores
 "$AUTO" build -d . --gen-only 2>&1 | tee gen/build.log
 if grep -q "Warning: Failed to compile" gen/build.log; then
   echo "!!! BUILD HAD COMPILE WARNINGS — aborting deploy" >&2

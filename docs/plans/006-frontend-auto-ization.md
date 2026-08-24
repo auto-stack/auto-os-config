@@ -1,6 +1,6 @@
 # Plan 006: 前端 Auto 化（第一步）— Auto/Vue 模式功能对等
 
-> **状态**：Phase 0–5 已完成（2026-08-24，组件层 100% 生成，e2e 三套全绿，npm run build 干净）；**Phase 6 为上游修复提案**（defineModel 深变异 → auto-lang，待立项）
+> **状态**：Phase 0–5 已完成（2026-08-24，组件层 100% 生成，e2e 三套全绿，npm run build 干净）；**Phase 6 已闭环（2026-08-24 当日）**：上游 Plan 443 与本提案殊途同归落地，深变异 🔴 运行时实证修复，运行时 canary 并入 auto-lang（`ab34fa9f`），修法 2 决策不做（D5 升格为跨后端规范）
 > **前置**：Plan 001–005 全部归档（架构稳定、无活跃债务）；auto-lang vue 渲染后端成熟（examples/ui 23 个应用示例 + 核心仓 5113 单测）；方法论母本 = auto-down plan 011（jade-garden Auto 化，COMPLETE）与 auto-musk plan 022/028
 > **仓库**：auto-os-config（frontend only，backend/ 零改动）
 > **目的**：把 `src/` 手写 Vue 3 SPA 改写为 Auto 语言源码（`.at`），经 `auto build` 生成 Vue 工程，行为与视觉和现状完全一致（e2e + 截图对拍全绿）。为第二步 `render: "vm"` 桌面化铺路——本计划结束时 `.at` 是前端单一真源。
@@ -171,12 +171,13 @@ probe B 的判别性证据：risky push 后视图不变，随后 safe 整体替�
 - `scalar_fields.at` 的本地 `val` 镜像 + `watch { .modelValue.immediate }` 同步（G16 的绕法）可删除，恢复 `value: .modelValue` 直绑；
 - Phase 6 验收即 auto-lang 能力测试全绿 + 本仓库 regen 后 e2e 三套全绿、`auto/README.md` 删除 G16/D5 强制条目并记录上游 commit。
 
-#### 6.4 清单（待 auto-lang 立项后执行）
+#### 6.4 清单（2026-08-24 当日闭环）
 
-- [ ] 向 auto-lang 提交 issue/plan（引用本节 + probe B 复现步骤 + jade DEBTS 015）
-- [ ] 上游修复 1（model → ref）+ 能力测试落地
-- [ ] （可选）上游修复 2（嵌套变异改写）
-- [ ] 本仓库 regen + e2e 验证 + 删简化路径中的绕坑代码 + gotcha 清单更新
+- [x] ~~向 auto-lang 提交 issue/plan~~ → **N/A**：修复当天已由 auto-lang **Plan 443** 独立落地（`38adb1ef`/`4f64fb6c`，defineModel 降级收窄 = 本节修法 1 原样实现，三仓 regen 验收全过）——本节提案与上游殊途同归，无需另立
+- [x] 上游修复 1（model → ref）落地确认：os-config 用新 exe（master 32bea9c3 build）regen，全部 model 变量已发射 `ref<>`；**运行时实证闭合**——临时探针（嵌套写/嵌套 push/整替换三路径 + 嵌套 computed）确认深变异视图就地更新（risky-set `orig→risky len 4→5`、risky-push `m1→m1,r2`），probe B 的 🔴 判据全部翻转
+- [x] 修法 3 补全：Plan 443 已带 Rust 双测（`cap_model_channel_bound_downgrades_child`/`cap_model_channel_unbound_keeps_ref`，钉 codegen 形态）；本次经 `os-config-dev` worktree 补 **运行时 canary** `examples/capability-tests/041-model-deep-reactivity/`（auto-lang `ab34fa9f`，已合并 master、worktree 清理）
+- [ ] 修法 2（嵌套变异编译期改写）→ **决策：不做**。D5 不可变重建保留为**跨后端规范**（vm/rust 目标的安全基线，与 vue 后端 bug 与否无关）；ext 投影（`setCfgEntry`/`setCell`/`setEntry`）与 `val` 镜像（G16，属 props 范畴、与 443 无关）维持现状
+- [x] 本仓库 regen + e2e 三套全绿 + vue-tsc 0 错；顺手修 regen.sh 卫生问题（构建前清 gen 陈旧产物——曾把已删除的 ProbeB 等旧组件反复带回部署）
 
 ---
 

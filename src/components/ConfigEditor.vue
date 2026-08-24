@@ -1,21 +1,21 @@
 <!-- ConfigEditor component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ScalarFields } from '../../auto/src/front/utils/controls_ext'
 import { TableField } from '../../auto/src/front/utils/controls_ext'
 import { fetchConfigSafe, putConfigSafe, deleteBlockSafe, configEntries, setCfgEntry, addBlockBody, confirmDeleteBlock, confirmSaveOnce, bodyHas } from '../../auto/src/front/utils/controls_ext'
 
 
-const loading = defineModel<boolean>("loading", { default: false })
-const saving = defineModel<boolean>("saving", { default: false })
-const error = defineModel<string>("error", { default: '' })
-const dirty = defineModel<boolean>("dirty", { default: false })
-const meta_file = defineModel<string>("meta_file", { default: '' })
-const entries = defineModel<any[]>("entries", { default: [] })
-const body = defineModel<any>("body", { default: null })
-const adding_block = defineModel<boolean>("adding_block", { default: false })
-const new_block_name = defineModel<string>("new_block_name", { default: '' })
-const block_error = defineModel<string>("block_error", { default: '' })
+const loading = ref<boolean>(false)
+const saving = ref<boolean>(false)
+const error = ref<string>('')
+const dirty = ref<boolean>(false)
+const meta_file = ref<string>('')
+const entries = ref<any[]>([])
+const body = ref<any>(null)
+const adding_block = ref<boolean>(false)
+const new_block_name = ref<string>('')
+const block_error = ref<string>('')
 
 const props = defineProps<{
   module_id: string

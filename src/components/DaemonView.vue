@@ -1,12 +1,13 @@
 <!-- DaemonView component - Auto-generated from Auto language -->
 <script setup lang="ts">
+import { ref } from 'vue'
 import { ConfigEditor } from '../../auto/src/front/utils/daemon_view_ext'
 import { testDaemon } from '../../auto/src/front/utils/daemon_view_ext'
 
 
-const status = defineModel<string>("status", { default: 'idle' })
-const latency = defineModel<number>("latency", { default: 0 })
-const test_error = defineModel<string>("test_error", { default: '' })
+const status = ref<string>('idle')
+const latency = ref<number>(0)
+const test_error = ref<string>('')
 
 const props = defineProps<{
   module_id: string

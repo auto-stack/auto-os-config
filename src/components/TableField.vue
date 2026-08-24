@@ -1,10 +1,10 @@
 <!-- TableField component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { tableInfo, setCell, loadColumnOptions, blankRow, mergeCols, removeRowAt } from '../../auto/src/front/utils/controls_ext'
 
 
-const col_options = defineModel<any>("col_options", { default: {} })
+const col_options = ref<any>({})
 
 const info = computed<any>(() => tableInfo(props.modelValue, props.module_id))
 const view_cols = computed<any>(() => mergeCols(info.value, col_options.value))

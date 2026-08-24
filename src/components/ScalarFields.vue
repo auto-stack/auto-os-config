@@ -1,13 +1,13 @@
 <!-- ScalarFields component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { loadEnum, enumUrlOf } from '../../auto/src/front/utils/controls_ext'
 
 
-const reveal = defineModel<boolean>("reveal", { default: false })
-const tag_input = defineModel<string>("tag_input", { default: '' })
-const options = defineModel<any[]>("options", { default: [] })
-const val = defineModel<any>("val", { default: null })
+const reveal = ref<boolean>(false)
+const tag_input = ref<string>('')
+const options = ref<any[]>([])
+const val = ref<any>(null)
 
 const opts_src = computed<any>(() => props.spec.optionsFrom)
 const has_options = computed<boolean>(() => options.value.length > 0)

@@ -1,6 +1,6 @@
 <!-- Sidebar component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { ACCENT_OPTIONS, filterStandalone, filterGroups } from '../../auto/src/front/utils/sidebar_ext'
 import { useModulesStore } from '../../auto/src/front/utils/sidebar_ext'
 import { useThemeStore } from '../../auto/src/front/utils/sidebar_ext'
@@ -9,7 +9,7 @@ const modulesStore = useModulesStore()
 const themeStore = useThemeStore()
 
 
-const search = defineModel<string>("search", { default: '' })
+const search = ref<string>('')
 
 const searching = computed<boolean>(() => !!(search.value.trim()))
 const view_standalone = computed<any>(() => filterStandalone(modulesStore.standalone, search.value))

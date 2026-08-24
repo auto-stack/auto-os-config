@@ -1,6 +1,6 @@
 <!-- CollectionBrowser component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ScalarFields } from '../../auto/src/front/utils/collection_store_ext'
 import { TableField } from '../../auto/src/front/utils/collection_store_ext'
 import { filterEntities } from '../../auto/src/front/utils/collection_store_ext'
@@ -9,11 +9,11 @@ import { useCollectionStore } from '../../auto/src/front/utils/collection_store_
 const collectionStore = useCollectionStore()
 
 
-const filter = defineModel<string>("filter", { default: '' })
-const creating = defineModel<boolean>("creating", { default: false })
-const new_name = defineModel<string>("new_name", { default: '' })
-const confirm_delete = defineModel<any>("confirm_delete", { default: null })
-const sidecar_draft = defineModel<string>("sidecar_draft", { default: '' })
+const filter = ref<string>('')
+const creating = ref<boolean>(false)
+const new_name = ref<string>('')
+const confirm_delete = ref<any>(null)
+const sidecar_draft = ref<string>('')
 
 const can_edit = computed<boolean>(() => props.read_only === false && collectionStore.is_read_only === false)
 const filtered = computed<any>(() => filterEntities(collectionStore.list, filter.value))

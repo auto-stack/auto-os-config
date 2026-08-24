@@ -54,13 +54,18 @@ bash auto/gen/regen.sh
 - **D4 描述符驱动动态表单**：handler 把 config/entity body 投影为值内嵌的
   描述符数组（ext：configEntries/bodyEntries/tableInfo），view 纯
   `for`+`if/else` 渲染——零函数调用、零动态索引（vm 模式约束）。
-- **D5 禁止深变异**：`.a.b.c = v` / 嵌套 `.push()` **视图不更新且数据静默
-  漂移**（probe B 实证，auto-lang 🔴 未修）。一律整对象/整数组替换（ext
-  setCfgEntry/setCell/setEntry 均不可变重建）。
+- **D5 整体替换（跨后端规范，2026-08-24 起不再是被 vue bug 强制）**：
+  auto-lang Plan 443（`38adb1ef`）已修复未绑定 model 变量的深变异响应性
+  （回归 `ref<>`，深写/深 push 视图就地更新——本仓库已运行时实证）。
+  但**不可变重建继续作为规范保留**：vm/rust 桌面目标的安全基线 +
+  TableField 单元格 v-model 深写等残留形态的一致性。ext 的
+  setCfgEntry/setCell/setEntry 承担重建，`.at` 侧不直写深变异。
 - **store facade**：生成的 composable 返回裸 ref 对象——模板嵌套访问不解
   包，ext 里 `reactive()` 包一层。
 - ext 政策：只装 DSL 真表达不了的（fetch/localStorage/document/confirm/
   推断引擎/不可变重建辅助）。
+- 深变异回归钉子：auto-lang `examples/capability-tests/041-model-deep-
+  reactivity/`（`ab34fa9f`，自本仓库 Phase 6 提案归档）。
 
 ## Gotcha 清单（21 条，编号供回填 auto-lang）
 
