@@ -1,6 +1,6 @@
 # Plan 006: 前端 Auto 化（第一步）— Auto/Vue 模式功能对等
 
-> **状态**：Phase 0–5 已完成（2026-08-24，组件层 100% 生成，e2e 三套全绿，npm run build 干净）；**Phase 6 已闭环（2026-08-24 当日）**：上游 Plan 443 与本提案殊途同归落地，深变异 🔴 运行时实证修复，运行时 canary 并入 auto-lang（`ab34fa9f`），修法 2 决策不做（D5 升格为跨后端规范）
+> **状态**：已实施 → 已归档(2026-08-24, 全部工作完成)。Phase 0–5：组件层 100% Auto 生成（7 widget + 3 store），e2e 三套全绿、截图对拍、build 干净；Phase 6：defineModel 深变异 🔴 当日闭环——上游 Plan 443 殊途同归落地 + 本仓运行时实证 + canary 并入 auto-lang（`ab34fa9f`），修法 2 决策不做（D5 升格为跨后端规范）
 > **前置**：Plan 001–005 全部归档（架构稳定、无活跃债务）；auto-lang vue 渲染后端成熟（examples/ui 23 个应用示例 + 核心仓 5113 单测）；方法论母本 = auto-down plan 011（jade-garden Auto 化，COMPLETE）与 auto-musk plan 022/028
 > **仓库**：auto-os-config（frontend only，backend/ 零改动）
 > **目的**：把 `src/` 手写 Vue 3 SPA 改写为 Auto 语言源码（`.at`），经 `auto build` 生成 Vue 工程，行为与视觉和现状完全一致（e2e + 截图对拍全绿）。为第二步 `render: "vm"` 桌面化铺路——本计划结束时 `.at` 是前端单一真源。
