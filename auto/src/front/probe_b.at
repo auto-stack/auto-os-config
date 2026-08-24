@@ -1,0 +1,97 @@
+// probe_b.at — Phase 1 probe B: deep-mutation avoidance (Plan 006 §3 Phase 1).
+//
+// The auto-lang 🔴 (jade-garden DEBTS 015, 2026-08-24): deep mutation through
+// a defineModel'd object (obj.inner.field = v, arr.push on a nested array)
+// does not trigger dependent computeds/views. ConfigEditor's whole job is
+// editing nested config objects, so this probe pins down exactly which
+// patterns are safe:
+//   - SAFE (D5 convention): whole-object / whole-array replace
+//   - RISKY: direct nested-field write
+//   - RISKY: nested-array push
+// Each row below has an independent counter + view line so the Playwright
+// driver can see which mutations actually propagated.
+widget ProbeB {
+    msg Msg {
+        SafeSetKey,
+        RiskySetKey,
+        SafeAddModel,
+        RiskyAddModel,
+        MarkerInput
+    }
+
+    model {
+        // jade hack: Array<str> emits `any` — holds an object.
+        var config Array<str> = { provider: { api_key: "orig", models: ["m1"] } }
+        var marker str = ""
+    }
+
+    computed {
+        key_len => .config.provider.api_key.len()
+        models_len => .config.provider.models.len()
+    }
+
+    view {
+        div {
+            class: "probe-b"
+            div {
+                class: "pb-safe"
+                text f"safe: key=${.config.provider.api_key} len=${.key_len} models=${.models_len}"
+            }
+            div {
+                class: "pb-key"
+                text f"key-view=${.config.provider.api_key}"
+            }
+            div {
+                class: "pb-models"
+                text f"models-view=${.config.provider.models.join(",")}"
+            }
+            input {
+                class: "pb-marker"
+                value: .marker
+                oninput: .MarkerInput
+            }
+            button {
+                class: "pb-btn-safe"
+                onclick: .SafeSetKey
+                text "safe-set"
+            }
+            button {
+                class: "pb-btn-risky"
+                onclick: .RiskySetKey
+                text "risky-set"
+            }
+            button {
+                class: "pb-btn-adds"
+                onclick: .SafeAddModel
+                text "safe-add"
+            }
+            button {
+                class: "pb-btn-addr"
+                onclick: .RiskyAddModel
+                text "risky-add"
+            }
+        }
+    }
+
+    on {
+        .MarkerInput -> { .marker = .marker }
+
+        // SAFE: whole-object replace (D5).
+        .SafeSetKey -> {
+            .config = { provider: { api_key: "safe", models: .config.provider.models } }
+        }
+        // RISKY: nested-field write.
+        .RiskySetKey -> {
+            .config.provider.api_key = "risky"
+        }
+        // SAFE: whole-array replace inside a whole-object replace.
+        .SafeAddModel -> {
+            var ms = .config.provider.models.concat(["s2"])
+            .config = { provider: { api_key: .config.provider.api_key, models: ms } }
+        }
+        // RISKY: push into the nested array.
+        .RiskyAddModel -> {
+            .config.provider.models.push("r2")
+        }
+    }
+}

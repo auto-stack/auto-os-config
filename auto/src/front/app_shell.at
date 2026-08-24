@@ -1,0 +1,10 @@
+// app_shell.at — Phase 0b pipeline smoke (placeholder; real shell lands in
+// Phase 2). References SmokePanel to verify the generated cross-widget import.
+widget AppShell {
+    view {
+        col {
+            text "app shell smoke"
+            SmokePanel { }
+        }
+    }
+}

@@ -104,6 +104,7 @@ FAIL=0
 node test-generic-editor.mjs    || FAIL=1
 node test-collection-editor.mjs || FAIL=1
 node test-remote-module.mjs     || FAIL=1
+node test-theme-switch.mjs      || FAIL=1
 
 if [ "$FAIL" = 0 ]; then
   echo ""

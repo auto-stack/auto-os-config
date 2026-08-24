@@ -81,7 +81,15 @@ await page.click('.list-head button.icon'); // "+" new
 await page.waitForTimeout(300);
 await page.fill('.name-input', '_e2e_role');
 await page.click('.create-row button:has-text("Add")');
-await page.waitForTimeout(1500);
+// Wait for the created entity to appear and be selected (create + reloadList
+// + select are three round-trips; a fixed 1500ms sleep flaked on a busy
+// machine — Plan 006 baseline hardening).
+try {
+  await page.waitForSelector('.entity-list li:has-text("_e2e_role")', { timeout: 10000 });
+} catch { /* fall through — the check below reports the failure */ }
+try {
+  await page.waitForSelector('.detail-pane button:has-text("Save")', { timeout: 10000 });
+} catch { /* fall through — the Save click below times out with a clear error */ }
 
 let createdInList = await page.$$eval('.entity-list li .e-name', (els) => els.map((e) => e.textContent));
 if (createdInList.includes('_e2e_role')) pass('created role appears in list');

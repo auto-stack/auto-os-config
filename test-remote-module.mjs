@@ -32,10 +32,18 @@ async function clickModule(page, name) {
 
 console.log('=== Opening http://localhost:17700 ===');
 await page.goto('http://localhost:17700', { waitUntil: 'domcontentloaded', timeout: 10000 });
-await page.waitForTimeout(1000);
 
 // The example-remote module must appear in the sidebar (drop-in discovered).
+// Wait for the registry fetch + render instead of a fixed sleep: on a busy
+// machine 1s was not enough (e2e back-to-back flake, Plan 006 baseline).
 console.log('\n=== Sidebar discovery ===');
+try {
+  await page.waitForFunction(
+    () => [...document.querySelectorAll('.nav-item .nav-name')]
+      .some((e) => e.textContent?.trim() === 'Example Remote'),
+    { timeout: 10000 },
+  );
+} catch { /* fall through — the check below reports the failure */ }
 const navNames = await page.$$eval('.nav-item .nav-name', (els) => els.map((e) => e.textContent?.trim()));
 console.log('  nav:', navNames.join(', '));
 if (navNames.includes('Example Remote')) pass('drop-in custom module appears in sidebar');

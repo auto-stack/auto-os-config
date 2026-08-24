@@ -1,0 +1,275 @@
+// probe_a.at — Phase 1 probe A: dynamic form dispatch (Plan 006 §3 Phase 1).
+//
+// Verifies the ConfigEditor port's core mechanism. Architecture pinned here
+// IS the Phase 4 architecture: the handler projects config into a
+// field-descriptor array (value embedded per descriptor, whole-array replace
+// on every edit — the D5 no-deep-mutation convention), and the view renders
+// purely from descriptors (for + if/else dispatch, NO function calls, NO
+// dynamic indexing in for-headers — `for x in .map[key]` is a parse error).
+//
+// GOTCHAs learned here (auto/README.md gap list):
+//  G1: attrs and children must be newline-separated (`{ class: "x"  text y }`
+//      parses text into the class expression).
+//  G2: inline event args can't be expressions — only model refs, loop vars,
+//      literals, map literals, $event (`!x`, `a + b` rejected). Compute in
+//      the handler instead.
+//  G3: for-in header needs a bare path (`for t in .f.value`), not
+//      `.values[key]`.
+widget ProbeA {
+    msg Msg {
+        SetField(map),
+        ToggleReveal,
+        TagInputChanged,
+        AddTag,
+        RemoveTag(str),
+        Pick(str),
+        SetCell(map),
+        AddRow,
+        RemoveRow(int)
+    }
+
+    model {
+        // jade hack: Array<str> emits `any` — holds heterogeneous data.
+        // value is embedded per descriptor; edits rebuild the whole array.
+        var fields Array<str> = [
+            { key: "enabled", kind: "toggle", label: "Enabled", value: true },
+            { key: "retries", kind: "number", label: "Retries", value: 3 },
+            { key: "api_key", kind: "password", label: "Api Key", value: "s3cr3t" },
+            { key: "tier", kind: "select", label: "Tier", value: "min" },
+            { key: "modes", kind: "multiselect", label: "Modes", value: ["plan"] },
+            { key: "tags", kind: "tags", label: "Tags", value: ["alpha", "beta"] },
+            { key: "url", kind: "text", label: "Url", value: "http://x" }
+        ]
+        var options Array<str> = [{ value: "min", label: "Min" }, { value: "mid", label: "Mid" }]
+        var reveal bool = false
+        var tag_input str = ""
+        var rows Array<str> = [{ tier: "min", weight: "1" }, { tier: "mid", weight: "5" }]
+        var cols Array<str> = ["tier", "weight"]
+    }
+
+    view {
+        div {
+            class: "probe-a"
+            for f in .fields {
+                div {
+                    class: "field-row"
+                    key: .f.key
+                    label {
+                        class: "field-label"
+                        text .f.label
+                    }
+                    div {
+                        class: "field-control"
+
+                        if .f.kind == "toggle" {
+                            checkbox {
+                                class: "pa-toggle"
+                                checked: .f.value
+                                onclick: .SetField({ key: .f.key })
+                            }
+                        } else if .f.kind == "number" {
+                            input {
+                                class: "input"
+                                value: .f.value
+                                oninput: .SetField({ key: .f.key })
+                            }
+                        } else if .f.kind == "password" {
+                            div {
+                                class: "secret"
+                                input {
+                                    class: "input pa-pw"
+                                    type: if .reveal { "text" } else { "password" }
+                                    value: .f.value
+                                    oninput: .SetField({ key: .f.key })
+                                }
+                                button {
+                                    class: "reveal"
+                                    onclick: .ToggleReveal
+                                    text "👁"
+                                }
+                            }
+                        } else if .f.kind == "select" {
+                            select {
+                                class: "input pa-select"
+                                value: .f.value
+                                onchange: .Pick("sel")
+                                for o in .options {
+                                    option {
+                                        key: .o.value
+                                        value: .o.value
+                                        text .o.label
+                                    }
+                                }
+                            }
+                        } else if .f.kind == "multiselect" {
+                            div {
+                                class: "multiselect"
+                                for o in .options {
+                                    label {
+                                        class: "ms-item"
+                                        key: .o.value
+                                        checkbox {
+                                            checked: .f.value.includes(.o.value)
+                                            onclick: .Pick(.o.value)
+                                        }
+                                        text .o.label
+                                    }
+                                }
+                            }
+                        } else if .f.kind == "tags" {
+                            div {
+                                class: "tags"
+                                for t in .f.value {
+                                    span {
+                                        class: "tag"
+                                        key: .t
+                                        text .t
+                                        button {
+                                            class: "tag-x"
+                                            onclick: .RemoveTag(.t)
+                                            text "×"
+                                        }
+                                    }
+                                }
+                                input {
+                                    class: "tag-input"
+                                    value: .tag_input
+                                    oninput: .TagInputChanged
+                                    onkeydown.enter.prevent: .AddTag
+                                    placeholder: "add…"
+                                }
+                            }
+                        } else {
+                            input {
+                                class: "input pa-text"
+                                "type": "text"
+                                value: .f.value
+                                oninput: .SetField({ key: .f.key })
+                            }
+                        }
+                    }
+                }
+            }
+
+            table {
+                class: "tbl"
+                thead {
+                    tr {
+                        for c in .cols {
+                            th {
+                                key: .c
+                                text .c
+                            }
+                        }
+                    }
+                }
+                tbody {
+                    for i, row in .rows {
+                        tr {
+                            key: .i
+                            for c in .cols {
+                                td {
+                                    key: .c
+                                    input {
+                                        class: "cell-input"
+                                        value: .row[.c]
+                                        oninput: .SetCell({ i: .i, c: .c })
+                                    }
+                                }
+                            }
+                            td {
+                                button {
+                                    class: "del-row"
+                                    onclick: .RemoveRow(.i)
+                                    text "×"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            button {
+                class: "add-row"
+                onclick: .AddRow
+                text "+ Row"
+            }
+        }
+    }
+
+    // ── handlers: rebuild the descriptor array (whole replace, D5) ──────────
+    on {
+        // Generic scalar edit: bump the target field's value (probe encodes
+        // the edit in the handler; the real editor passes the $event value
+        // through an ext-normalized path).
+        .SetField(args) -> {
+            var k = args.key
+            var out = .fields.filter(x => false)
+            for f in .fields {
+                if .f.key == k {
+                    if .f.kind == "toggle" { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: !.f.value }]) }
+                    if .f.kind == "number" { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: 42 }]) }
+                    if .f.kind == "password" { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: "typed" }]) }
+                    if .f.kind == "text" { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: "typed-url" }]) }
+                }
+                if .f.key != k { out = out.concat([.f]) }
+            }
+            .fields = out
+        }
+        .ToggleReveal -> { .reveal = !.reveal }
+        .TagInputChanged -> { .tag_input = .tag_input }
+        .AddTag -> {
+            if .tag_input.trim() != "" {
+                var out = .fields.filter(x => false)
+                for f in .fields {
+                    if .f.kind == "tags" { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: .f.value.concat([.tag_input.trim()]) }]) }
+                    if .f.kind != "tags" { out = out.concat([.f]) }
+                }
+                .fields = out
+                .tag_input = ""
+            }
+        }
+        .RemoveTag(t) -> {
+            var out = .fields.filter(x => false)
+            for f in .fields {
+                if .f.kind == "tags" { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: .f.value.filter(x => x != t) }]) }
+                if .f.kind != "tags" { out = out.concat([.f]) }
+            }
+            .fields = out
+        }
+        .Pick(v) -> {
+            var out = .fields.filter(x => false)
+            for f in .fields {
+                if .f.kind == "select" && v == "sel" { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: "mid" }]) }
+                if .f.kind == "multiselect" && v != "sel" {
+                    if .f.value.includes(v) { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: .f.value.filter(x => x != v) }]) }
+                    if .f.value.includes(v) == false { out = out.concat([{ key: .f.key, kind: .f.kind, label: .f.label, value: .f.value.concat([v]) }]) }
+                }
+                if .f.kind != "select" && .f.kind != "multiselect" { out = out.concat([.f]) }
+                if .f.kind == "select" && v != "sel" { out = out.concat([.f]) }
+                if .f.kind == "multiselect" && v == "sel" { out = out.concat([.f]) }
+            }
+            .fields = out
+        }
+        .SetCell(args) -> {
+            var i = args.i
+            var c = args.c
+            var rows2 = .rows.filter(x => false)
+            for idx, row in .rows {
+                if idx == i {
+                    if c == "tier" { rows2 = rows2.concat([{ tier: "max", weight: .row.weight }]) }
+                    if c != "tier" { rows2 = rows2.concat([{ tier: .row.tier, weight: "9" }]) }
+                }
+                if idx != i { rows2 = rows2.concat([.row]) }
+            }
+            .rows = rows2
+        }
+        .AddRow -> { .rows = .rows.concat([{ tier: "min", weight: "0" }]) }
+        .RemoveRow(i) -> {
+            var kept = .rows.filter(x => false)
+            for idx, row in .rows {
+                if idx != i { kept = kept.concat([.row]) }
+            }
+            .rows = kept
+        }
+    }
+}

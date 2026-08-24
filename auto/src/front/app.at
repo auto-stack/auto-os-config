@@ -1,0 +1,9 @@
+// app.at — placeholder ROOT widget (never deployed; required so real widgets
+// are emitted as standalone components/<Name>.vue — jade-garden plan 011
+// pattern). The deployed root is src/components/AppShell.vue, mounted by the
+// handwritten src/main.ts.
+widget App {
+    view {
+        text "placeholder root — never deployed"
+    }
+}

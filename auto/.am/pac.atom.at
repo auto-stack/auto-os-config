@@ -1,0 +1,36 @@
+root {
+    version: "0.1.0"
+    all_incs: [
+        
+    ]
+    deps: [
+        
+    ]
+    devices: [
+        
+    ]
+    libs: [
+        
+    ]
+    apps: [
+        
+    ]
+    bags: [
+        
+    ]
+    tests: [
+        
+    ]
+    files: [
+        
+    ]
+    name: "auto-os-config-front"
+    scene: "ui"
+    render: "vue"
+    shadcn: false
+    default_classes: false
+    defines: [
+        
+    ]
+    relative_path: "/.."
+}
