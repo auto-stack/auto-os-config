@@ -1,0 +1,370 @@
+// app.at — probe hub: tabs V1..V5, each exposing model fields for MCP asserts.
+use probe_store: ProbeStore
+use probe_transport: fetch_modules_text, fetch_config_text, put_config
+use probe_logic: body_kinds_text, table_sample, dyn_read, blank_row, is_secret_key, humanize
+
+widget App {
+    model {
+        var tab str = "v1"
+        // V1
+        var v1_result str = "(not run)"
+        var v2_found str = "(no)"
+        var v1_dead str = "(not run)"
+        var v1_config str = "(not run)"
+        var v1_put str = "(not run)"
+        // V3
+        var v3_kinds str = "(not run)"
+        var v3_table str = "(not run)"
+        var v3_dyn str = "(not run)"
+        var v3_blank str = "(not run)"
+        // V4
+        var t4_on bool = false
+        var t4_num str = "0"
+        var t4_pw str = ""
+        var t4_pw_show bool = false
+        var t4_sel str = "lite"
+        var t4_multi []str = ["roles"]
+        var t4_tags []str = ["alpha"]
+        var t4_tag_input str = ""
+        var t4_rows []any = [{ name: "m1", tier: "lite" }, { name: "m2", tier: "pro" }]
+        var t4_confirm_open bool = false
+        var t4_confirmed str = "(no)"
+        // V5
+        var accent str = "indigo"
+        var persist_roundtrip str = "(not run)"
+    }
+
+    view {
+        col (style: "h-full w-full") {
+            row (style: "gap-2 p-2 border-b") {
+                button (text: "V1 transport", style: "px-2 py-1 rounded border") { onclick: .Tab("v1") }
+                button (text: "V2 store", style: "px-2 py-1 rounded border") { onclick: .Tab("v2") }
+                button (text: "V3 logic", style: "px-2 py-1 rounded border") { onclick: .Tab("v3") }
+                button (text: "V4 controls", style: "px-2 py-1 rounded border") { onclick: .Tab("v4") }
+                button (text: "V5 theme", style: "px-2 py-1 rounded border") { onclick: .Tab("v5") }
+            }
+            row (style: "gap-2 p-1") {
+                button (text: "GO") { onclick: .GoV1 }
+                button (text: "GO2") { onclick: .GoV2 }
+                button (text: "GO3") { onclick: .GoV3 }
+                button (text: "GO5") { onclick: .GoV5 }
+            }
+            scroll (style: "flex-1 p-4") {
+                if .tab == "v1" {
+                    col (style: "gap-3") {
+                        button (text: "fetch modules") { onclick: .RunV1Modules }
+                        text (text: "modules: " + .v1_result) {}
+                        button (text: "dead port") { onclick: .RunV1Dead }
+                        text (text: "dead: " + .v1_dead) {}
+                        button (text: "fetch config ai-daemon") { onclick: .RunV1Config }
+                        text (text: "config: " + .v1_config) {}
+                        button (text: "put roundtrip") { onclick: .RunV1Put }
+                        text (text: "put: " + .v1_put) {}
+                    }
+                }
+                if .tab == "v2" {
+                    col (style: "gap-3") {
+                        button (text: "store init") { onclick: .V2Init }
+                        text (text: "store.loading=" + .store.loading.to_string() + " err=" + .store.error) {}
+                        text (text: "store.modules.len=" + .store.modules.len().to_string()) {}
+                        button (text: "select roles") { onclick: .V2Select("roles") }
+                        button (text: "find roles") { onclick: .V2Find("roles") }
+                        text (text: "store.active=" + .store.active_id + " title=" + .store.title) {}
+                    }
+                }
+                if .tab == "v3" {
+                    col (style: "gap-3") {
+                        button (text: "body kinds (text toolkit)") { onclick: .RunV3Kinds }
+                        text (text: "kinds: " + .v3_kinds) {}
+                        button (text: "table sample (dot access)") { onclick: .RunV3Table }
+                        text (text: "table: " + .v3_table) {}
+                        button (text: "dyn read body[k]") { onclick: .RunV3Dyn }
+                        text (text: "dyn: " + .v3_dyn) {}
+                        button (text: "blank row") { onclick: .RunV3Blank }
+                        text (text: "blank: " + .v3_blank) {}
+                    }
+                }
+                if .tab == "v4" {
+                    col (style: "gap-3") {
+                        checkbox (id: "t4on", checked: .t4_on.to_string(), label: "toggle me") { onclick: .T4Toggle }
+                        text (text: "t4_on=" + .t4_on.to_string()) {}
+                        input (placeholder: "number", "type": "number", value: .t4_num) { oninput: .T4Num }
+                        input (placeholder: "password", "type": "password", value: .t4_pw) { oninput: .T4Pw }
+                        button (text: "show/hide") { onclick: .T4PwToggle }
+                        text (text: "pw=" + .t4_pw + " show=" + .t4_pw_show.to_string()) {}
+                        select {
+                            select-trigger { select-value (placeholder: "tier") {} }
+                            select-content {
+                                select-item (text: "Lite", value: "lite") { onclick: .T4Sel("lite") }
+                                select-item (text: "Pro", value: "pro") { onclick: .T4Sel("pro") }
+                            }
+                        }
+                        text (text: "sel=" + .t4_sel) {}
+                        row (style: "gap-3") {
+                            checkbox (id: "m-roles", checked: "true", label: "roles") { onclick: .T4Multi("roles") }
+                            checkbox (id: "m-skills", checked: "false", label: "skills") { onclick: .T4Multi("skills") }
+                        }
+                        text (text: "multi=" + .t4_multi.len().to_string()) {}
+                        input (placeholder: "tag + Enter", value: .t4_tag_input) { oninput: .T4TagInput  onkeyup: .T4TagEnter }
+                        row (style: "gap-2") {
+                            for t in .t4_tags {
+                                row (style: "gap-1 items-center border rounded px-2 py-0.5") {
+                                    text (text: t) {}
+                                    button (text: "x") { onclick: .T4TagRemove(t) }
+                                }
+                            }
+                        }
+                        button (text: "add row") { onclick: .T4RowAdd }
+                        for r in .t4_rows {
+                            row (style: "gap-2") {
+                                input (value: r.name) { oninput: .T4CellName(r.name, $event) }
+                                input (value: r.tier) { oninput: .T4CellTier(r.tier, $event) }
+                                button (text: "del") { onclick: .T4RowDel(r.name) }
+                            }
+                        }
+                        text (text: "rows=" + .t4_rows.len().to_string()) {}
+                        button (text: "delete thing") { onclick: .T4ConfirmOpen }
+                        text (text: "confirmed=" + .t4_confirmed) {}
+                    }
+                }
+                if .tab == "v5" {
+                    col (style: "gap-3") {
+                        row (style: "gap-2") {
+                            button (text: "indigo", style: "text-primary font-bold") { onclick: .SetAccent("indigo") }
+                            button (text: "coral", style: "text-primary font-bold") { onclick: .SetAccent("coral") }
+                        }
+                        text (text: "accent=" + .accent, style: "text-primary") {}
+                        button (text: "persist roundtrip") { onclick: .V5Persist }
+                        text (text: "persist: " + .persist_roundtrip) {}
+                    }
+                }
+            }
+            if .t4_confirm_open {
+                popover (open: .t4_confirm_open, x: 300.0, y: 300.0, ondismiss: .T4ConfirmCancel, class: "w-64 border rounded p-3 gap-2") {
+                    col (style: "gap-2") {
+                        text (text: "Delete this thing?") {}
+                        row (style: "gap-2") {
+                            button (text: "Confirm") { onclick: .T4ConfirmYes }
+                            button (text: "Cancel") { onclick: .T4ConfirmCancel }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    on {
+        .Tab(t str) -> { .tab = t }
+        .GoV1 -> {
+            let a = fetch_modules_text()
+            var count = -1
+            if a.ok {
+                count = json.len(a.text)
+            }
+            .v1_result = "ok=" + a.ok.to_string() + " count=" + count.to_string()
+            let c = fetch_config_text("ai-daemon")
+            var path = ""
+            if c.ok {
+                path = unquote(json.get(json.get(c.text, "meta"), "path"))
+            }
+            .v1_config = "ok=" + c.ok.to_string() + " path=" + path
+            let val = json.get(c.text, "value")
+            let putok = put_config("ai-daemon", val)
+            .v1_put = "put_ok=" + putok.to_string()
+            .v1_dead = "(covered in t2)"
+        }
+        .GoV2 -> {
+            store.Init()
+        }
+        .GoV3 -> {
+            let s = "{\"default_provider\":\"openai\",\"log_level\":5,\"api_key\":\"sk\",\"tiers\":[\"lite\"],\"models\":[{\"name\":\"m1\"}],\"provider\":{\"kind\":\"openai\"}}"
+            let ks = body_kinds_text(s)
+            var out = ""
+            for e in ks {
+                if out != "" {
+                    out = out + ","
+                }
+                out = out + e.key + ":" + e.kind + "/" + e.vtype + ":" + e.secret.to_string()
+            }
+            .v3_kinds = out
+            let body = json.parse("{\"provider\":{\"models\":[{\"name\":\"m1\",\"tier\":\"lite\"},{\"name\":\"m2\",\"tier\":\"pro\"}]}}")
+            let names = table_sample(body)
+            var out2 = ""
+            for n in names {
+                if out2 != "" {
+                    out2 = out2 + ","
+                }
+                out2 = out2 + n
+            }
+            .v3_table = out2
+            let body2 = json.parse("{\"default_provider\":\"openai\"}")
+            .v3_dyn = dyn_read(body2)
+            let row = blank_row(["name", "base_url"])
+            .v3_blank = "name='" + row.name + "' base='" + row.base_url + "'"
+        }
+        .GoV5 -> {
+            let dir = Env.local_data_dir()
+            let path = dir + "/autoos-probe.json"
+            File.write_text(path, "{\"accent\":\"coral\"}")
+            let back = File.read_text(path)
+            .persist_roundtrip = "dir_ok=" + (dir != "").to_string() + " back=" + back
+        }
+        // V1 (per-button variants kept as alias to GoV1 pieces)
+        .RunV1Modules -> {
+            let r = fetch_modules_text()
+            var count = -1
+            if r.ok {
+                count = json.len(r.text)
+            }
+            .v1_result = "ok=" + r.ok.to_string() + " count=" + count.to_string()
+        }
+        .RunV1Dead -> {
+            .v1_dead = "(covered in t2)"
+        }
+        .RunV1Config -> {
+            let r = fetch_config_text("ai-daemon")
+            var path = ""
+            if r.ok {
+                path = unquote(json.get(json.get(r.text, "meta"), "path"))
+            }
+            .v1_config = "ok=" + r.ok.to_string() + " path=" + path
+        }
+        .RunV1Put -> {
+            let r = fetch_config_text("ai-daemon")
+            let val = json.get(r.text, "value")
+            let putok = put_config("ai-daemon", val)
+            .v1_put = "put_ok=" + putok.to_string()
+        }
+        // V2
+        .V2Init -> { store.Init() }
+        .V2Select(id str) -> {
+            store.Select(id)
+        }
+        .V2Find(id str) -> {
+            for m in .store.modules {
+                let mid = m.id
+                if mid == id {
+                    .v2_found = mid + "/" + m.name
+                }
+            }
+        }
+        // V3
+        .RunV3Kinds -> {
+            let s = "{\"default_provider\":\"openai\",\"log_level\":5,\"api_key\":\"sk\",\"tiers\":[\"lite\"],\"models\":[{\"name\":\"m1\"}],\"provider\":{\"kind\":\"openai\"}}"
+            let ks = body_kinds_text(s)
+            var out = ""
+            for e in ks {
+                if out != "" { out = out + "," }
+                out = out + e.key + ":" + e.kind + "/" + e.vtype + ":" + e.secret.to_string()
+            }
+            .v3_kinds = out
+        }
+        .RunV3Table -> {
+            let body = json.parse("{\"provider\":{\"models\":[{\"name\":\"m1\",\"tier\":\"lite\"},{\"name\":\"m2\",\"tier\":\"pro\"}]}}")
+            let names = table_sample(body)
+            var out = ""
+            for n in names {
+                if out != "" { out = out + "," }
+                out = out + n
+            }
+            .v3_table = out
+        }
+        .RunV3Dyn -> {
+            let body = json.parse("{\"default_provider\":\"openai\"}")
+            .v3_dyn = dyn_read(body)
+        }
+        .RunV3Blank -> {
+            let row = blank_row(["name", "base_url"])
+            .v3_blank = "name='" + row.name + "' base='" + row.base_url + "'"
+        }
+        // V4
+        .T4Toggle -> { .t4_on = .t4_on == false }
+        .T4Num(v str) -> { .t4_num = v }
+        .T4Pw(v str) -> { .t4_pw = v }
+        .T4PwToggle -> { .t4_pw_show = .t4_pw_show == false }
+        .T4Sel(v str) -> { .t4_sel = v }
+        .T4Multi(v str) -> {
+            if .t4_multi.includes(v) {
+                var out = []
+                for x in .t4_multi {
+                    if x != v {
+                        out.push(x)
+                    }
+                }
+                .t4_multi = out
+            }
+            if .t4_multi.includes(v) == false {
+                var out2 = []
+                for x in .t4_multi {
+                    out2.push(x)
+                }
+                out2.push(v)
+                .t4_multi = out2
+            }
+        }
+        .T4TagInput(v str) -> { .t4_tag_input = v }
+        .T4TagEnter(v str) -> {
+            if v == "enter" {
+                if .t4_tag_input != "" {
+                    var out = []
+                    for t in .t4_tags {
+                        out.push(t)
+                    }
+                    out.push(.t4_tag_input)
+                    .t4_tags = out
+                    .t4_tag_input = ""
+                }
+            }
+        }
+        .T4TagRemove(t str) -> { .t4_tags = .t4_tags.filter(x => x != t) }
+                .T4RowAdd -> {
+            var out = []
+            for r in .t4_rows {
+                out.push(r)
+            }
+            out.push({ name: "", tier: "" })
+            .t4_rows = out
+        }
+        .T4RowDel(name str) -> {
+            var out = []
+            for r in .t4_rows {
+                if r.name != name { out.push(r) }
+            }
+            .t4_rows = out
+        }
+        .T4CellName(old str, v str) -> {
+            var out = []
+            for r in .t4_rows {
+                if r.name == old { out.push({ name: v, tier: r.tier }) }
+                if r.name != old { out.push(r) }
+            }
+            .t4_rows = out
+        }
+        .T4CellTier(old str, v str) -> {
+            var out = []
+            for r in .t4_rows {
+                if r.tier == old { out.push({ name: r.name, tier: v }) }
+                if r.tier != old { out.push(r) }
+            }
+            .t4_rows = out
+        }
+        .T4ConfirmOpen -> {
+                .t4_confirmed = "(open)"
+                .t4_confirm_open = true
+            }
+        .T4ConfirmYes -> {
+                .t4_confirmed = "yes"
+                .t4_confirm_open = false
+            }
+        .T4ConfirmCancel -> { .t4_confirm_open = false }
+        // V5
+        .SetAccent(name str) -> { .accent = name }
+        .V5Persist -> {
+            let dir = Env.local_data_dir()
+            let path = dir + "/autoos-probe.json"
+            File.write_text(path, "{\"accent\":\"coral\"}")
+            let back = File.read_text(path)
+            .persist_roundtrip = "dir_ok=" + (dir != "").to_string() + " back=" + back
+        }
+    }
+}

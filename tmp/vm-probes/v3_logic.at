@@ -1,0 +1,81 @@
+// v3_logic.at — Plan 007 probe V3: inferField toolkit on the VM.
+// Run: auto tmp/vm-probes/v3_logic.at   (plain AutoVM script, no window)
+
+use auto.str
+use auto.json
+
+
+fn main() {
+    // ── string ops (regex equivalents + humanize) ─────────────────────
+    let key = "My_API_Key"
+    let lower = str.to_lower(key)
+    let is_secret = str.ends_with(lower, "_key") || str.contains(lower, "api_key") || str.contains(lower, "secret") || str.contains(lower, "token") || str.contains(lower, "password")
+    print(f"secret match: {is_secret}")
+
+    let raw = "default_provider"
+    let parts = str.split(raw, "_")
+    var human = ""
+    for i, p in parts {
+        if i > 0 { human = human + " " }
+        human = human + str.to_upper(str.substr(p, 0, 1)) + str.substr(p, 1, str.len(p))
+    }
+    print(f"humanize: {human} (parts={parts.len()})")
+
+    // ── JsonValue projection (configEntries over a config body) ───────
+    let body_s = "{\"default_provider\":\"openai\",\"log_level\":5,\"secret_key\":\"sk-x\",\"tiers\":[\"lite\",\"pro\"],\"provider\":{\"kind\":\"openai\",\"api_key\":\"k\",\"models\":[{\"name\":\"m1\",\"tier\":\"lite\"}]}}"
+    let body = json.parse(body_s)
+    if body == nil {
+        print("PARSE FAIL")
+        return
+    }
+    let keys = body.keys()
+    print(f"body keys: {keys.len()}")
+    for k in keys {
+        let v = body.get(k)
+        let t = v.type()
+        // tier/model_tier closed enum, secret masking, scalar vs table — the
+        // inferField dispatch in miniature
+        var kind = "scalar"
+        if t == "array" {
+            kind = "tags"
+            let arr = v.as_array()
+            if arr.len() > 0 && arr[0].type() == "object" { kind = "table" }
+        }
+        if t == "object" { kind = "subform" }
+        let masked = t == "string" && (str.contains(str.to_lower(k), "key") || str.contains(str.to_lower(k), "secret"))
+        print(f"  {k}: {t} -> {kind} masked={masked}")
+    }
+
+    // nested access + array-of-objects field read (tableInfo sample)
+    let prov = body.get("provider")
+    let models = prov.get("models").as_array()
+    let prov_kind = prov.get("kind").as_string()
+    let m0_name = models[0].get("name").as_string()
+    let m0_tier = models[0].get("tier").as_string()
+    print(f"nested: {prov_kind} models={models.len()} first.name={m0_name} first.tier={m0_tier}")
+
+    // ── closures over parsed data (store handler pattern) ─────────────
+    let mod_s = "[{\"id\":\"ai-daemon\",\"kind\":\"file\",\"group\":\"AI Daemon\"},{\"id\":\"roles\",\"kind\":\"collection\",\"group\":\"Harness\"}]"
+    let mods = json.parse(mod_s).as_array()
+    var found = nil
+    for m in mods {
+        if m.get("id").as_string() == "roles" { found = m }
+    }
+    if found != nil {
+        let rk = found.get("kind").as_string()
+        print(f"find roles: kind={rk}")
+    }
+
+    // ── dynamic-key object build (blankRow) on a plain map ────────────
+    let cols = ["name", "base_url"]
+    var row = {}
+    for c in cols {
+        row[c] = ""
+    }
+    let probe_name = row["name"]
+    print(f"blank row: name='{probe_name}'")
+
+    // ── JSON encode for PUT bodies ────────────────────────────────────
+    let payload = json.encode({ name: "new-role", value: { tier: "lite" } })
+    print(f"encode: {payload}")
+}

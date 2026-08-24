@@ -1,0 +1,242 @@
+widget App {
+    model {
+        var a str = "-"
+        var c str = "-"
+        var d str = "-"
+        var e str = "-"
+    }
+    view {
+        col (style: "gap-2 p-4") {
+            button (text: "A content") { onclick: .A }
+            text (text: "a=" + .a) {}
+            button (text: "C dead content") { onclick: .C }
+            text (text: "c=" + .c) {}
+            button (text: "D builder PUT") { onclick: .D }
+            text (text: "d=" + .d) {}
+            button (text: "E1 no send") { onclick: .E1 }
+            button (text: "E2 send only") { onclick: .E2 }
+            button (text: "E3 status") { onclick: .E3 }
+            button (text: "E4 reget") { onclick: .E4 }
+            button (text: "E5 compare") { onclick: .E5 }
+            button (text: "F1 drain") { onclick: .F1 }
+            button (text: "F2 builder get") { onclick: .F2 }
+            button (text: "F3 all builder") { onclick: .F3 }
+            button (text: "G1 plain get") { onclick: .G1 }
+            button (text: "G2 plain put") { onclick: .G2 }
+            button (text: "G3 get-put-get") { onclick: .G3 }
+            button (text: "G4 delete") { onclick: .G4 }
+            button (text: "H1 put then getjson") { onclick: .H1 }
+            button (text: "H2 post create") { onclick: .H2 }
+            button (text: "H3 delete") { onclick: .H3 }
+            button (text: "E get then put") { onclick: .E }
+            text (text: "e=" + .e) {}
+        }
+    }
+    on {
+        .A -> {
+            let t = http.get_json("http://127.0.0.1:17701/api/modules")
+            let one = json.get_at(t, 0)
+            .a = "t=" + json.type_of(t) + " len=" + json.len(t).to_string() + " first.id=" + json.get(one, "id") + " keys=" + json.get(json.encode(json.keys(t)), "0")
+        }
+        .C -> {
+            let t = http.get_json("http://127.0.0.1:59999/api/modules")
+            .c = "type=" + json.type_of(t) + " len=" + t.len().to_string() + " head=" + t.substr(0, 40)
+        }
+        .D -> {
+            let put = http.request("PUT", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .header("Content-Type", "application/json")
+                .body("{}")
+                .send()
+            let code = put.status()
+            .d = "code=" + code.to_string()
+        }
+        .E1 -> {
+            .e = "s1"
+            let t = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            .e = "s2 got"
+            let val = json.get(t, "value")
+            .e = "s3 val len=" + val.len().to_string()
+            let payload = "{\"value\":" + val + "}"
+            .e = "s4 payload built"
+        }
+        .E2 -> {
+            .e = "s1"
+            let t = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val = json.get(t, "value")
+            let payload = "{\"value\":" + val + "}"
+            .e = "s4 payload built"
+            let put = http.request("PUT", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .send()
+            .e = "s5 sent"
+        }
+        .E3 -> {
+            let t = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val = json.get(t, "value")
+            let payload = "{\"value\":" + val + "}"
+            let put = http.request("PUT", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .send()
+            let code = put.status()
+            .e = "s6 status " + code.to_string()
+        }
+        .E4 -> {
+            let t = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val = json.get(t, "value")
+            let payload = "{\"value\":" + val + "}"
+            let put = http.request("PUT", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .send()
+            let code = put.status()
+            let g2 = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val2 = json.get(g2, "value")
+            .e = "s7 reget ok"
+        }
+        .E5 -> {
+            let t = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val = json.get(t, "value")
+            let payload = "{\"value\":" + val + "}"
+            let put = http.request("PUT", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .send()
+            let code = put.status()
+            let g2 = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val2 = json.get(g2, "value")
+            let same = val == val2
+            .e = "s8 same=" + same.to_string()
+        }
+        .F1 -> {
+            let t = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val = json.get(t, "value")
+            let payload = "{\"value\":" + val + "}"
+            let put = http.request("PUT", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .send()
+            let drain = put.body()
+            let g2 = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val2 = json.get(g2, "value")
+            let same = val == val2
+            .e = "F1 drain-ok same=" + same.to_string()
+        }
+        .F2 -> {
+            let g = http.request("GET", "http://127.0.0.1:17701/api/modules")
+                .send()
+            let b = g.body()
+            let n = json.len(b)
+            let one = json.get_at(b, 0)
+            let fid = json.get(one, "id")
+            .e = "F2 builder-get len=" + n.to_string() + " first=" + fid
+        }
+        .F3 -> {
+            let g = http.request("GET", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .send()
+            let b = g.body()
+            let val = json.get(b, "value")
+            let payload = "{\"value\":" + val + "}"
+            let put = http.request("PUT", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .send()
+            let drain = put.body()
+            let g2 = http.request("GET", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .send()
+            let b2 = g2.body()
+            let val2 = json.get(b2, "value")
+            let same = val == val2
+            .e = "F3 all-builder same=" + same.to_string()
+        }
+        .G1 -> {
+            let res = http.get("http://127.0.0.1:17701/api/modules")
+            let b = res.body()
+            .e = "G1 plain-get len=" + b.len().to_string() + " jlen=" + json.len(b).to_string() + " type=" + json.type_of(b)
+        }
+        .G2 -> {
+            let g = http.get("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val = json.get(g.body(), "value")
+            let payload = "{\"value\":" + val + "}"
+            let put = http.put("http://127.0.0.1:17701/api/config/ai-daemon", payload)
+            .e = "G2 put-done"
+        }
+        .G3 -> {
+            let g = http.get("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val = json.get(g.body(), "value")
+            let payload = "{\"value\":" + val + "}"
+            let put = http.put("http://127.0.0.1:17701/api/config/ai-daemon", payload)
+            let g2 = http.get("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val2 = json.get(g2.body(), "value")
+            let same = val == val2
+            .e = "G3 same=" + same.to_string()
+        }
+        .G4 -> {
+            let d = http.delete("http://127.0.0.1:17701/api/config/ai-daemon/blocks/nonexistent")
+            .e = "G4 delete-done body=" + d.body().substr(0, 30)
+        }
+        .H1 -> {
+            let t1 = http.get_json("http://127.0.0.1:17701/api/modules")
+            let g = http.get("http://127.0.0.1:17701/api/config/ai-daemon")
+            let val = json.get(g.body(), "value")
+            let payload = "{\"value\":" + val + "}"
+            let put = http.put("http://127.0.0.1:17701/api/config/ai-daemon", payload)
+            let t2 = http.get_json("http://127.0.0.1:17701/api/modules")
+            .e = "H1 before=" + json.len(t1).to_string() + " after=" + json.len(t2).to_string()
+        }
+        .H2 -> {
+            let create = http.post("http://127.0.0.1:17701/api/collection/roles", "{\"name\":\"zz-probe\"}")
+            let list = http.get_json("http://127.0.0.1:17701/api/collection/roles")
+            var found = false
+            let n = json.len(list)
+            var i = 0
+            loop {
+                if i >= n { break }
+                let ent = json.get_at(list, i)
+                if json.get(ent, "name") == "\"zz-probe\"" {
+                    found = true
+                }
+                i = i + 1
+            }
+            .e = "H2 created=" + found.to_string()
+        }
+        .H3 -> {
+            let del = http.delete("http://127.0.0.1:17701/api/collection/roles/zz-probe")
+            let list = http.get_json("http://127.0.0.1:17701/api/collection/roles")
+            var found = false
+            let n = json.len(list)
+            var i = 0
+            loop {
+                if i >= n { break }
+                let ent = json.get_at(list, i)
+                if json.get(ent, "name") == "\"zz-probe\"" {
+                    found = true
+                }
+                i = i + 1
+            }
+            .e = "H3 still-there=" + found.to_string()
+        }
+        .E -> {
+            .e = "s1"
+            let t = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            .e = "s2 got"
+            let val = json.get(t, "value")
+            .e = "s3 val len=" + val.len().to_string()
+            let payload = "{\"value\":" + val + "}"
+            .e = "s4 payload built"
+            let put = http.request("PUT", "http://127.0.0.1:17701/api/config/ai-daemon")
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .send()
+            .e = "s5 sent"
+            let code = put.status()
+            .e = "s6 status"
+            let g2 = http.get_json("http://127.0.0.1:17701/api/config/ai-daemon")
+            .e = "s7 reget"
+            let val2 = json.get(g2, "value")
+            let same = val == val2
+            .e = "put=" + code.to_string() + " same=" + same.to_string()
+        }
+    }
+}

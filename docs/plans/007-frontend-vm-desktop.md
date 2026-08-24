@@ -173,9 +173,37 @@ vm 工程不产 codegen、不进 regen.sh，vue 工程完全不扫 `auto/vm/`—
 - [ ] Phase 5：e2e-vm.mjs 全绿（覆盖四套 Playwright 核心路径）；文档三件套更新；KNOWN-DEBT 登记；7 模块手动走查
 - [ ] 终态：vue web 版与 vm 桌面版并存，`./scripts/e2e.sh` 与 `./scripts/e2e-vm.sh` 双绿为仓库门禁
 
-### Phase 1 探针结论（待填）
+### Phase 1 探针结论（2026-08-25，tmp/vm-probes/ 全程实机 MCP 驱动）
 
-（探针完成后回填：V1 传输门控 / V2 store 原生双轨 / V3 逻辑移植 / V4 控件布局 / V5 主题持久化）
+**V1 传输：✅ 打通，配方收敛为"全文本 + 非 builder"**：
+- GET 用 `http.get_json(url)`（返回原始 JSON 文本，live daemon 实测 7 模块）；判错按 `json.type_of(t) != 期望形态`（死端口返回 `{"error":"error sending request..."}` 文本，形态判别可靠）；
+- PUT/POST/DELETE 用 `http.put/post/delete(url, payload)`——**完整编辑保存闭环实证**（get→投影→put→reget→比对 same=true；POST 创建 roles 实体 + DELETE 删除 + 事后 GET 验证均过）；
+- **三不用**：`res.status()` 恒返回哨兵 -2147483647；builder 链（`.header().body().send()`）一旦用过，handler 内第二次 http 调用必崩（状态污染）；`res.body()` 结果不可靠（错误响应返回垃圾）。写操作成功与否一律事后 GET 验证。
+
+**V2 store：✅ 加载链通，访问范式受限**：原生 store 语法（`use XStore: Store` + `.store.X` + `store.Init()`）工作正常，store 字段合并进 App state（7 模块 `<vmref>` 可见）；store 内调 transport fn + 循环构建 map 列表正常。**但 handler 内读 map 字段（`m.id`，含 `let mid = m.id` 中转、store 作用域与 App 作用域均试）静默失效**——不报错、不匹配。闭包 `find(x => x.id == id)` 同样不匹配。
+
+**V3 逻辑：✅ 文本工具链完美，动态 map 操作全灭**：
+- `json.keys/get/get_at/type_of/len`（作用于原始 JSON 文本）**完美**——configEntries 骨架逐字段判型全对（scalar/table/subform/tags + secret 掩码）；
+- **key 顺序为字母序**（serde_json 无 preserve_order），与 vue 轨 Object.entries 插入序不同——登记为 vm 轨已知偏差；
+- `json.parse` 是**占位 shim**（原样返回文本）——点访问（`body.provider.kind`）在任何模式都不可用，book-reader 模式在本版本失效；
+- 动态 `body[k]` 读返回 0、动态 `row[c] = ""` 写崩溃、`for k, v in map` 解析层被拒——**动态 key 操作全灭**；
+- 字符串方法（`to_lower/ends_with/contains/split/substr/to_upper/len`）、`push`、字面量 key map 构造全部可用。正则等价物（secret 键名匹配链）工作正常。
+
+**V4 控件**：checkbox（action=toggle）✓、input 单参绑定（`oninput: .T4Num`，autoui_type 文本直达参数）✓、密码显隐（状态按钮）✓、popover 确认层（open/ondismiss/Confirm/Cancel 全流程）✓、表格行循环渲染（view 端 `r.name` 点访问正常）✓、push 重建加行 ✓；**`select` 组件在 vm 快照中完全不渲染**（降级方案：popover 菜单或按钮组，041 同款）；**`.arr.concat([x])` 返回 0（禁用，一律 loop+push 重建）**；双变量 `for i, r in .arr` 在 handler codegen 不支持（view 端可用）；`autoui_type` 会置换显式 `$event` 实参（e2e 规则：input handler 一律单参无 `$event`）；全局 keyboard Enter 不路由到具体 input（tag 回车用真实键盘或改驱动方式）。
+
+**V5 主题/持久化：✅✅**：accent model 切换（indigo→coral，`text-primary` class 动态换色链路依赖 renderer thread-local，Phase 4 实机视觉复验）；`Env.local_data_dir()` + `File.write_text/read_text` 往返持久化实证（back 内容逐字一致）。
+
+**探针期 gotcha 清单（vm 轨编码规范，编号 VG1+）**：
+- **VG1** fn 模块内**禁 `use auto.str`**——与 http 模块共编时 stdlib `Response.status(self…)` 解析成 `str.status` 链接失败；字符串一律用方法调用形态（`k.to_lower()`）；
+- **VG2** handler 内多语句禁同行（`let q = f()  .r = q.x` 吞链）——一律分行；
+- **VG3** `.status()`/builder 链/`res.body()` 禁用（见 V1 三不用）；
+- **VG4** handler 内 map 字段读取不可用——handler 只处理标量/文本，map 构造留给模块 fn（字面量 key OK）；
+- **VG5** `concat`/双变量 for（handler）/动态 map key——禁用，loop+push 重建；
+- **VG6** 模块导入用冒号形式（`use probe_logic: fn1, fn2`）；花括号 use 块与文件级 `use x from "path"` 在 vm UI 均不可用；
+- **VG7** handler 崩溃会回滚整次状态写入（原子性）——分步调试需逐步设值；
+- **VG8** json.parse 占位、JsonValue 方法链不可用——全部走 json.keys/get/get_at/type_of 文本工具链。
+
+**架构修正（对 Phase 2-4 的直接影响）**：vm 轨逻辑层 = **纯文本进出**（body text → 投影 fn → 值内嵌描述符 map 列表给 view；编辑 = handler 收标量新值 → text 手术替换 → 重投影）。D4 描述符范式不受影响反而强化（view 端 map 点访问可用，恰是描述符的消费端）。store 中跨 handler 数据一律存标量/文本/描述符列表，不依赖 handler 读 map。
 
 ---
 

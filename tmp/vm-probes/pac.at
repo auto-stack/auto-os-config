@@ -1,0 +1,8 @@
+name: "probe-vm"
+version: "0.1.0"
+scene: "ui"
+render: "vm"
+shadcn: off
+default_classes: off
+window: "1100x800"
+title: "Plan 007 Probes"
