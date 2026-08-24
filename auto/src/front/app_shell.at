@@ -9,7 +9,7 @@
 widget AppShell {
     use {
         composable: useModulesStore from "src/front/utils/modules_store_ext.ts"
-        component: ConfigEditor, CollectionBrowser from "src/front/utils/app_shell_ext.ts"
+        component: ConfigEditor from "src/front/utils/app_shell_ext.ts"
     }
 
     msg Msg { Init }

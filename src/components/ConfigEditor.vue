@@ -143,7 +143,7 @@ async function deleteBlock(name: string) {
                   <label class="field-label">{{ humanize(sk as string) }}</label>
                   <TableField
                     :model-value="sv"
-                    :module-id="module_id"
+                    :module_id="module_id"
                     @update:model-value=";(body[k as string][sk as string] = $event), markDirty()"
                   />
                 </div>
@@ -161,7 +161,7 @@ async function deleteBlock(name: string) {
           <!-- top-level array of objects → table -->
           <div v-else-if="isObjectArray(v)" class="field-row">
             <label class="field-label">{{ humanize(k as string) }}</label>
-            <TableField :model-value="v" :module-id="module_id" @update:model-value=";(body[k as string] = $event), markDirty()" />
+            <TableField :model-value="v" :module_id="module_id" @update:model-value=";(body[k as string] = $event), markDirty()" />
           </div>
 
           <!-- top-level scalar leaf -->

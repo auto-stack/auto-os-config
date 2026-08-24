@@ -1,0 +1,188 @@
+// collection_store.at — collection entity state (Plan 006 Phase 3). Port of
+// composables/useCollection.ts. Singleton store is correct here: only one
+// collection view is active at a time and Init(module_id) resets per view
+// (AppShell keys the component by module id).
+//
+// Notes forced by codegen gaps:
+//  - stores cannot self-dispatch actions (`.ReloadList()` inside a handler is
+//    unsupported) — Init/Reload inline the reload logic instead;
+//  - the fm entity object is flattened into three str fields (null-object
+//    model init is not expressible).
+//
+// `entries` is the D4 projection of the atom body ({key, value, is_table,
+// spec} per field, rebuilt whole on every edit — D5).
+use back.api: fetchCollectionListSafe, fetchEntitySafe, createEntitySafe, putEntitySafe, deleteEntitySafe, bodyEntries, setEntry, entriesBody
+
+store Collection {
+    model {
+        var module_id str = ""
+        var list Array<str> = []
+        var selected_name ?str = None
+        var entries Array<str> = []
+        var sidecar str = ""
+        // frontmatter-md entity (read-only), flattened
+        var fm_name str = ""
+        var fm_description str = ""
+        var fm_body str = ""
+        var is_read_only bool = false
+        var list_loading bool = false
+        var loading bool = false
+        var saving bool = false
+        var error str = ""
+        var dirty bool = false
+    }
+
+    msg Msg {
+        Init(str),
+        Select(str),
+        Create(str),
+        Save,
+        Remove(str),
+        FieldEdited(map),
+
+        MarkDirty,
+        Reload
+    }
+
+    on {
+        .Init(mid) -> {
+            .module_id = mid
+            .error = ""
+            .list_loading = true
+            var r = fetchCollectionListSafe(mid)
+            if r.ok { .list = r.list }
+            if r.ok == false {
+                .error = r.error
+                .list = []
+            }
+            .list_loading = false
+        }
+
+        .Reload -> {
+            .list_loading = true
+            var r = fetchCollectionListSafe(.module_id)
+            if r.ok { .list = r.list }
+            if r.ok == false {
+                .error = r.error
+            }
+            .list_loading = false
+            if .selected_name != nil {
+                .loading = true
+                .error = ""
+                var e = fetchEntitySafe(.module_id, .selected_name)
+                if e.ok {
+                    if e.atom != nil {
+                        .is_read_only = false
+                        .entries = bodyEntries(e.atom.value, .module_id)
+                        .sidecar = e.atom.sidecar
+                    }
+                    if e.atom == nil {
+                        .is_read_only = true
+                    }
+                }
+                if e.ok == false { .error = e.error }
+                .loading = false
+            }
+        }
+
+        .Select(name) -> {
+            .selected_name = name
+            .loading = true
+            .error = ""
+            .entries = []
+            .sidecar = ""
+            .fm_name = ""
+            .fm_description = ""
+            .fm_body = ""
+            .dirty = false
+            var r = fetchEntitySafe(.module_id, name)
+            if r.ok {
+                if r.atom != nil {
+                    // atom entity: entries projection + sidecar
+                    .is_read_only = false
+                    .entries = bodyEntries(r.atom.value, .module_id)
+                    .sidecar = r.atom.sidecar
+                }
+                if r.atom == nil {
+                    // frontmatter-md (skill): read-only
+                    .is_read_only = true
+                    .fm_name = r.fm.name
+                    .fm_description = r.fm.description
+                    .fm_body = r.fm.body
+                }
+            }
+            if r.ok == false {
+                .error = r.error
+            }
+            .loading = false
+        }
+
+        .Create(name) -> {
+            .saving = true
+            .error = ""
+            var r = createEntitySafe(.module_id, name)
+            if r.ok {
+                .list_loading = true
+                var lr = fetchCollectionListSafe(.module_id)
+                if lr.ok { .list = lr.list }
+                .list_loading = false
+                .Select(name)
+            }
+            if r.ok == false {
+                .error = r.error
+            }
+            .saving = false
+        }
+
+        .Save -> {
+            if .selected_name != nil && .entries.len() > 0 {
+                .saving = true
+                .error = ""
+                var body = entriesBody(.entries)
+                var r = putEntitySafe(.module_id, .selected_name, body, .sidecar)
+                if r.ok {
+                    .dirty = false
+                    .list_loading = true
+                    var lr = fetchCollectionListSafe(.module_id)
+                    if lr.ok { .list = lr.list }
+                    .list_loading = false
+                }
+                if r.ok == false {
+                    .error = r.error
+                }
+                .saving = false
+            }
+        }
+
+        .Remove(name) -> {
+            .error = ""
+            var r = deleteEntitySafe(.module_id, name)
+            if r.ok {
+                if .selected_name == name {
+                    .selected_name = None
+                    .entries = []
+                }
+                .list_loading = true
+                var lr = fetchCollectionListSafe(.module_id)
+                if lr.ok { .list = lr.list }
+                .list_loading = false
+            }
+            if r.ok == false {
+                .error = r.error
+            }
+        }
+
+        // Handwritten controls (until Phase 4) emit update:modelValue with
+        // the new value; rebuild the whole entries array (D5).
+        .FieldEdited(args) -> {
+            .entries = setEntry(.entries, args.key, args.value, .module_id)
+            .dirty = true
+        }
+
+        .SetSidecar(v) -> {
+            .sidecar = v
+            .dirty = true
+        }
+        .MarkDirty -> { .dirty = true }
+    }
+}

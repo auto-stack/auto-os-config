@@ -1,12 +1,12 @@
 <!-- AppShell component - Auto-generated from Auto language -->
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { CollectionBrowser } from '../../auto/src/front/utils/app_shell_ext'
 import { ConfigEditor } from '../../auto/src/front/utils/app_shell_ext'
 import { useModulesStore } from '../../auto/src/front/utils/modules_store_ext'
 
 const modulesStore = useModulesStore()
 
+import CollectionBrowser from '@/components/CollectionBrowser.vue'
 import DaemonView from '@/components/DaemonView.vue'
 import Sidebar from '@/components/Sidebar.vue'
 

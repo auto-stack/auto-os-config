@@ -47,10 +47,10 @@ console.log('\n=== Roles (collection) — still Coral ===');
 await page.click('.nav-item:has-text("Roles")');
 await page.waitForSelector('.entity-list', { timeout: 10000 });
 // Select the first entity so the active-row tint (accent-light) shows.
-await page.click('.entity-list li');
+await page.click('.entity-list > div');
 await page.waitForTimeout(600);
 const rowCoral = await page.$eval(
-  '.entity-list li.active', el => getComputedStyle(el).backgroundColor);
+  '.entity-list > div.active', el => getComputedStyle(el).backgroundColor);
 console.log(`  selected row bg  = ${rowCoral}`);
 await page.screenshot({ path: 'screenshot-theme-roles-coral.png', fullPage: true });
 
@@ -58,7 +58,7 @@ console.log('\n=== switch to Ocean (3rd swatch) on Roles ===');
 await page.$$eval('.theme-picker .swatch', (els, i) => els[i].click(), 2);
 await page.waitForTimeout(400);
 const rowOcean = await page.$eval(
-  '.entity-list li.active', el => getComputedStyle(el).backgroundColor);
+  '.entity-list > div.active', el => getComputedStyle(el).backgroundColor);
 console.log(`  selected row bg  = ${rowOcean}`);
 await page.screenshot({ path: 'screenshot-theme-roles-ocean.png', fullPage: true });
 

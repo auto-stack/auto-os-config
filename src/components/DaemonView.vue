@@ -70,13 +70,13 @@ function Test(): void {
         <template v-if="status == 'unreachable'">
           <p class="test-hint">
             <span>The AI Daemon (aaid, :17654) is offline. Start it with </span>
-            <div>
+            <span class="inline-code">
               <span>cargo run -p auto-ai-daemon</span>
-            </div>
+            </span>
             <span>. Config fields below can still be edited — they're written to </span>
-            <div>
+            <span class="inline-code">
               <span>ai-daemon.at</span>
-            </div>
+            </span>
             <span> directly.</span>
           </p>
         </template>
@@ -157,7 +157,7 @@ function Test(): void {
             color: var(--text-secondary);
             line-height: 1.5;
         }
-        .test-hint code {
+        .test-hint .inline-code {
             background: var(--bg-hover);
             padding: 1px 5px;
             border-radius: 3px;

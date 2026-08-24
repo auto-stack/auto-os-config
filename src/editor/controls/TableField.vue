@@ -9,7 +9,7 @@ import { loadEnum } from '../useEnums'
 
 const props = defineProps<{
   modelValue: Record<string, any>[]
-  moduleId: string
+  module_id: string
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: Record<string, any>[]): void }>()
 
@@ -32,7 +32,7 @@ const columns = computed<string[]>(() => {
 function colSpec(col: string): FieldSpec | null {
   const sample = props.modelValue.find((r) => col in r)?.[col]
   if (sample === undefined) return null
-  return inferColumn(col, sample, props.moduleId)
+  return inferColumn(col, sample, props.module_id)
 }
 
 // Cached enum options per column (for select columns like `tier`).

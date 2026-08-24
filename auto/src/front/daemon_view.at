@@ -52,11 +52,11 @@ widget DaemonView(module_id: str) {
                     p {
                         class: "test-hint"
                         text "The AI Daemon (aaid, :17654) is offline. Start it with "
-                        code {
+                        span { class: "inline-code"
                             text "cargo run -p auto-ai-daemon"
                         }
                         text ". Config fields below can still be edited — they're written to "
-                        code {
+                        span { class: "inline-code"
                             text "ai-daemon.at"
                         }
                         text " directly."
@@ -148,7 +148,7 @@ widget DaemonView(module_id: str) {
             color: var(--text-secondary);
             line-height: 1.5;
         }
-        .test-hint code {
+        .test-hint .inline-code {
             background: var(--bg-hover);
             padding: 1px 5px;
             border-radius: 3px;

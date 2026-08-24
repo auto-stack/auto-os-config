@@ -274,3 +274,127 @@ export async function testDaemon(): Promise<TestResult> {
     return { status: 'fail', latency: 0, error: e.message || String(e) }
   }
 }
+
+// ── collection entity projection (Plan 006 Phase 3) ────────────────────────
+
+import { inferField } from '../editor/types'
+
+export interface EntityEntry {
+  key: string
+  value: any
+  is_table: boolean
+  spec: any
+}
+
+/** Project an atom entity body into ordered entries with inferred specs. */
+export function bodyEntries(body: any, moduleId: string): EntityEntry[] {
+  return Object.entries(body ?? {}).map(([key, value]) => ({
+    key,
+    value,
+    is_table: Array.isArray(value) && value.length > 0 && value.every((x) => typeof x === 'object' && x !== null),
+    spec: inferField(key, value, moduleId),
+  }))
+}
+
+/** Whole-replace one entry's value and re-infer its spec (D5). */
+export function setEntry(entries: EntityEntry[], key: string, value: any, moduleId: string): EntityEntry[] {
+  return entries.map((e) =>
+    e.key === key
+      ? {
+          ...e,
+          value,
+          is_table: Array.isArray(value) && value.length > 0 && value.every((x) => typeof x === 'object' && x !== null),
+          spec: inferField(key, value, moduleId),
+        }
+      : e,
+  )
+}
+
+/** CollectionBrowser list filter (name/description match). */
+export function filterEntities(list: any[], q: string): any[] {
+  const s = q.trim().toLowerCase()
+  if (!s) return list
+  return list.filter(
+    (e) => e.name.toLowerCase().includes(s) || e.description.toLowerCase().includes(s),
+  )
+}
+
+/** Fail-soft entity fetch: atom → { atom, fm:null }; frontmatter-md → { atom:null, fm }. */
+export async function fetchEntitySafe(
+  moduleId: string,
+  name: string,
+): Promise<{ ok: true; atom: any; fm: any } | { ok: false; error: string }> {
+  try {
+    const data = await fetchEntity(moduleId, name)
+    if (data.value !== undefined) {
+      return { ok: true, atom: { value: data.value, sidecar: data.sidecar || '' }, fm: null }
+    }
+    return { ok: true, atom: null, fm: fmFields(data) }
+  } catch (e: any) {
+    return { ok: false, error: e.message || String(e) }
+  }
+}
+
+/** Fail-soft list fetch. */
+export async function fetchCollectionListSafe(
+  moduleId: string,
+): Promise<{ ok: true; list: any[] } | { ok: false; error: string }> {
+  try {
+    return { ok: true, list: await fetchCollectionList(moduleId) }
+  } catch (e: any) {
+    return { ok: false, error: e.message || String(e) }
+  }
+}
+
+/** Fail-soft create. */
+export async function createEntitySafe(
+  moduleId: string,
+  name: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await createEntity(moduleId, name)
+    return { ok: true }
+  } catch (e: any) {
+    return { ok: false, error: e.message || String(e) }
+  }
+}
+
+/** Fail-soft save (value + sidecar). */
+export async function putEntitySafe(
+  moduleId: string,
+  name: string,
+  value: any,
+  sidecar: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await putEntity(moduleId, name, value, sidecar)
+    return { ok: true }
+  } catch (e: any) {
+    return { ok: false, error: e.message || String(e) }
+  }
+}
+
+/** Fail-soft remove. */
+export async function deleteEntitySafe(
+  moduleId: string,
+  name: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await deleteEntity(moduleId, name)
+    return { ok: true }
+  } catch (e: any) {
+    return { ok: false, error: e.message || String(e) }
+  }
+}
+
+/** Rebuild the atom body object from entries (inverse of bodyEntries). */
+export function entriesBody(entries: EntityEntry[]): any {
+  const body: any = {}
+  for (const e of entries) body[e.key] = e.value
+  return body
+}
+
+/** Extract the frontmatter-md fields from a raw entity response. */
+export function fmFields(data: any): { name: string; description: string; body: string } {
+  return { name: data.name ?? '', description: data.description ?? '', body: data.body ?? '' }
+}

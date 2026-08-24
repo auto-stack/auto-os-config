@@ -47,13 +47,13 @@ console.log('\n=== Module: Roles (collection browser) ===');
 await clickModule(page, 'Roles');
 await page.waitForTimeout(1500);
 
-let listItems = await page.$$eval('.entity-list li .e-name', (els) => els.map((e) => e.textContent));
+let listItems = await page.$$eval('.entity-list > div .e-name', (els) => els.map((e) => e.textContent));
 console.log('  list:', listItems);
 if (listItems.includes('assistant')) pass('roles list shows assistant');
 else fail('assistant not in roles list');
 
 // select assistant → check fields render
-await page.click('.entity-list li:has-text("assistant")');
+await page.click('.entity-list > div:has-text("assistant")');
 await page.waitForTimeout(1200);
 let labels = await page.$$eval('.field-label', (els) => els.map((e) => e.textContent?.replace(/\s+/g, ' ').trim()));
 console.log('  labels:', labels.join(' | '));
@@ -85,13 +85,13 @@ await page.click('.create-row button:has-text("Add")');
 // + select are three round-trips; a fixed 1500ms sleep flaked on a busy
 // machine — Plan 006 baseline hardening).
 try {
-  await page.waitForSelector('.entity-list li:has-text("_e2e_role")', { timeout: 10000 });
+  await page.waitForSelector('.entity-list > div:has-text("_e2e_role")', { timeout: 10000 });
 } catch { /* fall through — the check below reports the failure */ }
 try {
   await page.waitForSelector('.detail-pane button:has-text("Save")', { timeout: 10000 });
 } catch { /* fall through — the Save click below times out with a clear error */ }
 
-let createdInList = await page.$$eval('.entity-list li .e-name', (els) => els.map((e) => e.textContent));
+let createdInList = await page.$$eval('.entity-list > div .e-name', (els) => els.map((e) => e.textContent));
 if (createdInList.includes('_e2e_role')) pass('created role appears in list');
 else fail('created role not in list');
 
@@ -137,7 +137,7 @@ await page.click('.detail-pane button:has-text("Delete")');
 await page.waitForTimeout(400);
 await page.click('.modal button:has-text("Delete")');
 await page.waitForTimeout(1200);
-const afterDelete = await page.$$eval('.entity-list li .e-name', (els) => els.map((e) => e.textContent));
+const afterDelete = await page.$$eval('.entity-list > div .e-name', (els) => els.map((e) => e.textContent));
 if (!afterDelete.includes('_e2e_role')) pass('role deleted from list');
 else fail('role still in list after delete');
 // .bak may linger (safety net) — clean it
@@ -149,7 +149,7 @@ try { unlinkSync(soulMd); } catch {}
 console.log('\n=== Module: Skills (read-only collection) ===');
 await clickModule(page, 'Skills');
 await page.waitForTimeout(1500);
-const skillList = await page.$$eval('.entity-list li .e-name', (els) => els.map((e) => e.textContent));
+const skillList = await page.$$eval('.entity-list > div .e-name', (els) => els.map((e) => e.textContent));
 console.log('  skills:', skillList.length, 'items:', skillList.slice(0, 3).join(', '), '...');
 if (skillList.length >= 5) pass(`skills list loaded (${skillList.length} items)`);
 else fail(`expected several skills, got ${skillList.length}`);
@@ -163,7 +163,7 @@ if (!newBtnVisible) pass('no "New" button on read-only skills');
 else fail('New button should be hidden for read-only skills');
 
 // click one skill → read-only view
-await page.click('.entity-list li:has-text("brainstorming")');
+await page.click('.entity-list > div:has-text("brainstorming")');
 await page.waitForTimeout(1000);
 const roBadge = await page.evaluate(() => !!document.querySelector('.ro-badge'));
 const skillBody = await page.evaluate(() => document.querySelector('.skill-body')?.textContent?.slice(0, 40));
