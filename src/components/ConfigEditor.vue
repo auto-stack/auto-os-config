@@ -1,330 +1,410 @@
+<!-- ConfigEditor component - Auto-generated from Auto language -->
 <script setup lang="ts">
-// The generic, schema-free config editor.
-//
-// Given a module id, it loads the config body JSON from the daemon and renders
-// a form by walking every top-level key and asking inferField() which control
-// to use. Nested objects render as a SubForm block (one level of recursion —
-// enough for tier_routing / provider blocks / harness); arrays of objects
-// render as tables. There is NO per-module code here: any registered file
-// module gets a working form for free.
+import { onMounted } from 'vue'
+import { ScalarFields } from '../../auto/src/front/utils/controls_ext'
+import { TableField } from '../../auto/src/front/utils/controls_ext'
+import { fetchConfigSafe, putConfigSafe, deleteBlockSafe, configEntries, setCfgEntry, addBlockBody, confirmDeleteBlock, confirmSaveOnce, bodyHas } from '../../auto/src/front/utils/controls_ext'
 
-import { computed, ref } from 'vue'
-import { useConfig } from '../editor/useConfig'
-import { humanize, inferField } from '../editor/types'
-import ScalarFields from '../editor/controls/ScalarFields.vue'
-import TableField from '../editor/controls/TableField.vue'
 
-const props = defineProps<{ module_id: string }>()
+const loading = defineModel<boolean>("loading", { default: false })
+const saving = defineModel<boolean>("saving", { default: false })
+const error = defineModel<string>("error", { default: '' })
+const dirty = defineModel<boolean>("dirty", { default: false })
+const meta_file = defineModel<string>("meta_file", { default: '' })
+const entries = defineModel<any[]>("entries", { default: [] })
+const body = defineModel<any>("body", { default: null })
+const adding_block = defineModel<boolean>("adding_block", { default: false })
+const new_block_name = defineModel<string>("new_block_name", { default: '' })
+const block_error = defineModel<string>("block_error", { default: '' })
 
-const { body, meta, loading, saving, error, dirty, save, reload } = useConfig(props.module_id)
+const props = defineProps<{
+  module_id: string
+}>()
 
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
-function isObjectArray(v: unknown): v is Record<string, unknown>[] {
-  return Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'object' && x !== null)
-}
+const emit = defineEmits<{
+  Init: []
+  FieldEdited: [any]
+  Save: []
+  Reload: []
+  ToggleAddBlock: []
+  NewBlockNameChanged: []
+  AddBlock: []
+  CancelAddBlock: []
+  DeleteBlock: [string]
+}>()
 
-// For default_model's select to list the selected provider's models, inferField
-// needs the current provider — read it reactively from the body.
-const selectedProvider = computed(() => (body.value?.default_provider as string) ?? '')
+function AddBlock(): void {
+  let name = new_block_name.value.trim();
+  if (name != '') {if (body.value != null) {if (bodyHas(body.value, name)) {block_error.value = `"${name}" already exists in this config`;
+  }if (bodyHas(body.value, name) == false) {body.value = addBlockBody(body.value, name);
+  entries.value = configEntries(body.value, props.module_id);
+  new_block_name.value = '';
+  adding_block.value = false;
+  block_error.value = '';
+  dirty.value = true;
+  }}}
 
-function markDirty() {
-  dirty.value = true
-}
-
-// ── Block add/delete (Plan 005 §1.3) ────────────────────────────────────────
-// The parity gap: the generic editor couldn't add/remove whole child blocks
-// (providers). Add goes through the normal Save→PUT path (merge_node_body now
-// creates a child block for a new object key); delete uses the structured
-// DELETE /api/config/:id/blocks/:name endpoint then reloads.
-
-const addingBlock = ref(false)
-const newBlockName = ref('')
-const blockError = ref('')
-
-/// A child block is "provider-shaped" (gets a delete affordance) when it
-/// carries a `kind` prop — same convention as the daemon's enum_self_providers
-/// and auto-ai's parse_provider_blocks. Non-provider blocks (e.g. tier_routing,
-/// musk's harness) are left alone.
-function isProviderBlock(v: Record<string, unknown>): boolean {
-  return 'kind' in v
+  emit('AddBlock')
 }
 
-function addBlock() {
-  const name = newBlockName.value.trim()
-  if (!name) return
-  const b = body.value as Record<string, unknown> | null
-  if (!b) return
-  if (name in b) {
-    blockError.value = `"${name}" already exists in this config`
-    return
+function CancelAddBlock(): void {
+  adding_block.value = false;
+  new_block_name.value = '';
+  block_error.value = '';
+
+  emit('CancelAddBlock')
+}
+
+function DeleteBlock(name: any): void {
+  if (confirmDeleteBlock(name)) {block_error.value = '';
+  let p = deleteBlockSafe(props.module_id, name);
+  p.then((r: any) => { if (r.ok) {let q = fetchConfigSafe(props.module_id);
+  q.then((rr: any) => { if (rr.ok) {body.value = rr.value;
+  entries.value = configEntries(rr.value, props.module_id);
+  meta_file.value = rr.meta.file;
+  dirty.value = false;
+  }if (rr.ok == false) {error.value = rr.error;
+  } });
+  }if (r.ok == false) {block_error.value = `Delete failed: ${r.error}`;
+  } });
   }
-  b[name] = { kind: 'openai', base_url: '', api_key: '', models: [] }
-  newBlockName.value = ''
-  addingBlock.value = false
-  blockError.value = ''
-  markDirty()
+
+  emit('DeleteBlock', name)
 }
 
-async function deleteBlock(name: string) {
-  if (!confirm(`Delete block "${name}"? It is removed from the file (original preserved in .bak).`)) {
-    return
-  }
-  blockError.value = ''
-  try {
-    const resp = await fetch(
-      `/api/config/${props.module_id}/blocks/${encodeURIComponent(name)}`,
-      { method: 'DELETE' },
-    )
-    if (!resp.ok) {
-      const j = await resp.json().catch(() => null)
-      blockError.value = `Delete failed: ${(j as { error?: string } | null)?.error ?? resp.status}`
-      return
-    }
-    await reload() // the server rewrote the file; re-read it
-  } catch (e: any) {
-    blockError.value = `Delete failed: ${e.message || e}`
-  }
+function FieldEdited(args: any): void {
+  let r = setCfgEntry(entries.value, args.path, args.value, body.value, props.module_id);
+  entries.value = r.entries;
+  body.value = r.body;
+  dirty.value = true;
+
+  emit('FieldEdited', args)
 }
+
+function NewBlockNameChanged(): void {
+  new_block_name.value = new_block_name.value;
+
+  emit('NewBlockNameChanged')
+}
+
+function Reload(): void {
+  loading.value = true;
+  error.value = '';
+  let p = fetchConfigSafe(props.module_id);
+  p.then((r: any) => { if (r.ok) {body.value = r.value;
+  entries.value = configEntries(r.value, props.module_id);
+  meta_file.value = r.meta.file;
+  dirty.value = false;
+  }if (r.ok == false) {error.value = r.error;
+  }loading.value = false;
+   });
+
+  emit('Reload')
+}
+
+function Save(): void {
+  if (dirty.value && body.value != null) {if (confirmSaveOnce()) {saving.value = true;
+  error.value = '';
+  let p = putConfigSafe(props.module_id, body.value);
+  p.then((r: any) => { if (r.ok) {dirty.value = false;
+  }if (r.ok == false) {error.value = r.error;
+  }saving.value = false;
+   });
+  }}
+
+  emit('Save')
+}
+
+function ToggleAddBlock(): void {
+  adding_block.value = !adding_block.value;
+
+  emit('ToggleAddBlock')
+}
+
+onMounted(() => {
+  loading.value = true;
+  error.value = '';
+  let p = fetchConfigSafe(props.module_id);
+  p.then((r: any) => { if (r.ok) {body.value = r.value;
+  entries.value = configEntries(r.value, props.module_id);
+  meta_file.value = r.meta.file;
+  dirty.value = false;
+  }if (r.ok == false) {error.value = r.error;
+  body.value = null;
+  }loading.value = false;
+   });
+})
+
+
 </script>
 
 <template>
-  <div class="config-editor">
-    <div v-if="loading" class="state-msg">Loading…</div>
-    <div v-else-if="error" class="state-msg error">
-      ✗ {{ error }}
-      <span class="hint">Is the config daemon running on :17701?</span>
+    <div class="config-editor">
+      <template v-if="loading">
+        <div class="state-msg">
+          <span>Loading…</span>
+        </div>
+      </template>
+      <template v-if="loading == false && error != '' && body == null">
+        <div class="state-msg error">
+          <span>✗ {{ error }}</span>
+          <span class="hint">
+            <span>Is the config daemon running on :17701?</span>
+          </span>
+        </div>
+      </template>
+      <template v-if="body != null">
+        <div class="toolbar">
+          <div class="meta">
+            <span class="mono">
+              <span>{{ meta_file }}</span>
+            </span>
+            <template v-if="dirty">
+              <span class="dirty">
+                <span>● unsaved</span>
+              </span>
+            </template>
+          </div>
+          <div class="actions">
+            <template v-if="block_error != ''">
+              <span class="block-error">
+                <span>{{ block_error }}</span>
+              </span>
+            </template>
+            <template v-if="adding_block">
+              <input class="block-name" :placeholder="'block name'" v-model="new_block_name" @input="NewBlockNameChanged" @keydown.enter="AddBlock" @keyup="NewBlockNameChanged" />
+              <button class="btn" @click="AddBlock">
+                <span>Add</span>
+              </button>
+              <button class="btn" @click="CancelAddBlock">
+                <span>Cancel</span>
+              </button>
+            </template>
+            <template v-if="adding_block == false">
+              <button class="btn" @click="ToggleAddBlock">
+                <span>＋ Add block</span>
+              </button>
+            </template>
+            <button class="btn" :disabled="saving" @click="Reload">
+              <span>Reload</span>
+            </button>
+            <button class="btn primary" :disabled="saving || dirty == false" @click="Save">
+              <template v-if="saving">
+                <span>Saving…</span>
+              </template>
+              <template v-if="saving == false">
+                <span>Save</span>
+              </template>
+            </button>
+          </div>
+        </div>
+        <div class="fields">
+          <div class="entry" :key="e.path" v-for="e in entries">
+            <template v-if="e.kind == 'subform'">
+              <div class="subform">
+                <div class="subform-header">
+                  <span class="subform-title">
+                    <span>{{ e.spec.label }}</span>
+                  </span>
+                  <template v-if="e.is_provider">
+                    <button class="btn danger btn-sm" :title="'Delete this block from the file'" @click="DeleteBlock(e.key)">
+                      <span>🗑</span>
+                    </button>
+                  </template>
+                </div>
+                <div class="subform-body">
+                  <div class="entry" :key="s.path" v-for="s in e.sub">
+                    <template v-if="s.is_table">
+                      <div class="field-row">
+                        <label class="field-label">
+                          <span>{{ s.spec.label }}</span>
+                        </label>
+                        <TableField :modelValue="s.value" :module_id="module_id" :path="s.path" :key="'TableField-1-' + (((s as any)?.id ?? s))" @Value="FieldEdited($event)" />
+                      </div>
+                    </template>
+                    <template v-if="s.is_table == false">
+                      <ScalarFields :modelValue="s.value" :path="s.path" :spec="s.spec" :key="'ScalarFields-2-' + (((s as any)?.id ?? s))" @Value="FieldEdited($event)" />
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <template v-if="e.kind == 'table'">
+              <div class="field-row">
+                <label class="field-label">
+                  <span>{{ e.spec.label }}</span>
+                </label>
+                <TableField :modelValue="e.value" :module_id="module_id" :path="e.path" :key="'TableField-3-' + (((e as any)?.id ?? e))" @Value="FieldEdited($event)" />
+              </div>
+            </template>
+            <template v-if="e.kind == 'scalar'">
+              <ScalarFields :modelValue="e.value" :path="e.path" :spec="e.spec" :key="'ScalarFields-4-' + (((e as any)?.id ?? e))" @Value="FieldEdited($event)" />
+            </template>
+          </div>
+        </div>
+        <div class="toolbar bottom">
+          <div class="actions">
+            <button class="btn primary" :disabled="saving || dirty == false" @click="Save">
+              <template v-if="saving">
+                <span>Saving…</span>
+              </template>
+              <template v-if="saving == false">
+                <span>Save</span>
+              </template>
+            </button>
+          </div>
+        </div>
+      </template>
     </div>
 
-    <template v-else-if="body">
-      <div class="toolbar">
-        <div class="meta">
-          <span class="mono">{{ meta?.file }}</span>
-          <span v-if="dirty" class="dirty">● unsaved</span>
-        </div>
-        <div class="actions">
-          <span v-if="blockError" class="block-error">{{ blockError }}</span>
-          <template v-if="addingBlock">
-            <input
-              v-model="newBlockName"
-              class="block-name"
-              placeholder="block name"
-              @keyup.enter="addBlock"
-            />
-            <button class="btn" @click="addBlock">Add</button>
-            <button class="btn" @click="addingBlock = false; newBlockName = ''; blockError = ''">Cancel</button>
-          </template>
-          <button v-else class="btn" @click="addingBlock = true">＋ Add block</button>
-          <button class="btn" :disabled="saving" @click="reload">Reload</button>
-          <button class="btn primary" :disabled="saving || !dirty" @click="save">
-            {{ saving ? 'Saving…' : 'Save' }}
-          </button>
-        </div>
-      </div>
-
-      <div class="fields">
-        <template v-for="(v, k) in body" :key="k">
-          <!-- nested object → SubForm block -->
-          <div v-if="isObject(v)" class="subform">
-            <div class="subform-header">
-              <span class="subform-title">{{ humanize(k as string) }}</span>
-              <button
-                v-if="isProviderBlock(v)"
-                class="btn danger btn-sm"
-                title="Delete this block from the file"
-                @click="deleteBlock(k as string)"
-              >🗑</button>
-            </div>
-            <div class="subform-body">
-              <template v-for="(sv, sk) in v" :key="sk">
-                <!-- table inside a sub-form (e.g. tier_routing.max) -->
-                <div v-if="isObjectArray(sv)" class="field-row">
-                  <label class="field-label">{{ humanize(sk as string) }}</label>
-                  <TableField
-                    :model-value="sv"
-                    :module_id="module_id"
-                    @update:model-value=";(body[k as string][sk as string] = $event), markDirty()"
-                  />
-                </div>
-                <!-- scalar leaf -->
-                <ScalarFields
-                  v-else
-                  :spec="inferField(sk as string, sv, module_id, selectedProvider)"
-                  :model-value="sv"
-                  @update:model-value=";(body[k as string][sk as string] = $event), markDirty()"
-                />
-              </template>
-            </div>
-          </div>
-
-          <!-- top-level array of objects → table -->
-          <div v-else-if="isObjectArray(v)" class="field-row">
-            <label class="field-label">{{ humanize(k as string) }}</label>
-            <TableField :model-value="v" :module_id="module_id" @update:model-value=";(body[k as string] = $event), markDirty()" />
-          </div>
-
-          <!-- top-level scalar leaf -->
-          <ScalarFields
-            v-else
-            :spec="inferField(k as string, v, module_id, selectedProvider)"
-            :model-value="v"
-            @update:model-value=";(body[k as string] = $event), markDirty()"
-          />
-        </template>
-      </div>
-
-      <div class="toolbar bottom">
-        <div class="actions">
-          <button class="btn primary" :disabled="saving || !dirty" @click="save">
-            {{ saving ? 'Saving…' : 'Save' }}
-          </button>
-        </div>
-      </div>
-    </template>
-  </div>
 </template>
 
-<style scoped>
-.config-editor {
-  max-width: 820px;
-}
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0 16px 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 8px;
-}
-.toolbar.bottom {
-  border-bottom: none;
-  border-top: 1px solid var(--border);
-  margin-top: 16px;
-  padding-top: 16px;
-}
-.meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--font-size-sm);
-  color: var(--text-muted);
-}
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-.dirty {
-  color: var(--accent);
-  font-weight: 500;
-}
-.actions {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
-.btn {
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  padding: 6px 16px;
-  border-radius: var(--radius-sm, 4px);
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-  transition: all 0.15s;
-}
-.btn:hover:not(:disabled) {
-  background: var(--bg-hover);
-}
-.btn.primary {
-  background: var(--accent);
-  color: var(--accent-foreground);
-  border-color: var(--accent);
-}
-.btn.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.fields {
-  display: flex;
-  flex-direction: column;
-}
-.subform {
-  border: 1px solid var(--border);
-  border-radius: var(--radius, 8px);
-  margin: 12px 0;
-  background: var(--bg-card);
-}
-.subform-header {
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-hover);
-  border-radius: var(--radius, 8px) var(--radius, 8px) 0 0;
-  font-weight: 600;
-  font-size: var(--font-size-base);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.btn.danger {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: transparent;
-}
-.btn.danger:hover:not(:disabled) {
-  background: rgba(196, 43, 28, 0.08);
-}
-.btn-sm {
-  padding: 2px 8px;
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
-}
-.block-name {
-  width: 160px;
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm, 4px);
-  font-size: var(--font-size-sm);
-  background: var(--bg-card);
-  color: var(--text-primary);
-}
-.block-error {
-  color: var(--danger);
-  font-size: var(--font-size-sm);
-}
-.subform-body {
-  padding: 8px 14px;
-}
-.field-row {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 12px;
-  align-items: start;
-  padding: 8px 0;
-}
-.field-label {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  padding-top: 6px;
-  font-weight: 500;
-}
-.state-msg {
-  padding: 14px;
-  border-radius: var(--radius, 8px);
-  background: var(--bg-hover);
-  color: var(--text-secondary);
-  font-size: var(--font-size-base);
-}
-.state-msg.error {
-  background: rgba(196, 43, 28, 0.08);
-  color: var(--danger);
-}
-.state-msg.error .hint {
-  display: block;
-  margin-top: 6px;
-  font-size: var(--font-size-sm);
-  opacity: 0.85;
-}
+<style>
+/* Component styles */
+
 </style>
+
+<style scoped>
+
+        .config-editor {
+            max-width: 820px;
+        }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0 16px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+        .toolbar.bottom {
+            border-bottom: none;
+            border-top: 1px solid var(--border);
+            margin-top: 16px;
+            padding-top: 16px;
+        }
+        .meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+        }
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        .dirty {
+            color: var(--accent);
+            font-weight: 500;
+        }
+        .actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .btn {
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 6px 16px;
+            border-radius: var(--radius-sm, 4px);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            transition: all 0.15s;
+        }
+        .btn:hover:not(:disabled) {
+            background: var(--bg-hover);
+        }
+        .btn.primary {
+            background: var(--accent);
+            color: var(--accent-foreground);
+            border-color: var(--accent);
+        }
+        .btn.primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .fields {
+            display: flex;
+            flex-direction: column;
+        }
+        .subform {
+            border: 1px solid var(--border);
+            border-radius: var(--radius, 8px);
+            margin: 12px 0;
+            background: var(--bg-card);
+        }
+        .subform-header {
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-hover);
+            border-radius: var(--radius, 8px) var(--radius, 8px) 0 0;
+            font-weight: 600;
+            font-size: var(--font-size-base);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .btn.danger {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: transparent;
+        }
+        .btn.danger:hover:not(:disabled) {
+            background: rgba(196, 43, 28, 0.08);
+        }
+        .btn-sm {
+            padding: 2px 8px;
+            font-size: var(--font-size-sm);
+            line-height: 1.4;
+        }
+        .block-name {
+            width: 160px;
+            padding: 5px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm, 4px);
+            font-size: var(--font-size-sm);
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .block-error {
+            color: var(--danger);
+            font-size: var(--font-size-sm);
+        }
+        .subform-body {
+            padding: 8px 14px;
+        }
+        .field-row {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 12px;
+            align-items: start;
+            padding: 8px 0;
+        }
+        .field-label {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            padding-top: 6px;
+            font-weight: 500;
+        }
+        .state-msg {
+            padding: 14px;
+            border-radius: var(--radius, 8px);
+            background: var(--bg-hover);
+            color: var(--text-secondary);
+            font-size: var(--font-size-base);
+        }
+        .state-msg.error {
+            background: rgba(196, 43, 28, 0.08);
+            color: var(--danger);
+        }
+        .state-msg.error .hint {
+            display: block;
+            margin-top: 6px;
+            font-size: var(--font-size-sm);
+            opacity: 0.85;
+        }
+    </style>

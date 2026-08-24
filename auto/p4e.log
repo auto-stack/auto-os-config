@@ -1,0 +1,76 @@
+---------------------------
+AutoNexus / Auto CLI
+---------------------------
+Loading AmConfig from Some("C:\\Users\\zhaop\\.auto\\auto-man\\am.at")...
+AmConfig: AmConfig {
+  name: default
+  index: {
+    default: git@gitee.com:auto-stack/auto-index.git
+    soutek: git@codeup.aliyun.com:soutek/auto-stack/auto-index.git
+    boe: git@codeup.aliyun.com:soutek/boe/index.git
+  }
+}
+
+
+Loaded port: windows_ninja
+port NAME: windows_ninja
+all index: {"default": "git@gitee.com:auto-stack/auto-index.git", "soutek": "git@codeup.aliyun.com:soutek/auto-stack/auto-index.git", "boe": "git@codeup.aliyun.com:soutek/boe/index.git"}
+used index: ["default"]
+11:58:10 [0m[34m[INFO] [0mloading index store from C:/Users/zhaop/.auto/auto-man/index/default
+setting port builder: windows_ninja ninja, at build
+11:58:10 [0m[34m[INFO] [0mAutoCache initialized for project: auto-os-config-front
+11:58:10 [0m[34m[INFO] [0mDownloading deps
+11:58:10 [0m[34m[INFO] [0mdownload done!
+11:58:10 [0m[34m[INFO] [0m--- pac: auto-os-config-front ---
+
+╭──────┬──────┬────┬──────╮
+│[94m [39m[94mname[39m[94m [39m│[94m [39m[94mkind[39m[94m [39m│[94m [39m[94mat[39m[94m [39m│[94m [39m[94mdirs[39m[94m [39m│
+╰──────┴──────┴────┴──────╯
+11:58:10 [0m[34m[INFO] [0mLinking targets with dependencies
+11:58:10 [0m[34m[INFO] [0mScanning targets for srcs and incs, only major targets and their deps are scanned
+11:58:10 [0m[34m[INFO] [0m--- pac: auto-os-config-front ---
+
+╭──────┬──────┬────┬──────╮
+│[94m [39m[94mname[39m[94m [39m│[94m [39m[94mkind[39m[94m [39m│[94m [39m[94mat[39m[94m [39m│[94m [39m[94mdirs[39m[94m [39m│
+╰──────┴──────┴────┴──────╯
+Generating Vue project (backend: vue, gen-only)
+Mode: shadcn: off — native HTML element generation
+Mode: default_classes: off — no doc-theme default Tailwind classes (layout primitives kept)
+Error:   × Failed to compile D:\autostack\auto-os-config\auto\src/
+  │ front\table_field.at: Parse error in D:\autostack\auto-os-config\auto\src/
+  │ front\table_field.at: MultipleErrors { count: 20, plural: "s", errors:
+  │ [Syntax(UnexpectedToken { expected: "LBrace", found: "[", span: SourceSpan
+  │ { offset: SourceOffset(2512), length: 1 } }), Syntax(Generic { message:
+  │ "Expected term, got RBrace", span: SourceSpan { offset:
+  │ SourceOffset(2884), length: 1 } }), Syntax(Generic { message: "Expected
+  │ term, got RBrace", span: SourceSpan { offset: SourceOffset(2884), length:
+  │ 1 } }), Syntax(Generic { message: "Expected term, got RBrace", span:
+  │ SourceSpan { offset: SourceOffset(2884), length: 1 } }), Syntax(Generic
+  │ { message: "Expected term, got RBrace", span: SourceSpan { offset:
+  │ SourceOffset(2884), length: 1 } }), Syntax(Generic { message: "Expected
+  │ term, got RBrace", span: SourceSpan { offset: SourceOffset(2884), length:
+  │ 1 } }), Syntax(Generic { message: "Expected term, got RBrace", span:
+  │ SourceSpan { offset: SourceOffset(2884), length: 1 } }), Syntax(Generic
+  │ { message: "Expected term, got RBrace", span: SourceSpan { offset:
+  │ SourceOffset(2884), length: 1 } }), Syntax(Generic { message: "Expected
+  │ term, got RBrace", span: SourceSpan { offset: SourceOffset(2884), length:
+  │ 1 } }), Syntax(Generic { message: "Expected term, got RBrace", span:
+  │ SourceSpan { offset: SourceOffset(2884), length: 1 } }), Syntax(Generic
+  │ { message: "Expected term, got RBrace", span: SourceSpan { offset:
+  │ SourceOffset(2884), length: 1 } }), Syntax(Generic { message: "Expected
+  │ term, got RBrace", span: SourceSpan { offset: SourceOffset(2884), length:
+  │ 1 } }), Syntax(Generic { message: "Expected term, got RBrace", span:
+  │ SourceSpan { offset: SourceOffset(2884), length: 1 } }), Syntax(Generic
+  │ { message: "Expected term, got RBrace", span: SourceSpan { offset:
+  │ SourceOffset(2884), length: 1 } }), Syntax(Generic { message: "Expected
+  │ term, got RBrace", span: SourceSpan { offset: SourceOffset(2884), length:
+  │ 1 } }), Syntax(Generic { message: "Expected term, got RBrace", span:
+  │ SourceSpan { offset: SourceOffset(2884), length: 1 } }), Syntax(Generic
+  │ { message: "Expected term, got RBrace", span: SourceSpan { offset:
+  │ SourceOffset(2884), length: 1 } }), Syntax(Generic { message: "Expected
+  │ term, got RBrace", span: SourceSpan { offset: SourceOffset(2884), length:
+  │ 1 } }), Syntax(Generic { message: "Expected term, got RBrace", span:
+  │ SourceSpan { offset: SourceOffset(2884), length: 1 } }), Syntax(Generic
+  │ { message: "Expected term, got RBrace", span: SourceSpan { offset:
+  │ SourceOffset(2884), length: 1 } })] }
+

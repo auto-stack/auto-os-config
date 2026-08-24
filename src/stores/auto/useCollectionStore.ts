@@ -30,7 +30,7 @@ if (r.ok == false) {error.value = r.error;
 }
 saving.value = false;
  }
-    const FieldEdited = async (args: any) => { entries.value = await setEntry(entries.value, args.key, args.value, module_id.value);
+    const FieldEdited = async (args: any) => { entries.value = await setEntry(entries.value, args.path, args.value, module_id.value);
 dirty.value = true;
  }
     const Init = async (mid: string) => { module_id.value = mid;

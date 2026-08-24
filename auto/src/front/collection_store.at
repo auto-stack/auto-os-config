@@ -175,7 +175,7 @@ store Collection {
         // Handwritten controls (until Phase 4) emit update:modelValue with
         // the new value; rebuild the whole entries array (D5).
         .FieldEdited(args) -> {
-            .entries = setEntry(.entries, args.key, args.value, .module_id)
+            .entries = setEntry(.entries, args.path, args.value, .module_id)
             .dirty = true
         }
 

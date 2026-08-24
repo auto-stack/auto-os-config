@@ -223,9 +223,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                 class: "field-label"
                                                 text f.spec.label
                                             }
-                                            TableField(modelValue: f.value, module_id: .module_id) {
-                                                on "update:modelValue": .FieldEdited({ key: f.key, value: $event })
-                                            }
+                                            TableField(modelValue: f.value, module_id: .module_id, path: f.key, on_value: .FieldEdited)
                                         }
                                     }
                                     if f.is_table == false {
@@ -236,9 +234,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                 class: "field-label"
                                                 text f.spec.label
                                             }
-                                            ScalarFields(spec: f.spec, modelValue: f.value) {
-                                                on "update:modelValue": .FieldEdited({ key: f.key, value: $event })
-                                            }
+                                            ScalarFields(spec: f.spec, modelValue: f.value, path: f.key, on_value: .FieldEdited)
                                         }
                                         }
                                     }

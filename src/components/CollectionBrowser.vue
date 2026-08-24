@@ -263,7 +263,7 @@ onMounted(() => {
                       <label class="field-label">
                         <span>{{ f.spec.label }}</span>
                       </label>
-                      <TableField :modelValue="f.value" :module_id="module_id" :key="'TableField-1-' + (((f as any)?.id ?? f))" @update:modelValue="FieldEdited({ key: f.key, value: $event })" />
+                      <TableField :modelValue="f.value" :module_id="module_id" :path="f.key" :key="'TableField-1-' + (((f as any)?.id ?? f))" @Value="FieldEdited($event)" />
                     </div>
                   </template>
                   <template v-if="f.is_table == false">
@@ -271,7 +271,7 @@ onMounted(() => {
                       <label class="field-label">
                         <span>{{ f.spec.label }}</span>
                       </label>
-                      <ScalarFields :modelValue="f.value" :spec="f.spec" :key="'ScalarFields-2-' + (((f as any)?.id ?? f))" @update:modelValue="FieldEdited({ key: f.key, value: $event })" />
+                      <ScalarFields :modelValue="f.value" :path="f.key" :spec="f.spec" :key="'ScalarFields-2-' + (((f as any)?.id ?? f))" @Value="FieldEdited($event)" />
                     </div>
                   </template>
                 </div>

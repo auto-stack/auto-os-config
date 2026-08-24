@@ -9,5 +9,5 @@ export function useCollectionStore(): any {
 }
 
 export { filterEntities } from '../../../../src/lib/api'
-export { default as ScalarFields } from '../../../../src/editor/controls/ScalarFields.vue'
-export { default as TableField } from '../../../../src/editor/controls/TableField.vue'
+export { default as ScalarFields } from '../../../../src/components/ScalarFields.vue'
+export { default as TableField } from '../../../../src/components/TableField.vue'
