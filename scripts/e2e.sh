@@ -100,10 +100,11 @@ module {
 EOF
 
 echo "── Running E2E suites ──"
+# test-remote-module.mjs retired with the createComponent(Vue) protocol
+# (Plan 006 Phase 2: custom kind now renders a removal placeholder).
 FAIL=0
 node test-generic-editor.mjs    || FAIL=1
 node test-collection-editor.mjs || FAIL=1
-node test-remote-module.mjs     || FAIL=1
 node test-theme-switch.mjs      || FAIL=1
 
 if [ "$FAIL" = 0 ]; then

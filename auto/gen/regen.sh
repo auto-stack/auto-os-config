@@ -20,20 +20,27 @@ if grep -qE "Parse error|error\[|Error:" gen/build.log; then
   exit 1
 fi
 
-# Deploy store composables: rewrite the codegen's @/lib/api import to the host
-# handwritten transport layer (src/lib/api.ts).
+# Deploy store composables: rewrite the codegen's imports to the host tree —
+# @/lib/api -> handwritten transport; @/ext/... -> the auto tree (stores sit
+# one level deeper than components: ../../../ = repo root).
 mkdir -p ../src/stores/auto
 for f in gen/front/vue/src/stores/use*Store.ts; do
   base=$(basename "$f")
-  sed "s|@/lib/api|../../lib/api|g" "$f" > "../src/stores/auto/${base}"
+  sed -e "s|@/lib/api|../../lib/api|g" \
+      -e "s|@/ext/src/front/utils/|../../../auto/src/front/utils/|g" \
+      -e "s|@/ext/src/lib/api|../../../src/lib/api|g" \
+      "$f" > "../src/stores/auto/${base}"
 done
 
-# Deploy components: rewrite the codegen's @/ext/src/front/utils/ imports to
-# point into the auto tree (../../ = repo root from src/components/).
+# Deploy components: rewrite the codegen's @/ext/... imports to point into
+# the auto tree (../../ = repo root from src/components/). @/ext/src/lib/api
+# (direct api imports in components) maps to the host transport layer.
 mkdir -p ../src/components
 for f in gen/front/vue/src/components/*.vue; do
   base=$(basename "$f")
-  sed "s|@/ext/src/front/utils/|../../auto/src/front/utils/|g" "$f" > "../src/components/${base}"
+  sed -e "s|@/ext/src/front/utils/|../../auto/src/front/utils/|g" \
+      -e "s|@/ext/src/lib/api|../../lib/api|g" \
+      "$f" > "../src/components/${base}"
 done
 
 echo "REGEN OK — components: $(find ../src/components -maxdepth 1 -name '*.vue' | wc -l), stores: $(find ../src/stores/auto -maxdepth 1 -name '*.ts' 2>/dev/null | wc -l)"

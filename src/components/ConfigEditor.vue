@@ -14,9 +14,9 @@ import { humanize, inferField } from '../editor/types'
 import ScalarFields from '../editor/controls/ScalarFields.vue'
 import TableField from '../editor/controls/TableField.vue'
 
-const props = defineProps<{ moduleId: string }>()
+const props = defineProps<{ module_id: string }>()
 
-const { body, meta, loading, saving, error, dirty, save, reload } = useConfig(props.moduleId)
+const { body, meta, loading, saving, error, dirty, save, reload } = useConfig(props.module_id)
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -74,7 +74,7 @@ async function deleteBlock(name: string) {
   blockError.value = ''
   try {
     const resp = await fetch(
-      `/api/config/${props.moduleId}/blocks/${encodeURIComponent(name)}`,
+      `/api/config/${props.module_id}/blocks/${encodeURIComponent(name)}`,
       { method: 'DELETE' },
     )
     if (!resp.ok) {
@@ -143,14 +143,14 @@ async function deleteBlock(name: string) {
                   <label class="field-label">{{ humanize(sk as string) }}</label>
                   <TableField
                     :model-value="sv"
-                    :module-id="moduleId"
+                    :module-id="module_id"
                     @update:model-value=";(body[k as string][sk as string] = $event), markDirty()"
                   />
                 </div>
                 <!-- scalar leaf -->
                 <ScalarFields
                   v-else
-                  :spec="inferField(sk as string, sv, moduleId, selectedProvider)"
+                  :spec="inferField(sk as string, sv, module_id, selectedProvider)"
                   :model-value="sv"
                   @update:model-value=";(body[k as string][sk as string] = $event), markDirty()"
                 />
@@ -161,13 +161,13 @@ async function deleteBlock(name: string) {
           <!-- top-level array of objects → table -->
           <div v-else-if="isObjectArray(v)" class="field-row">
             <label class="field-label">{{ humanize(k as string) }}</label>
-            <TableField :model-value="v" :module-id="moduleId" @update:model-value=";(body[k as string] = $event), markDirty()" />
+            <TableField :model-value="v" :module-id="module_id" @update:model-value=";(body[k as string] = $event), markDirty()" />
           </div>
 
           <!-- top-level scalar leaf -->
           <ScalarFields
             v-else
-            :spec="inferField(k as string, v, moduleId, selectedProvider)"
+            :spec="inferField(k as string, v, module_id, selectedProvider)"
             :model-value="v"
             @update:model-value=";(body[k as string] = $event), markDirty()"
           />

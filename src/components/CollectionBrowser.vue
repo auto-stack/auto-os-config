@@ -16,23 +16,23 @@ import ScalarFields from '../editor/controls/ScalarFields.vue'
 import TableField from '../editor/controls/TableField.vue'
 
 const props = defineProps<{
-  moduleId: string
+  module_id: string
   /** Sidebar display name, for headings. */
   label?: string
   /** Module-level read-only (frontmatter-md collections like skills). Hides
    *  New/Edit before a selection loads. Per-entity isReadOnly confirms it. */
-  readOnly?: boolean
+  read_only?: boolean
 }>()
 
 const {
   list, selectedName, body, sidecar, fm, isReadOnly,
   listLoading, loading, saving, error, dirty, filter,
   reloadList, select, create, save, remove,
-} = useCollection(props.moduleId)
+} = useCollection(props.module_id)
 
 // Module is editable only if not declared read-only at the module level AND the
 // loaded entity isn't read-only. Used for the New button + editor visibility.
-const canEdit = computed(() => !props.readOnly && !isReadOnly.value)
+const canEdit = computed(() => !props.read_only && !isReadOnly.value)
 
 const creating = ref(false)
 const newName = ref('')
@@ -126,11 +126,11 @@ function markDirty() {
           <template v-for="(v, k) in body" :key="k">
             <div v-if="isObjectArray(v)" class="field-row">
               <label class="field-label">{{ humanize(k as string) }}</label>
-              <TableField :model-value="v" :module-id="moduleId" @update:model-value=";(body[k as string] = $event), markDirty()" />
+              <TableField :model-value="v" :module-id="module_id" @update:model-value=";(body[k as string] = $event), markDirty()" />
             </div>
             <ScalarFields
               v-else
-              :spec="inferField(k as string, v, moduleId)"
+              :spec="inferField(k as string, v, module_id)"
               :model-value="v"
               @update:model-value=";(body[k as string] = $event), markDirty()"
             />

@@ -1,0 +1,276 @@
+// src/lib/api.ts — handwritten transport layer (Plan 006 D2).
+//
+// Everything the Auto stores/widgets can't express lives here: fetch, JSON,
+// timeouts, caches. The .at side consumes these via `use back.api:` /
+// `use { fn }` imports (auto-awaited by codegen). Endpoints and error
+// messages are ported verbatim from the original composables
+// (useModules/useConfig/useCollection/useEnums/DaemonView).
+
+export interface ConfigModule {
+  id: string
+  kind: string
+  name: string
+  icon: string
+  description: string
+  group: string
+  remote?: string
+  format?: string
+}
+
+export interface EnumOption {
+  value: string
+  label: string
+}
+
+export interface ModulesView {
+  modules: ConfigModule[]
+  /** Groups with member module objects embedded, first-seen order. */
+  groups: { id: string; label: string; members: ConfigModule[] }[]
+  /** Modules not in any group. */
+  standalone: ConfigModule[]
+  /** Seed: the first group's id (expanded by default). */
+  firstGroup: string
+}
+
+async function json(resp: Response): Promise<any> {
+  try {
+    return await resp.json()
+  } catch {
+    return {}
+  }
+}
+
+/** GET /api/modules + the group/standalone derivation (was in useModules). */
+export async function fetchModulesView(): Promise<ModulesView> {
+  const resp = await fetch('/api/modules')
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+  const list = (await resp.json()) as ConfigModule[]
+  const seenLabels: string[] = []
+  const groups: ModulesView['groups'] = []
+  for (const m of list) {
+    if (!m.group) continue
+    let g = groups.find((x) => x.label === m.group)
+    if (!g) {
+      g = { id: m.group.toLowerCase().replace(/\s+/g, '-'), label: m.group, members: [] }
+      seenLabels.push(m.group)
+      groups.push(g)
+    }
+    g.members.push(m)
+  }
+  const grouped = new Set(groups.flatMap((g) => g.members.map((m) => m.id)))
+  return {
+    modules: list,
+    groups,
+    standalone: list.filter((m) => !grouped.has(m.id)),
+    firstGroup: groups.length ? groups[0].id : '',
+  }
+}
+
+/** Fail-soft wrapper: the DSL has no try/catch (jade fetchXxxSafe pattern). */
+export async function fetchModulesViewSafe(): Promise<
+  { ok: true; data: ModulesView } | { ok: false; error: string }
+> {
+  try {
+    return { ok: true, data: await fetchModulesView() }
+  } catch (e: any) {
+    return { ok: false, error: `Failed to load modules: ${e.message || e}` }
+  }
+}
+
+/** Ensure the group containing `id` is expanded (whole-array rebuild). */
+export function expandGroupFor(expanded: string[], groups: ModulesView['groups'], id: string): string[] {
+  const out = [...expanded]
+  for (const g of groups) {
+    if (g.members.some((m) => m.id === id) && !out.includes(g.id)) out.push(g.id)
+  }
+  return out
+}
+
+/** URL hash without '#', '' when absent (deep-link support). */
+export function getHash(): string {
+  return window.location.hash.slice(1)
+}
+
+/** GET /api/config/:id — { value, meta }. */
+export async function fetchConfig(moduleId: string): Promise<any> {
+  const resp = await fetch(`/api/config/${moduleId}`)
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+  return resp.json()
+}
+
+/** PUT /api/config/:id — whole-body save. Throws with the daemon's error. */
+export async function putConfig(moduleId: string, body: any): Promise<void> {
+  const resp = await fetch(`/api/config/${moduleId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value: body }),
+  })
+  if (!resp.ok) throw new Error((await json(resp)).error || `HTTP ${resp.status}`)
+}
+
+/** DELETE /api/config/:id/blocks/:name (Plan 005 §1.2). */
+export async function deleteBlock(moduleId: string, name: string): Promise<void> {
+  const resp = await fetch(`/api/config/${moduleId}/blocks/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+  })
+  if (!resp.ok) throw new Error((await json(resp)).error || `HTTP ${resp.status}`)
+}
+
+/** GET /api/collection/:id — entity summaries. */
+export async function fetchCollectionList(moduleId: string): Promise<any> {
+  const resp = await fetch(`/api/collection/${moduleId}`)
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+  return resp.json()
+}
+
+/** GET one entity — atom: { value, sidecar? }; frontmatter-md: fm fields. */
+export async function fetchEntity(moduleId: string, name: string): Promise<any> {
+  const resp = await fetch(`/api/collection/${moduleId}/${encodeURIComponent(name)}`)
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+  return resp.json()
+}
+
+/** POST /api/collection/:id — create an entity. */
+export async function createEntity(moduleId: string, name: string): Promise<void> {
+  const resp = await fetch(`/api/collection/${moduleId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!resp.ok) throw new Error((await json(resp)).error || `HTTP ${resp.status}`)
+}
+
+/** PUT one entity (value + sidecar). */
+export async function putEntity(
+  moduleId: string,
+  name: string,
+  value: any,
+  sidecar: string,
+): Promise<void> {
+  const resp = await fetch(`/api/collection/${moduleId}/${encodeURIComponent(name)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value, sidecar }),
+  })
+  if (!resp.ok) throw new Error((await json(resp)).error || `HTTP ${resp.status}`)
+}
+
+/** DELETE one entity. */
+export async function deleteEntity(moduleId: string, name: string): Promise<void> {
+  const resp = await fetch(`/api/collection/${moduleId}/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+  })
+  if (!resp.ok) throw new Error((await json(resp)).error || `HTTP ${resp.status}`)
+}
+
+// ── enum options (was useEnums) ─────────────────────────────────────────────
+
+const enumCache = new Map<string, EnumOption[]>()
+const enumPending = new Map<string, Promise<EnumOption[]>>()
+
+/** Enum URLs by source kind (mirrors the original EnumSource union). */
+export function enumUrl(kind: string, moduleId: string, which: string, provider: string): string {
+  if (kind === 'tiers') return '/api/enums/tiers'
+  if (kind === 'dir') return `/api/enums/dir/${which}`
+  if (kind === 'self-providers') return `/api/enums/self/${moduleId}/providers`
+  return `/api/enums/self/${moduleId}/models/${encodeURIComponent(provider)}`
+}
+
+/** Cached + deduped enum fetch; network errors resolve to []. */
+export function loadEnum(url: string): Promise<EnumOption[]> {
+  const hit = enumCache.get(url)
+  if (hit) return Promise.resolve(hit)
+  const inflight = enumPending.get(url)
+  if (inflight) return inflight
+  const p = fetch(url)
+    .then((r) => (r.ok ? r.json() : []))
+    .then((opts: EnumOption[]) => {
+      enumCache.set(url, opts)
+      enumPending.delete(url)
+      return opts
+    })
+    .catch(() => {
+      enumPending.delete(url)
+      return []
+    })
+  enumPending.set(url, p)
+  return p
+}
+
+// ── accent theme (was useTheme.ts; stores import via `use back.api:`) ──────
+
+export interface AccentOption {
+  name: string
+  label: string
+  swatch: string
+  primaryHsl: string
+}
+
+/** Same palette as the original useTheme.ts (AutoForge visual language). */
+export const ACCENT_OPTIONS: AccentOption[] = [
+  { name: 'indigo', label: 'Indigo', swatch: '#6366f1', primaryHsl: '239 84% 67%' },
+  { name: 'coral', label: 'Coral', swatch: '#e85d75', primaryHsl: '350 75% 64%' },
+  { name: 'ocean', label: 'Ocean', swatch: '#3b82f6', primaryHsl: '217 91% 60%' },
+  { name: 'sage', label: 'Sage', swatch: '#10b981', primaryHsl: '160 84% 39%' },
+  { name: 'amber', label: 'Amber', swatch: '#f59e0b', primaryHsl: '38 92% 50%' },
+]
+
+const STORAGE_KEY = 'autoos-accent-color'
+
+function applyAccentToDom(name: string): void {
+  const opt = ACCENT_OPTIONS.find((o) => o.name === name)
+  if (!opt) return
+  document.documentElement.style.setProperty('--primary', opt.primaryHsl)
+}
+
+/** Persisted accent or 'indigo' (also applies it — the store Init side effect). */
+export function loadAccent(): string {
+  let stored: string | null = null
+  try {
+    stored = localStorage.getItem(STORAGE_KEY)
+  } catch {
+    stored = null
+  }
+  const initial = stored && ACCENT_OPTIONS.some((o) => o.name === stored) ? stored : 'indigo'
+  applyAccentToDom(initial)
+  return initial
+}
+
+/** Set + persist + apply (the store SetAccent side effect). */
+export function applyAccent(name: string): void {
+  if (!ACCENT_OPTIONS.some((o) => o.name === name)) return
+  try {
+    localStorage.setItem(STORAGE_KEY, name)
+  } catch {
+    /* private mode etc. — still apply in-memory */
+  }
+  applyAccentToDom(name)
+}
+
+// ── daemon connection test (was DaemonView) ────────────────────────────────
+
+export interface TestResult {
+  status: 'idle' | 'checking' | 'ok' | 'fail' | 'unreachable'
+  latency: number
+  error: string
+}
+
+/** POST /api/action/test-daemon (proxies to aaid :17654), 20s timeout. */
+export async function testDaemon(): Promise<TestResult> {
+  const t0 = performance.now()
+  try {
+    const resp = await fetch('/api/action/test-daemon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ use_default: true }),
+      signal: AbortSignal.timeout(20000),
+    })
+    const latency = Math.round(performance.now() - t0)
+    if (resp.status === 503) return { status: 'unreachable', latency, error: '' }
+    const j = await json(resp)
+    if (resp.ok && j.success) return { status: 'ok', latency, error: '' }
+    return { status: 'fail', latency, error: j.error || `HTTP ${resp.status}` }
+  } catch (e: any) {
+    return { status: 'fail', latency: 0, error: e.message || String(e) }
+  }
+}
