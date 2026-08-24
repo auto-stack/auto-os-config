@@ -56,6 +56,19 @@ key-name conventions to a control:
 | `[{obj, obj}]` | homogeneous objects | **table** (add/remove rows) |
 | nested object | — | collapsible subform (recursive) |
 
+## Desktop (VM) track — Plan 007
+
+The same `auto/` sources build BOTH tracks:
+
+```sh
+./scripts/e2e.sh              # web track gate (vite :17700 + Playwright)
+node scripts/e2e-vm.mjs       # desktop track gate (auto run -r vm + MCP assertions)
+cd auto && auto run -r vm     # launch the desktop window manually
+```
+
+The vm track connects to the same daemon directly (`AUTOOS_DAEMON` env overrides).
+See `auto/README.md` for the vm coding rules (VG list) and known v1 deviations.
+
 ## Quick start
 
 ```sh

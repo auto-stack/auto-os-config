@@ -6,50 +6,58 @@ Plan 007 在此基础上加出 **VM 桌面版**（`vm/` 子工程，视图分叉
 
 ## VM 桌面版（Plan 007）
 
+单工程双后端（widgets-gallery 模式）：同一 `auto/` 工程，CLI `-r vm` 切换。
+`use back.api:` 一行导入双后端各自解析——vue codegen → `@/lib/api`（TS），
+vm 解释器 → `src/back/api.at`（全文本实现：transport 配方 + inferField 移植 +
+投影/编辑 text 手术）。3 个 store 为两轨共享单一真源（handler 按 vm gotcha
+改写、model 形状不变，vue widget 零改动）。
+
 ```
-auto/vm/               # 独立 vm 工程（render: "vm"，无 gen 产物，解释执行）
-├── pac.at             # window: "1280x860"、title（vm 专属字段）
-└── src/front/*.at     # app.at 真根 + vm widget（相对 use 引共享 store/logic）
-auto/src/front/logic/  # 共享逻辑层（infer/project/transport，双后端单一真源）
+auto/src/back/api.at          # vm 侧 back.api 实现（~70 pub fn，纯文本管线）
+auto/src/front/app.at         # vm 桌面真根（vue gen 产出未引用的 App.vue，无害）
+auto/src/front/*_vm.at        # vm 视图层：sidebar/theme_picker/vm_editor/vm_daemon/vm_collection
 ```
 
 运行与测试：
 
 ```sh
-cd auto/vm && auto run -r vm          # 桌面窗口，直连 daemon :17701
-AUTOUI_MCP_PORT=9310 auto run -r vm   # 起 MCP 通道（e2e-vm 用，端点 /mcp）
-node scripts/e2e-vm.mjs               # vm 轨回归门（Plan 007 Phase 5）
+cd auto && auto run -r vm             # 桌面窗口（1280x800），直连 daemon :17701
+AUTOOS_DAEMON=http://… auto run -r vm # 远端 daemon 覆盖
+node scripts/e2e-vm.mjs               # vm 轨回归门（MCP 驱动，9 断言）
+AUTOUI_MCP_PORT=9320 auto run -r vm   # 自定 MCP 通道（调试用，端点 /mcp）
 ```
 
-- MCP 快照元素 id 是 `vnode_N` 形态；`autoui_action` 可回显 `aura_N`，两者都可作为 element_id。
-- 与 vue 轨的禁令不同：**vm 工程内可以 `auto run`**（无 gen 直写风险）；
-  仓库根的 `auto run` / `auto build` 依旧禁止。
-- 上游锚定：auto-lang commit `3d45fb10d`（Plan 007 Phase 0 记录；上游
-  rebuild 后先 vue regen + e2e 再 vm 冒烟）。
+与 vue 轨的禁令不同：**vm 工程内可以 `auto run`**（无 gen 直写风险）；
+仓库根的 `auto run` / `auto build` 依旧禁止。
+上游锚定：auto-lang commit `3d45fb10d`（上游 rebuild 后先 vue regen+e2e 再 vm 冒烟）。
 
-## 布局
+### vm 编码规范（VG 清单，Phase 1/2/4 实证）
 
-- `pac.at` — 工程清单（`scene: "ui"`, `render: "vue"`, `shadcn: off`,
-  `default_classes: off`——本项目是手写 CSS 变量体系，不走 Tailwind token）
-- `src/front/app.at` — 占位根 widget（**永不部署**；使真 widget 发射为
-  `components/<Name>.vue`）。部署根是 `src/components/AppShell.vue`，
-  由手写 `src/main.ts` 挂载
-- `src/front/*.at` — 6 个 widget + 3 个 store：
+- VG1 fn 模块禁 `use auto.str`（与 http 共编 → `str.status` 链接失败）；字符串用方法调用形态
+- VG2 handler 多语句禁同行（吞链）
+- VG3 http 三不用：`res.status()`（哨兵）/builder 链（二次调用崩）/`res.body()`；写后 GET 验证
+- VG4 map 字段读取仅 fn 模块可用；handler 内对 store/返回值仅单跳链读（`r.data.x` 两跳为空）
+- VG5 禁 `concat`/handler 双变量 for/动态 map key——loop+push 重建
+- VG6 模块导入用冒号形式 `use x: fn`
+- VG7 handler 崩溃回滚整次状态写入
+- VG8 `json.parse` 是占位——全走 `json.keys/get/get_at/type_of/len` 文本工具链
+- VG9 `File.write_text` 同进程读后写延迟可见（model 权威、文件作下次启动）
+- VG11 `json.get_at` 仅接受 JSON 文本（数组用索引计数 for-in）
+- VG12/13 数组不跨 fn 边界作实参；fn 返回一律扁平（无嵌套 map/数组字段）
+- VG14 `.find(闭包)` 不可用——选择逻辑下沉 api fn（扁平返回）
+- VG16 一 widget 一 store + **store 方法名全工程唯一**（消歧按方法名，撞名落到错误 store）
+- VG17 `json.keys` 返回裸 key（输出需 quote_json 重包）
+- 事件参数只能标量/裸循环变量：store 列表循环上的字段访问/map 实参会打死 MCP——
+  store 提供平行 `names`/`entry_keys` 字符串数组，view 用 `for i, e` + 索引参数
+- msg 声明必须含全部 handler（vm 消歧表按 msg 声明匹配）
+- `popover` 在本构建为解析毒药（确认层用普通 if 块）；`substr(a,b)` 闭区间；
+  map 字面量内禁空数组/`.len()` 调用
 
-  | .at | 生成物 | 说明 |
-  |---|---|---|
-  | app_shell.at | AppShell.vue | 布局 + kind 分发（custom → 弃用占位） |
-  | sidebar.at | Sidebar.vue | 搜索/分组折叠/主题选择器 |
-  | daemon_view.at | DaemonView.vue | Test connection + 内嵌 ConfigEditor |
-  | collection_browser.at | CollectionBrowser.vue | master-detail + modal + sidecar |
-  | config_editor.at | ConfigEditor.vue | 通用表单 + 增删 provider 块 |
-  | scalar_fields.at | ScalarFields.vue | 8 种叶子控件 |
-  | table_field.at | TableField.vue | 对象数组表格编辑器 |
-  | modules/theme/collection_store.at | src/stores/auto/*.ts | 状态层 |
+### vm 轨已知偏差（v1，登记 KNOWN-DEBT）
 
-- `src/front/utils/*_ext.ts` — 手写 TS 扩展：store 的 reactive() facade、
-  组件/传输层中转、搜索过滤（DSL 表达不了的都在这）
-- `gen/` — 生成工程（gitignored；`gen/regen.sh` 保留）
+- 侧栏无分组折叠；集合无过滤框；select 控件为自由文本+提示；markdown sidecar 单行；
+  表格/subform 以只读 JSON 文本展示；块增删（Plan 005 特性）未暴露
+- `json.keys` 字母序（serde_json 无 preserve_order）——字段顺序与 web 版不同
 
 ## 特许手写清单（src/ 下唯一的手写前端文件）
 

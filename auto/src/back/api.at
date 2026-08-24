@@ -1399,3 +1399,41 @@ pub fn listJoinHas(joined str, item str) bool {
     }
     return false
 }
+
+/// Tags control edit: add/remove one element of the string-array at `key`.
+pub fn editTagField(body str, key str, add str, remove str) str {
+    let frag = json.get(body, key)
+    let frag2 = setEntryTag(frag, add, remove)
+    return set_obj_field(body, key, frag2)
+}
+
+/// Multiselect edit: toggle `val` membership of the string-array at `key`.
+pub fn editMultiField(body str, key str, val str, on bool) str {
+    let frag = json.get(body, key)
+    let frag2 = setEntryMulti(frag, val, on)
+    return set_obj_field(body, key, frag2)
+}
+
+/// Current string-array values at `key`, joined "," (view display helper).
+pub fn fieldListJoined(body str, key str) str {
+    let frag = json.get(body, key)
+    var out = ""
+    let n = json.len(frag)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        if out != "" {
+            out = out + ","
+        }
+        out = out + displayOf(json.get_at(frag, i))
+        i = i + 1
+    }
+    return out
+}
+
+/// Display value of one top-level field (toggle flip logic in child handlers).
+pub fn fieldDisplayOf(body str, key str) str {
+    return displayOf(json.get(body, key))
+}

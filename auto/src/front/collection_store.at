@@ -10,14 +10,19 @@
 //  - stores cannot self-dispatch actions — Init/Reload inline the reload
 //    logic, Create inlines the Select body;
 //  - the fm entity object stays flattened into three str fields.
-use back.api: fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField
+use back.api: fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, fieldDisplayOf
 
 store Collection {
     model {
         var module_id str = ""
         var list Array<str> = []
+        // Plan 007: parallel plain-string names (vm event args must be
+        // scalars; field access on store-list loop vars kills the MCP channel)
+        var names Array<str> = []
         var selected_name ?str = None
         var entries Array<str> = []
+        // Plan 007: parallel entry key strings (vm event args must be scalars)
+        var entry_keys Array<str> = []
         var sidecar str = ""
         // Plan 007: authoritative atom body text (edits go text-in/text-out)
         var body_text str = ""
@@ -34,25 +39,27 @@ store Collection {
     }
 
     msg Msg {
-        Init(str),
-        Select(str),
-        Create(str),
-        Save,
-        Remove(str),
+        Open(str),
+        Pick(str),
+        NewEntity(str),
+        SaveEntity,
+        DelEntity(str),
         FieldEdited(map),
+        SetSidecar(str),
 
         MarkDirty,
         Reload
     }
 
     on {
-        .Init(mid) -> {
+        .Open(mid) -> {
             .module_id = mid
             .error = ""
             .list_loading = true
             var r = fetchCollectionListRaw(mid)
             if r.ok {
                 var items = []
+                var nm = []
                 let n = collectionCount(r.text)
                 var i = 0
                 loop {
@@ -61,13 +68,16 @@ store Collection {
                     }
                     let e = collectionAt(r.text, i)
                     items.push({ name: e.name, description: e.description })
+                    nm.push(e.name)
                     i = i + 1
                 }
                 .list = items
+                .names = nm
             }
             if r.ok == false {
                 .error = r.error
                 .list = []
+                .names = []
             }
             .list_loading = false
         }
@@ -77,6 +87,7 @@ store Collection {
             var r = fetchCollectionListRaw(.module_id)
             if r.ok {
                 var items = []
+                var nm = []
                 let n = collectionCount(r.text)
                 var i = 0
                 loop {
@@ -85,9 +96,11 @@ store Collection {
                     }
                     let e = collectionAt(r.text, i)
                     items.push({ name: e.name, description: e.description })
+                    nm.push(e.name)
                     i = i + 1
                 }
                 .list = items
+                .names = nm
             }
             if r.ok == false {
                 .error = r.error
@@ -103,16 +116,20 @@ store Collection {
                         .body_text = e.value
                         .sidecar = e.sidecar
                         var es = []
+                        var ek = []
                         let n2 = entriesCount(e.value)
                         var i2 = 0
                         loop {
                             if i2 >= n2 {
                                 break
                             }
-                            es.push(entryAt(e.value, i2, .module_id))
+                            let d = entryAt(e.value, i2, .module_id)
+                            es.push(d)
+                            ek.push(d.key)
                             i2 = i2 + 1
                         }
                         .entries = es
+                        .entry_keys = ek
                     }
                     if e.is_atom == false {
                         .is_read_only = true
@@ -128,7 +145,7 @@ store Collection {
             }
         }
 
-        .Select(name) -> {
+        .Pick(name) -> {
             .selected_name = name
             .loading = true
             .error = ""
@@ -147,16 +164,20 @@ store Collection {
                     .body_text = r.value
                     .sidecar = r.sidecar
                     var es = []
+                    var ek = []
                     let n = entriesCount(r.value)
                     var i = 0
                     loop {
                         if i >= n {
                             break
                         }
-                        es.push(entryAt(r.value, i, .module_id))
+                        let d = entryAt(r.value, i, .module_id)
+                        es.push(d)
+                        ek.push(d.key)
                         i = i + 1
                     }
                     .entries = es
+                    .entry_keys = ek
                 }
                 if r.is_atom == false {
                     // frontmatter-md (skill): read-only
@@ -172,7 +193,7 @@ store Collection {
             .loading = false
         }
 
-        .Create(name) -> {
+        .NewEntity(name) -> {
             .saving = true
             .error = ""
             var r = createEntitySafe(.module_id, name)
@@ -181,6 +202,7 @@ store Collection {
                 var lr = fetchCollectionListRaw(.module_id)
                 if lr.ok {
                     var items = []
+                    var nm = []
                     let n = collectionCount(lr.text)
                     var i = 0
                     loop {
@@ -189,12 +211,14 @@ store Collection {
                         }
                         let e = collectionAt(lr.text, i)
                         items.push({ name: e.name, description: e.description })
+                        nm.push(e.name)
                         i = i + 1
                     }
                     .list = items
+                    .names = nm
                 }
                 .list_loading = false
-                .Select(name)
+                .Pick(name)
             }
             if r.ok == false {
                 .error = r.error
@@ -202,7 +226,7 @@ store Collection {
             .saving = false
         }
 
-        .Save -> {
+        .SaveEntity -> {
             if .selected_name != nil && .body_text != "" {
                 .saving = true
                 .error = ""
@@ -213,6 +237,7 @@ store Collection {
                     var lr = fetchCollectionListRaw(.module_id)
                     if lr.ok {
                         var items = []
+                        var nm = []
                         let n = collectionCount(lr.text)
                         var i = 0
                         loop {
@@ -221,9 +246,11 @@ store Collection {
                             }
                             let e = collectionAt(lr.text, i)
                             items.push({ name: e.name, description: e.description })
+                            nm.push(e.name)
                             i = i + 1
                         }
                         .list = items
+                        .names = nm
                     }
                     .list_loading = false
                 }
@@ -234,7 +261,7 @@ store Collection {
             }
         }
 
-        .Remove(name) -> {
+        .DelEntity(name) -> {
             .error = ""
             var r = deleteEntitySafe(.module_id, name)
             if r.ok {
@@ -247,6 +274,7 @@ store Collection {
                 var lr = fetchCollectionListRaw(.module_id)
                 if lr.ok {
                     var items = []
+                    var nm = []
                     let n = collectionCount(lr.text)
                     var i = 0
                     loop {
@@ -255,9 +283,11 @@ store Collection {
                         }
                         let e = collectionAt(lr.text, i)
                         items.push({ name: e.name, description: e.description })
+                        nm.push(e.name)
                         i = i + 1
                     }
                     .list = items
+                    .names = nm
                 }
                 .list_loading = false
             }
@@ -271,16 +301,20 @@ store Collection {
         .FieldEdited(args) -> {
             .body_text = editField(.body_text, args.path, args.value)
             var es = []
+            var ek = []
             let n = entriesCount(.body_text)
             var i = 0
             loop {
                 if i >= n {
                     break
                 }
-                es.push(entryAt(.body_text, i, .module_id))
+                let d = entryAt(.body_text, i, .module_id)
+                es.push(d)
+                ek.push(d.key)
                 i = i + 1
             }
             .entries = es
+            .entry_keys = ek
             .dirty = true
         }
 

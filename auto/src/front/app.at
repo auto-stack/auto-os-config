@@ -1,9 +1,63 @@
-// app.at — placeholder ROOT widget (never deployed; required so real widgets
-// are emitted as standalone components/<Name>.vue — jade-garden plan 011
-// pattern). The deployed root is src/components/AppShell.vue, mounted by the
-// handwritten src/main.ts.
+// app.at — VM desktop root (Plan 007 Phase 4).
+//
+// On the vue build this widget is emitted as an unused App.vue (the deployed
+// web root stays AppShell.vue mounted by src/main.ts — regen deploys both,
+// only AppShell is imported). On the vm build (`auto run -r vm`) THIS file is
+// the window root: sidebar (module nav) + theme picker + kind-dispatched
+// content.
+//
+// VG16: one store per widget — the root owns Modules only; the theme picker
+// and the collection browser are separate child widgets with their own store
+// imports.
+use modules_store: Modules
+use sidebar_vm: SidebarVm
+use theme_picker_vm: ThemePickerVm
+use vm_collection: CollectionBrowserVm
+use vm_editor: ConfigEditorVm
+use vm_daemon: DaemonViewVm
+
 widget App {
+    msg Msg { Init }
+
     view {
-        text "placeholder root — never deployed"
+        row (style: "h-full w-full") {
+            col (style: "w-64 shrink-0 border-r gap-2 p-2") {
+                text (text: .store.title, style: "font-bold text-primary px-2") {}
+                ThemePickerVm { }
+                scroll (style: "flex-1") {
+                    col (style: "gap-1") {
+                        SidebarVm { }
+                    }
+                }
+            }
+            col (style: "flex-1") {
+                if .store.loading {
+                    text (text: "Loading configuration...", style: "p-4") {}
+                }
+                if .store.error != "" {
+                    text (text: "⚠️ " + .store.error, style: "p-4 text-red-500") {}
+                }
+                if .store.loading == false && .store.error == "" {
+                    if .store.active_kind == "" {
+                        text (text: "Select a module from the left to configure it.", style: "p-4") {}
+                    }
+                    if .store.active_kind == "file" {
+                        if .store.active_id == "ai-daemon" {
+                            DaemonViewVm(module_id: .store.active_id) { }
+                        }
+                        if .store.active_id != "ai-daemon" {
+                            ConfigEditorVm(module_id: .store.active_id) { }
+                        }
+                    }
+                    if .store.active_kind == "collection" {
+                        CollectionBrowserVm(module_id: .store.active_id, read_only: .store.read_only) { }
+                    }
+                }
+            }
+        }
+    }
+
+    on {
+        .Init -> { store.Init() }
     }
 }

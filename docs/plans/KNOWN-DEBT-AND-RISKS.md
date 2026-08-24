@@ -27,6 +27,9 @@
 | 003 | 已知限制 | `/api/enums/self/:id/providers` 用"子节点有 `kind` prop 即 provider"启发式；非 provider 子块若带 kind 会被误判（仅影响下拉选项）。 | `backend/src/main.rs` enum_self_providers |
 | 006 | 已知限制 | 前端 Auto 化后 2 张截图（01-ai-daemon/02-auto-musk）与手写版有非布局性像素差（视觉检查无异常，e2e 全绿）；TableField 单元格生成 `v-model` 深写与 `$event` 重建并存（行为正确）。 | `auto/README.md` 已知残留差异 |
 | 006 | 已知限制 | 21 条 DSL gotcha（G1-G21）以 workaround 形态存在（静默降级/吞链/编译陷阱），见 `auto/README.md`——待 auto-lang 回填后逐条删除。 | `auto/README.md` |
+| 007 | 已知限制 | **vm 轨 v1 偏差**：侧栏无分组折叠、集合无过滤、select=自由文本+提示、markdown sidecar 单行、表格/subform 只读 JSON、块增删未暴露；字段顺序字母序（serde_json 无 preserve_order）。 | `auto/README.md` vm 章节 |
+| 007 | 已知限制 | **vm 后端薄弱区（候选上报 auto-lang）**：多 store 方法名消歧按全工程 msg 表匹配（撞名/漏声明即落错 store）；store 列表循环的事件参数（字段访问/map 实参）导致 MCP 通道死亡；popover 元素为解析毒药；fn 返回嵌套结构/数组跨界丢失；handler 崩溃静默回滚无诊断。 | `docs/plans/007-frontend-vm-desktop.md` Phase 1-4 |
+| 007 | 已知限制 | e2e-vm 依赖 MCP 通道时序（快速连发偶发丢响应），等待阈值已加固；vm 实例偶发闲置死亡（疑似环境/GPU，非代码路径）。 | `scripts/e2e-vm.mjs` |
 
 ## 📋 未来增强
 
@@ -37,7 +40,8 @@
 | 001 | 未来增强 | `index.html` 的 `window.process` 浏览器 polyfill 是历史残留（Vue dev 模式需要），可随依赖升级评估移除。 | `index.html` |
 | 006 | 未来增强 | api.at（`#[api]` 契约 → 生成 client/server）未接入——fetch 传输层保留手写 `src/lib/api.ts`；接入后可删大半 ext 中转。 | `src/lib/api.ts` |
 | 006 | 未来增强 | ~~defineModel 深变异 🔴 上游修复提案~~ → **已闭环（2026-08-24）**：auto-lang Plan 443（`38adb1ef`）当日落地（与本仓 Phase 6 提案殊途同归），新 exe regen 后全部 model 变量回归 `ref<>`，深变异运行时实证修复；运行时 canary 并入 auto-lang `041-model-deep-reactivity`（`ab34fa9f`）。本仓 D5/不可变重建**升格为跨后端规范继续保留**（ext 投影与 val 镜像不删）。 | `docs/plans/006-frontend-auto-ization.md` §3 Phase 6 |
-| 006 | 未来增强 | **桌面版（render: "vm"/"rust"）待立项**（Plan 006 第二步）：前置条件 = auto-lang 修复 defineModel 深变异 🔴、vm store facade、vm view-builder 禁函数调用与 D4 预计算范式实测兼容。 | `docs/plans/006-frontend-auto-ization.md` §6 |
+| 006 | 未来增强 | ~~桌面版（render: "vm"/"rust"）待立项~~ → **已落地（Plan 007，2026-08-25）**：vm 桌面版与 vue web 版并存（单工程 `-r vm` 切换 + back.api 双解析），`node scripts/e2e-vm.mjs` 为 vm 轨门禁。 | `docs/plans/007-frontend-vm-desktop.md` |
+| 007 | 未来增强 | vm 轨功能补齐候选：集合过滤、分组折叠、真 select/popover（待上游修复）、markdown 渲染（待平台协议 comrak 实现）、表格编辑器、块增删、exe 分发（auto build -r vm a2c 链）。 | `auto/README.md` vm 章节 |
 
 ## 🔴 高风险
 
