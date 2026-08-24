@@ -1,0 +1,19 @@
+// app.at — VM entry root (Plan 007 Phase 0 smoke shell).
+// Real shell lands in Phase 4; this only proves the vm toolchain.
+widget App {
+    model {
+        var title str = "AutoOS Settings (vm smoke)"
+        var count int = 0
+    }
+    view {
+        col (style: "h-full w-full items-center justify-center gap-4") {
+            h1 { text .title  style: "text-2xl font-bold text-primary" }
+            button (text: "count: ${.count}", style: "px-4 py-2 rounded border") {
+                onclick: .Bump
+            }
+        }
+    }
+    on {
+        .Bump -> { .count = .count + 1 }
+    }
+}

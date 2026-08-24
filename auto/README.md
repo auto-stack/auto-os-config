@@ -1,7 +1,31 @@
-# auto-os-config — Auto sources (Plan 006)
+# auto-os-config — Auto sources (Plan 006 + Plan 007)
 
 `src/` 的 Vue 组件层已 100% 由本目录的 Auto 语言源码生成（Plan 006 完成，
 2026-08-24）。本目录是嵌入式 Auto 工程（jade-garden plan 011 同款模式）。
+Plan 007 在此基础上加出 **VM 桌面版**（`vm/` 子工程，视图分叉、逻辑统一）。
+
+## VM 桌面版（Plan 007）
+
+```
+auto/vm/               # 独立 vm 工程（render: "vm"，无 gen 产物，解释执行）
+├── pac.at             # window: "1280x860"、title（vm 专属字段）
+└── src/front/*.at     # app.at 真根 + vm widget（相对 use 引共享 store/logic）
+auto/src/front/logic/  # 共享逻辑层（infer/project/transport，双后端单一真源）
+```
+
+运行与测试：
+
+```sh
+cd auto/vm && auto run -r vm          # 桌面窗口，直连 daemon :17701
+AUTOUI_MCP_PORT=9310 auto run -r vm   # 起 MCP 通道（e2e-vm 用，端点 /mcp）
+node scripts/e2e-vm.mjs               # vm 轨回归门（Plan 007 Phase 5）
+```
+
+- MCP 快照元素 id 是 `vnode_N` 形态；`autoui_action` 可回显 `aura_N`，两者都可作为 element_id。
+- 与 vue 轨的禁令不同：**vm 工程内可以 `auto run`**（无 gen 直写风险）；
+  仓库根的 `auto run` / `auto build` 依旧禁止。
+- 上游锚定：auto-lang commit `3d45fb10d`（Plan 007 Phase 0 记录；上游
+  rebuild 后先 vue regen + e2e 再 vm 冒烟）。
 
 ## 布局
 

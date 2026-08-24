@@ -165,7 +165,7 @@ vm 工程不产 codegen、不进 regen.sh，vue 工程完全不扫 `auto/vm/`—
 
 ## 4. 验证清单
 
-- [ ] Phase 0：vue 基线两遍全绿；vm 空壳窗口 + MCP 通道冒烟；auto-lang commit 记录
+- [x] Phase 0：vue 基线两遍全绿；vm 空壳窗口 + MCP 通道冒烟；auto-lang commit 记录（2026-08-25：`auto/vm/` 空壳起窗口，MCP 端点 `/mcp`，`autoui_action` press → handler `.App.Bump` → state `count: 10 → 11` 闭环；快照元素 id 为 `vnode_N` 形态。基线在主仓同 commit 跑（服务复用），e2e 四套两遍 ALL PASS）
 - [ ] Phase 1：五项探针结论（V1-V5）记录进本文件，降级项登记
 - [ ] Phase 2：`logic/*.at` 移植完成；vue 轨切换后 e2e 四套 + 12 截图对拍全绿；types.ts 删除、api.ts 瘦身盘点
 - [ ] Phase 3：transport 双实现 + 门控生效（vue 侧缺 adapter 报错路径验证）；vue e2e 全绿；vm store 数据加载 MCP 断言通过
