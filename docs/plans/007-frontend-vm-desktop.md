@@ -205,6 +205,25 @@ vm 工程不产 codegen、不进 regen.sh，vue 工程完全不扫 `auto/vm/`—
 
 **架构修正（对 Phase 2-4 的直接影响）**：vm 轨逻辑层 = **纯文本进出**（body text → 投影 fn → 值内嵌描述符 map 列表给 view；编辑 = handler 收标量新值 → text 手术替换 → 重投影）。D4 描述符范式不受影响反而强化（view 端 map 点访问可用，恰是描述符的消费端）。store 中跨 handler 数据一律存标量/文本/描述符列表，不依赖 handler 读 map。
 
+### Phase 2 补充：vm 数据管线终版规则（2026-08-25 实证，VG9-VG14）
+
+Phase 2 实施中以 vm harness（临时 app.at + 真实共享 store）逐层实证，追加 gotcha：
+- **VG9** `File.write_text` 同进程内读后写延迟可见（跨进程正常）——model 为权威、文件仅作下次启动持久化。
+- **VG11** `json.get_at` 只接受 JSON **文本**，用于 VM 数组返回空——数组按下标取值用索引计数 for-in。
+- **VG12** handler（含 store handler）内**两跳链读 map 的数组字段为空**（`r.data.modules` → []；两跳标量 `r.data.firstGroup` 在 App handler 可用但 store handler 为空；单跳 `r.ok/r.error/r.text` 全语境可用）。
+- **VG13** 数组**不跨 fn 边界作实参**（`arr_len(flat)` 得 0）；fn 内自建数组直接返回、调用方 bind 后 `.len()`/for-in 可用。
+- **VG14** `.model_array.find(闭包)` 在 vm 不可用；选择逻辑下沉 api fn（扁平返回 + 单跳读）。
+- 其余修正：`substr(a,b)` 是**闭区间**；map 字面量内的 `.len()` 调用求值为 0（取值后拼）；`{members: []}` 空数组字面量在 map 内崩溃（先收集 label 再二次构建）；`unquote` 已修。
+
+**终版 API 形状规则（双实现共同接口，vm 侧约束定型）**：
+1. fn 返回一律**扁平 map（全标量/字符串）**或裸字符串——禁嵌套 map、禁数组字段；
+2. 列表数据 = 文本 + 计数 fn + 逐项扁平 getter（`fetchXxxRaw → {ok,error,text}`、`xxxCount(text)`、`xxxAt(text,i)`），**handler 内 loop+push 构建 model 数组**（字面量 map 从 getter 单跳读拼装）；
+3. 选择/查找逻辑下沉 api fn（`selectInfo(text,id) → {found,...}`）；
+4. 编辑操作 text-in/text-out（`setBodyField(body,path,frag)` 等），store 持权威文本 + 重投影显示数组；
+5. store MODEL 形状不变（vue widget 零改动），只改 handler 体与 api 面。
+
+**已实证的完整链路**：`fetchConfigSafe → entry_at(逐项) → handler 单跳读 → e0=deepseek/subform ✓`；`fetchModulesView` 构件（module_entry/分组/去重）fn 内全部可用（probeMods6：7 模块 + Harness×4）。
+
 ### Phase 1 补充：架构修订 D1/D3（探针后定稿，2026-08-25）
 
 1. **D1 修订——单工程双后端**：放弃独立 `auto/vm/` 子工程，回到 widgets-gallery 模式：**同一 `auto/` 工程，CLI `-r vm` 切换**。理由：vm widget 与共享 store 的跨工程相对导入无解析机制，单工程天然共享；vm 专属文件（`*_vm.at`）与 vue 文件同住 `src/front/`。

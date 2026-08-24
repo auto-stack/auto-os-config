@@ -30,15 +30,22 @@ store Modules {
     on {
         .Init -> {
             .loading = true
-            .error = ""
+            .error = "m1-fetch"
             var r = fetchModulesViewSafe()
+            .error = "m2-back"
             if r.ok {
+                .error = "m3-ok"
                 .modules = r.data.modules
+                .title = "fg=" + r.data.firstGroup
+                .modules = r.data.modules
+                .error = "m4-mods"
                 .groups = r.data.groups
                 .standalone = r.data.standalone
+                .error = "m5-groups"
                 if .expanded.len() == 0 && r.data.firstGroup != "" {
                     .expanded = [r.data.firstGroup]
                 }
+                .error = "m6-expanded"
                 // Deep-link: #module-id auto-selects when valid.
                 var h = getHash()
                 if h != "" {
@@ -53,7 +60,7 @@ store Modules {
                 }
             }
             if r.ok == false {
-                .error = r.error
+                .error = "mE-" + r.error
                 .modules = []
                 .groups = []
                 .standalone = []
