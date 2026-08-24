@@ -36,6 +36,7 @@
 | 002 | 未来增强 | `backend/src/config_root.rs` 硬编码 `~/.config/autoos`，无环境变量覆盖（本地单用户工具可接受）。 | `backend/src/config_root.rs` |
 | 001 | 未来增强 | `index.html` 的 `window.process` 浏览器 polyfill 是历史残留（Vue dev 模式需要），可随依赖升级评估移除。 | `index.html` |
 | 006 | 未来增强 | api.at（`#[api]` 契约 → 生成 client/server）未接入——fetch 传输层保留手写 `src/lib/api.ts`；接入后可删大半 ext 中转。 | `src/lib/api.ts` |
+| 006 | 未来增强 | **defineModel 深变异 🔴 上游修复提案（Plan 006 §3 Phase 6）**：机理（customRef 浅契约）+ 三层修法（model 变量回归 `ref()` 治本 / 嵌套变异编译期改写为不可变更新 / probe B 收编 auto-lang 能力测试）；修复落地后本仓库可删 `setCfgEntry` 系列与 `val` 镜像绕法。 | `docs/plans/006-frontend-auto-ization.md` §3 Phase 6 |
 | 006 | 未来增强 | **桌面版（render: "vm"/"rust"）待立项**（Plan 006 第二步）：前置条件 = auto-lang 修复 defineModel 深变异 🔴、vm store facade、vm view-builder 禁函数调用与 D4 预计算范式实测兼容。 | `docs/plans/006-frontend-auto-ization.md` §6 |
 
 ## 🔴 高风险

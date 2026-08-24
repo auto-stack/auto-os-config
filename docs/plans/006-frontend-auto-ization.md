@@ -1,6 +1,6 @@
 # Plan 006: 前端 Auto 化（第一步）— Auto/Vue 模式功能对等
 
-> **状态**：已完成（2026-08-24，Phase 0–5 全部交付；组件层 100% 生成，e2e 三套全绿，npm run build 干净）
+> **状态**：Phase 0–5 已完成（2026-08-24，组件层 100% 生成，e2e 三套全绿，npm run build 干净）；**Phase 6 为上游修复提案**（defineModel 深变异 → auto-lang，待立项）
 > **前置**：Plan 001–005 全部归档（架构稳定、无活跃债务）；auto-lang vue 渲染后端成熟（examples/ui 23 个应用示例 + 核心仓 5113 单测）；方法论母本 = auto-down plan 011（jade-garden Auto 化，COMPLETE）与 auto-musk plan 022/028
 > **仓库**：auto-os-config（frontend only，backend/ 零改动）
 > **目的**：把 `src/` 手写 Vue 3 SPA 改写为 Auto 语言源码（`.at`），经 `auto build` 生成 Vue 工程，行为与视觉和现状完全一致（e2e + 截图对拍全绿）。为第二步 `render: "vm"` 桌面化铺路——本计划结束时 `.at` 是前端单一真源。
@@ -135,6 +135,49 @@ auto/
 
 提交策略照 jade：每 phase/批次独立提交，plan 文件同步勾选。
 
+### Phase 6：上游修复提案 — defineModel 深变异（2026-08-24 分析定稿，待 auto-lang 立项）
+
+> **状态**：提案（本仓库工作已由 D5 规避；本节是给 auto-lang 的修复分析，源于 Phase 1 probe B 的实证 + 修复后本仓库的简化路径）。对应 jade-garden DEBTS 015（🔴，2026-08-24 上报）。
+
+#### 6.1 缺陷机理：Vue 深响应性支持，但 `defineModel` 建在浅原语上
+
+Vue 各响应性原语的深度语义：
+
+| 原语 | `.value.a.b = 2` 触发？ | 机制 |
+|---|---|---|
+| `ref({a:{b:1}})` | ✅ | 对对象值自动套 `reactive()`，深层读写全被代理追踪 |
+| `reactive(obj)` | ✅ | 深代理 |
+| `shallowRef(obj)` | ❌（仅 `.value = x`，需 `triggerRef()`） | 特意不做深 |
+| `customRef(...)` | ❌ | 自定义 get/set 只拦截 `.value` 一层，返回裸对象即无追踪 |
+| `defineModel()` | ❌（无父级绑定的本地/默认值场景） | **内部即 `customRef`** |
+
+根因链条：codegen（auto-lang `ui_gen/vue.rs`，Plan 037 T4 决策）把 widget `model {}` 变量发射为 `defineModel<T>("x", { default })` → `defineModel` 基于 `customRef`，其 get/set 契约只覆盖"整个值被读/写" → 无父级 `v-model` 绑定时存的是普通对象 → 深层字段修改不经过 customRef 的 `set()` → 模板不重渲染，且**无任何告警**（内存与屏幕静默漂移——配置工具最危险的失效模式）。
+
+本仓库的直接证据（同一仓库两种行为并存）：生成的 **store composable 用普通 `ref`**（`const expanded = ref<any>([])`），store 侧深层操作其实有响应性；生成的 **widget model 变量用 `defineModel`**，恰好踩进浅语义——这就是 🔴 只出现在 widget 内部状态上的原因。
+
+probe B 的判别性证据：risky push 后视图不变，随后 safe 整体替换路径读出的数据**已含被 push 的 "r2"**（`m1,r2,s2`）——数据确实变了、渲染确实没跟上。
+
+#### 6.2 修复建议（三层，按优先级）
+
+1. **治本：model 变量回归 `ref()`**（`vue.rs` 的 model 变量发射处）。AutoUI 的 `model {}` 语义是**组件私有状态**而非跨组件契约——DSL 父子通信走 msg / `on_value: msg` 回调（U21），生态中不存在"父级 v-model 绑子组件 model 变量"的用法，`defineModel` 是错误的原语选择。`ref()` 深响应、无父级契约、符合 Vue 惯用法（内部状态 = ref）。顺带消除 G16（`value:`+事件在 prop 上必转 v-model → 编译错）这类 defineModel 次生坑。风险低：无 `.at` 依赖被去掉的绑定语义。
+2. **防御（跨后端价值）：codegen 把嵌套变异语义改写为不可变更新**。编译器掌握 model 变量集合，可在发射时变换：`.a.b.c = v` → 逐层展开 `{ ...old, b: { ...old.b, c: v } }` + 顶层赋回；嵌套 `.push(x)` → `concat` + 整体赋回。等于把本仓库 D5/ext 投影（`setCfgEntry`/`setCell`/`setEntry`）下沉为编译器自动行为。即使做了修法 1，此改写对 vm/rust 后端仍有意义——**D5 的深层动机是跨后端安全**（vm view-builder 另有"绑定不能调函数"约束），不可变更新在所有后端都无错。
+3. **回归门：把 probe B 收编为 auto-lang 能力测试**（`examples/capability-tests/`，挂 jade plan 012/015 的 gap backlog 修复线）。两行断言（risky 不更新 / safe 更新 + 数据漂移检测）就是现成最小用例。
+
+**不建议**：等 Vue 上游改 `defineModel` 深语义——`customRef` 的浅契约是设计而非 bug；且"父级绑 reactive 对象时深层写碰巧生效"的路径违反单向数据流，不应作为依赖。
+
+#### 6.3 修复落地后本仓库的简化路径
+
+- `src/lib/api.ts` 的 `setCfgEntry`/`setCell`/`setEntry`/`setProp` 系列从"必要的绕坑设施"降级为"可选风格糖"，可逐步简化回 `.at` 内直写（保留 D5 约定作为跨后端规范亦可，二选一）；
+- `scalar_fields.at` 的本地 `val` 镜像 + `watch { .modelValue.immediate }` 同步（G16 的绕法）可删除，恢复 `value: .modelValue` 直绑；
+- Phase 6 验收即 auto-lang 能力测试全绿 + 本仓库 regen 后 e2e 三套全绿、`auto/README.md` 删除 G16/D5 强制条目并记录上游 commit。
+
+#### 6.4 清单（待 auto-lang 立项后执行）
+
+- [ ] 向 auto-lang 提交 issue/plan（引用本节 + probe B 复现步骤 + jade DEBTS 015）
+- [ ] 上游修复 1（model → ref）+ 能力测试落地
+- [ ] （可选）上游修复 2（嵌套变异改写）
+- [ ] 本仓库 regen + e2e 验证 + 删简化路径中的绕坑代码 + gotcha 清单更新
+
 ---
 
 ## 4. 验证清单
@@ -175,7 +218,8 @@ auto/
 
 - 方法论母本：`auto-down/plans/archive/011-jade-garden-auto-ization.md`（facade 零 diff / ext 政策 / 探针先行 / gap 回填）；`auto-musk` plan 022/028/041（双轨并存与退役）。
 - 工具：`../skills/auto-ui-creator`（写 `.at` 时必读 gotcha 清单）。
-- **第二步（vm/rust 桌面版）前置条件**，届时另立 plan：① auto-lang 修复 defineModel 深变异 🔴；② vm 渲染目标补 store facade 概念（musk Plan 028 已登记）；③ vm view-builder"绑定不能调用函数"限制与本计划 D4 的预计算范式实测兼容。本计划 D4/D5 的约定即为此预留。
+- **上游修复提案（§3 Phase 6）**：defineModel 深变异 🔴 的机理分析与三层修法（model → ref 治本 / 嵌套变异编译期改写 / probe B 收编能力测试），待向 auto-lang 立项。
+- **第二步（vm/rust 桌面版）前置条件**，届时另立 plan：① auto-lang 修复 defineModel 深变异 🔴（见 Phase 6）；② vm 渲染目标补 store facade 概念（musk Plan 028 已登记）；③ vm view-builder"绑定不能调用函数"限制与本计划 D4 的预计算范式实测兼容。本计划 D4/D5 的约定即为此预留。
 
 ## 7. 交付总结（2026-08-24）
 
@@ -190,6 +234,6 @@ auto/
 **真实代价**：
 - 21 条 gotcha 中约 1/3 是"静默出错"级（标签降级 div、语句吞链、no-op emit），全靠 strict 模式 + e2e + 人工排查兜底；
 - U21 回调 prop（on_value: msg + 同名 PascalCase msg 配对）是父子通信唯一可靠通道——引号名/普通名/空 handler 的 emit 语义差异是最大隐性坑；
-- defineModel 深变异 🔴 未修，D5 不可变重建贯穿全部编辑路径（ext 投影函数承担了大部分复杂度）。
+- defineModel 深变异 🔴 未修，D5 不可变重建贯穿全部编辑路径（ext 投影函数承担了大部分复杂度）——**修复提案见 §3 Phase 6**（治本 ref() 回归 + 编译期不可变改写 + probe B 收编回归测试）。
 
-**后续**：第二步桌面版（render: "vm"/"rust"）前置条件与 api.at 接入见 KNOWN-DEBT-AND-RISKS「未来增强」。
+**后续**：第二步桌面版（render: "vm"/"rust"）前置条件与 api.at 接入见 KNOWN-DEBT-AND-RISKS「未来增强」；defineModel 🔴 上游修复路径见 §3 Phase 6。
