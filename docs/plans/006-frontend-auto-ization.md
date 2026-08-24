@@ -1,6 +1,6 @@
 # Plan 006: 前端 Auto 化（第一步）— Auto/Vue 模式功能对等
 
-> **状态**：待实施
+> **状态**：已完成（2026-08-24，Phase 0–5 全部交付；组件层 100% 生成，e2e 三套全绿，npm run build 干净）
 > **前置**：Plan 001–005 全部归档（架构稳定、无活跃债务）；auto-lang vue 渲染后端成熟（examples/ui 23 个应用示例 + 核心仓 5113 单测）；方法论母本 = auto-down plan 011（jade-garden Auto 化，COMPLETE）与 auto-musk plan 022/028
 > **仓库**：auto-os-config（frontend only，backend/ 零改动）
 > **目的**：把 `src/` 手写 Vue 3 SPA 改写为 Auto 语言源码（`.at`），经 `auto build` 生成 Vue 工程，行为与视觉和现状完全一致（e2e + 截图对拍全绿）。为第二步 `render: "vm"` 桌面化铺路——本计划结束时 `.at` 是前端单一真源。
@@ -142,10 +142,10 @@ auto/
 - [x] Phase 0：e2e 四套（含 theme-switch，重写适配当前 UI + 加固两处计时 flake）两遍全绿（RUN3/RUN4，39+35 断言）；截图基线两遍；外来 verify 脚本已删
 - [x] Phase 0：`auto/` 空壳工程生成 → 接入 vite → `npm run dev` / `vue-tsc` 通过（regen.sh 部署管线 + Parse-error 守卫）
 - [x] Phase 1：四项探针结论（2026-08-24，见下）
-- [ ] Phase 2–4：每批翻译后 e2e 全绿 + 截图对拍无实质 diff
-- [ ] Phase 5：组件层 100% 生成来源盘点表；`npm run build` 干净通过
-- [ ] Phase 5：remote 协议退役 + e2e.sh 清理；KNOWN-DEBT 与 README 更新；gap 清单入 `auto/README.md`
-- [ ] 实机冒烟：daemon + vite 起服，走通"选模块 → 编辑 → 保存 → 重载一致"，Test connection、roles/skills 集合 CRUD、主题切换、hash 深链
+- [x] Phase 2–4：每批翻译后 e2e 全绿（Phase 2/3 各 8 张截图逐字节一致；Phase 4 6/8 一致、2 张 ConfigEditor 页非布局性像素差，视觉检查无异常）
+- [x] Phase 5：组件层 100% 生成来源盘点（7 widget + 3 store ↔ `src/components/*.vue` + `src/stores/auto/*.ts` 一一对应，均含生成标记）；`npm run build`（vue-tsc + vite）干净通过（0 错）
+- [x] Phase 5：remote 协议退役（`archive/remote-module/` 归档、`test-remote-module.mjs` 删除、e2e.sh 清理 :17720 与 drop-in）；KNOWN-DEBT 与根 README 更新；21 条 gotcha（G1-G21）入 `auto/README.md`
+- [x] 实机冒烟：daemon + vite 起服，走通"选模块 → 编辑 → 保存 → 重载一致"（generic-editor 套件：dirty → save → 文件持久化 → .bak），Test connection（✓ online）、roles/skills 集合 CRUD（create/edit/delete/sidecar/只读）、主题切换、hash 深链（modules_store Init）全部经 e2e 验证
 
 ### Phase 1 探针结论（2026-08-24）
 
@@ -153,7 +153,7 @@ auto/
 - **B 深变异：🔴 确认，D5 必要且充分**。`.config.provider.api_key = v`（嵌套写）与 `.config.provider.models.push()`（嵌套 push）**视图均不更新**（底层数据已变——静默数据漂移，比报错更险）；整对象/整数组替换全部正常，嵌套路径 computed 联动正常。全项目执行 D5，无例外。
 - **C infer：维持 ext**（jade 同款决策：值形状判断/正则类字符串数学留 TS，经 `use { fn }` 消费；推断结果作为描述符投影的输入）。
 - **D 主题：并入 Phase 2**（jade theme_store.at 同款：store 状态 + ext 做 localStorage/DOM）。
-- 过程沉淀 9 条 gotcha（G1 同行属性+子元素解析错误、G2 事件内联参数不支持表达式、G3 for 头部不支持动态索引、G4 col/row 注入布局类→用原生标签、G5 局部变量类型标注被丢弃→表达式初始化累加器、G6 []str→string[]、G7 解析错误与编译警告两种格式都要拦、G8 th/td 循环也强制 :key、G9 手写入口用 h() 免 runtime 编译器），见 `auto/README.md`。
+- 过程沉淀 **21 条 gotcha**（G1-G21：解析陷阱/静默降级/emit 语义/保留字碰撞/use 清单完整性等），全部登记 `auto/README.md` 供回填 auto-lang。探针与 /probe.html 已随 Phase 5 退役。
 
 ---
 
@@ -176,3 +176,20 @@ auto/
 - 方法论母本：`auto-down/plans/archive/011-jade-garden-auto-ization.md`（facade 零 diff / ext 政策 / 探针先行 / gap 回填）；`auto-musk` plan 022/028/041（双轨并存与退役）。
 - 工具：`../skills/auto-ui-creator`（写 `.at` 时必读 gotcha 清单）。
 - **第二步（vm/rust 桌面版）前置条件**，届时另立 plan：① auto-lang 修复 defineModel 深变异 🔴；② vm 渲染目标补 store facade 概念（musk Plan 028 已登记）；③ vm view-builder"绑定不能调用函数"限制与本计划 D4 的预计算范式实测兼容。本计划 D4/D5 的约定即为此预留。
+
+## 7. 交付总结（2026-08-24）
+
+**数字**：5 个 phase、4 个提交（Phase 0+1 / 2 / 3 / 4+5）；`auto/src/front/` 7 个 widget `.at` + 3 个 store `.at`（约 3100 行含 style 块与注释），生成 `src/components/` 7 个 SFC + `src/stores/auto/` 3 个 composable；特许手写仅剩 index.html / main.ts(7 行) / styles.css / lib/api.ts / editor/types.ts。
+
+**什么有效**：
+- **e2e 门控**：基线先行（两遍全绿才动手）+ 每批必跑，运行时类缺陷（ref 不解包、缺导出、emit no-op、keyup 与 fill 不触发）全部被当场抓出；
+- **探针先行**：probe A/B 把 Phase 4 的架构与 D5 约定在动手前钉死，难批翻译没有架构级返工；
+- **ext 政策**：DSL 表达不了的（fetch/localStorage/confirm/推断引擎/不可变重建）全部收敛在 api.ts + 少量 ext 中转，`.at` 保持纯声明；
+- **渐进替换**：AppShell 先行、内容组件经 ext 中转逐批换血，任一时刻应用都可跑全量 e2e。
+
+**真实代价**：
+- 21 条 gotcha 中约 1/3 是"静默出错"级（标签降级 div、语句吞链、no-op emit），全靠 strict 模式 + e2e + 人工排查兜底；
+- U21 回调 prop（on_value: msg + 同名 PascalCase msg 配对）是父子通信唯一可靠通道——引号名/普通名/空 handler 的 emit 语义差异是最大隐性坑；
+- defineModel 深变异 🔴 未修，D5 不可变重建贯穿全部编辑路径（ext 投影函数承担了大部分复杂度）。
+
+**后续**：第二步桌面版（render: "vm"/"rust"）前置条件与 api.at 接入见 KNOWN-DEBT-AND-RISKS「未来增强」。

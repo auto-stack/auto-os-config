@@ -2,8 +2,8 @@
 # One-command E2E verification for auto-os-config (Plan 002/003/004).
 #
 # Builds the backend, then runs the three Playwright suites against a
-# fresh daemon + vite dev + the remote-module example, cleaning up after
-# itself. Already-running servers on :17701/:17700/:17720 are reused (and
+# fresh daemon + vite dev, cleaning up after
+# itself. Already-running servers on :17701/:17700 are reused (and
 # NOT killed) — useful when you keep a dev environment up.
 #
 # Usage:  ./scripts/e2e.sh
@@ -12,8 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG_ROOT="${HOME}/.config/autoos"
-DROPIN="${CONFIG_ROOT}/modules.d/example-remote.at"
-DAEMON_PID=""; VITE_PID=""; SERVE_PID=""
+DAEMON_PID=""; VITE_PID=""
 
 # A service answers on either IPv6 loopback (::1, how vite binds) or IPv4
 # (127.0.0.1, how the daemon/example bind). Try both — the tests connect via
@@ -53,8 +52,6 @@ kill_tree() { # pid port
 
 cleanup() {
   set +e
-  rm -f "$DROPIN"
-  kill_tree "$SERVE_PID" 17720
   kill_tree "$VITE_PID" 17700
   kill_tree "$DAEMON_PID" 17701
 }
@@ -78,26 +75,6 @@ else
   npm run dev >/dev/null 2>&1 & VITE_PID=$!
   wait_up 17700 30
 fi
-
-if is_up 17720; then
-  echo "[e2e] remote example already served on :17720 (reusing)"
-else
-  ( cd examples/remote-module && npm run build && node serve.mjs ) >/dev/null 2>&1 & SERVE_PID=$!
-  wait_up 17720 20
-fi
-
-echo "── Drop-in for the remote-module test ──"
-mkdir -p "$(dirname "$DROPIN")"
-cat > "$DROPIN" <<'EOF'
-module {
-    kind : custom
-    id : "example-remote"
-    remote : "http://127.0.0.1:17720/config-page.js"
-    name : "Example Remote"
-    icon : "🧩"
-    description : "createComponent(Vue) protocol demo"
-}
-EOF
 
 echo "── Running E2E suites ──"
 # test-remote-module.mjs retired with the createComponent(Vue) protocol

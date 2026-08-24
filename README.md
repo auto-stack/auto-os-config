@@ -1,8 +1,9 @@
 # auto-os-config
 
 AutoOS unified settings center — one daemon, one generic editor, for **every**
-config module. A Vue 3 SPA + a small Rust backend that read/write any `.at`
-(auto-atom) config file directly, with zero per-module code.
+config module. An Auto language frontend (generated to Vue 3 by `auto build`)
++ a small Rust backend that read/write any `.at` (auto-atom) config file
+directly, with zero per-module code.
 
 ```
 ┌─────────────┬──────────────────────────────────────────┐
@@ -30,8 +31,8 @@ Three pillars:
 | Pillar | Role | Location |
 |---|---|---|
 | **① Unified daemon** | The only config read/write service. URL → file path by convention (`~/.config/autoos/`). Replaces each module shipping its own config API. | `backend/` |
-| **② Generic editor** | Renders a form from the `.at` data *shape* + a few key-name conventions. New module = zero frontend work. | `src/components/ConfigEditor.vue`, `src/editor/` |
-| **③ Module registry** | Declares each module's id + file/dir (+ optional custom component). | `backend/src/registry.rs`, `src/composables/useModules.ts` |
+| **② Generic editor** | Renders a form from the `.at` data *shape* + a few key-name conventions. New module = zero frontend work. | `auto/src/front/config_editor.at` (→ `src/components/ConfigEditor.vue`) |
+| **③ Module registry** | Declares each module's id + file/dir. | `backend/src/registry.rs`, `auto/src/front/modules_store.at` |
 
 See [`docs/designs/config-plugin-architecture.md`](docs/designs/config-plugin-architecture.md) for
 the architecture design, and [`docs/plans/archive/002-unified-config-daemon.md`](docs/plans/archive/002-unified-config-daemon.md)
@@ -70,11 +71,32 @@ Open http://localhost:17700. The sidebar lists the modules; click one to edit.
 (aaid :17654, to actually call the LLM) — everything else works offline against
 the config files.
 
+## The frontend is Auto language source (Plan 006)
+
+Everything under `src/components/` and `src/stores/auto/` is **generated** from
+Auto (`.at`) sources in [`auto/src/front/`](auto/src/front/) — never edit the
+generated files. The handwritten remainder is the bootstrap only:
+`index.html`, `src/main.ts` (7-line mount), `src/styles.css` (CSS-variable
+design system), `src/lib/api.ts` (fetch transport + projections),
+`src/editor/types.ts` (the infer engine).
+
+```sh
+# edit auto/src/front/*.at, then:
+bash auto/gen/regen.sh        # .at → gen/ → sed-rewrite → src/components/ + src/stores/auto/
+npm run build                 # vue-tsc + vite (the typecheck gate)
+./scripts/e2e.sh              # three Playwright suites
+```
+
+Never run `auto run` / `auto build` from the repo root (it overwrites real code
+with placeholders). DSL gotchas and architecture conventions (descriptor-driven
+forms, no deep mutation) are documented in [`auto/README.md`](auto/README.md).
+
 ### End-to-end tests (Playwright)
 
 ```sh
 node test-generic-editor.mjs      # ai-daemon + auto-musk (Shape A)
 node test-collection-editor.mjs   # roles + skills (Shape B)
+node test-theme-switch.mjs        # accent propagation across surfaces
 ```
 
 Each does a full create → edit → save → verify-file round-trip headlessly.
@@ -110,38 +132,13 @@ shape — **no frontend code at all**.
 
 ### Custom-UX module (when you need bespoke UI)
 
-If the generic editor isn't enough, ship a remote component via the
-`createComponent(Vue)` factory protocol:
-
-1. **Build a remote bundle** that exports `createComponent(Vue)` and does NOT
-   import `vue` (externalize it — the host injects its own single Vue instance).
-   See [`examples/remote-module/`](examples/remote-module/) for a complete,
-   buildable reference (vite lib mode, `external: ['vue']`, `h()` render fns).
-2. **Serve** the built `dist/config-page.js` from your module's HTTP server
-   (with permissive CORS, since the host loads it cross-origin).
-3. **Declare** it as `kind : "custom"` in a drop-in `.at`:
-   ```text
-   module {
-       kind : "custom"
-       id : "my-module"
-       remote : "http://127.0.0.1:9000/config-page.js"
-       name : "My Module"
-       icon : "🔧"
-   }
-   ```
-
-The remote component receives `{ moduleId }` as a prop and reads/writes its
-config through the same daemon endpoints (`/api/config/:id`) as the generic
-editor — the data layer stays unified; only the view is custom.
-
-> **Why `createComponent(Vue)` instead of an importmap?** The old architecture
-> used a page-global importmap + a vendored 383 KB Vue file, and silently broke
-> reactivity if the host's and remote's `vue` URLs didn't match byte-for-byte
-> (two Vue instances → template never re-renders). The factory protocol makes
-> the remote **never import vue at all** — it gets the host's instance as an
-> argument — eliminating the failure mode entirely. No importmap, no vendored
-> file, no `vite.config.ts` changes. See [`docs/plans/archive/003`](docs/plans/archive/003-module-self-registration.md)
-> §2 for the full rationale.
+> **Removed in Plan 006.** The remote `createComponent(Vue)` protocol was
+> retired with the frontend's Auto migration — declarative sources have no
+> equivalent for dynamically loading third-party Vue bundles, and the protocol
+> had no real users. `custom`-kind drop-ins now render a removal notice; the
+> reference implementation is archived at [`archive/remote-module/`](archive/remote-module/).
+> If a module needs bespoke UX, the path today is: extend the generic editor's
+> conventions (infer engine) or add a builtin view like DaemonView.
 
 ## Notes & limitations
 
