@@ -44,7 +44,15 @@ fn is_transport_error(t str) bool {
         return false
     }
     let ks = json.keys(t)
-    return ks.len() == 1 && json.get_at(ks, 0) == "\"error\""
+    if ks.len() != 1 {
+        return false
+    }
+    for k in ks {
+        if k == "error" {
+            return true
+        }
+    }
+    return false
 }
 
 // ─── string helpers ─────────────────────────────────────────────────────────
@@ -406,11 +414,11 @@ fn set_obj_field(obj str, key str, frag str) str {
         }
         first = false
         if ku == key {
-            out = out + k + ":" + frag
+            out = out + quote_json(ku) + ":" + frag
             wrote = true
         }
         if ku != key {
-            out = out + k + ":" + json.get(obj, ku)
+            out = out + quote_json(ku) + ":" + json.get(obj, ku)
         }
     }
     if wrote == false {
@@ -434,7 +442,7 @@ pub fn remove_obj_field(obj str, key str) str {
                 out = out + ","
             }
             first = false
-            out = out + k + ":" + json.get(obj, ku)
+            out = out + quote_json(ku) + ":" + json.get(obj, ku)
         }
     }
     return out + "}"
@@ -1016,4 +1024,378 @@ pub fn entry_at2(body str, i int) any {
     let frag = json.get(body, ku)
     let spec = inferField(ku, frag, "ai-daemon", "")
     return { k: ku, ckind: spec.kind, d: displayOf(frag) }
+}
+
+// ─── flat list surface (VG12/VG13-safe: text + count + per-item getters) ────
+
+pub fn fetchModulesRaw() any {
+    let t = get_text(daemon_base() + "/api/modules")
+    if is_transport_error(t) || json.type_of(t) != "array" {
+        return { ok: false, error: "Failed to load modules: bad response", text: "" }
+    }
+    return { ok: true, error: "", text: t }
+}
+
+pub fn modulesCount(text str) int {
+    return json.len(text)
+}
+
+pub fn moduleAt(text str, i int) any {
+    return module_entry(json.get_at(text, i))
+}
+
+/// Unique group labels, insertion order (index into this list = group index).
+pub fn groupCount(text str) int {
+    var labels = []
+    let n = json.len(text)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let g = unquote(json.get(json.get_at(text, i), "group"))
+        if g != "" {
+            var dup = false
+            for x in labels {
+                if x == g {
+                    dup = true
+                }
+            }
+            if dup == false {
+                labels.push(g)
+            }
+        }
+        i = i + 1
+    }
+    return labels.len()
+}
+
+pub fn groupAt(text str, gi int) any {
+    var labels = []
+    let n = json.len(text)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let g = unquote(json.get(json.get_at(text, i), "group"))
+        if g != "" {
+            var dup = false
+            for x in labels {
+                if x == g {
+                    dup = true
+                }
+            }
+            if dup == false {
+                labels.push(g)
+            }
+        }
+        i = i + 1
+    }
+    var lab = ""
+    var i2 = 0
+    for x in labels {
+        if i2 == gi {
+            lab = x
+        }
+        i2 = i2 + 1
+    }
+    return { id: lab.to_lower().replace(" ", "-"), label: lab }
+}
+
+fn group_label_at(text str, gi int) str {
+    let g = groupAt(text, gi)
+    return g.label
+}
+
+pub fn groupMemberCount(text str, gi int) int {
+    let lab = group_label_at(text, gi)
+    var n_out = 0
+    let n = json.len(text)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let g = unquote(json.get(json.get_at(text, i), "group"))
+        if g == lab {
+            n_out = n_out + 1
+        }
+        i = i + 1
+    }
+    return n_out
+}
+
+pub fn groupMemberAt(text str, gi int, mi int) any {
+    let lab = group_label_at(text, gi)
+    var hits = 0
+    let n = json.len(text)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let ent = json.get_at(text, i)
+        let g = unquote(json.get(ent, "group"))
+        if g == lab {
+            if hits == mi {
+                return module_entry(ent)
+            }
+            hits = hits + 1
+        }
+        i = i + 1
+    }
+    return { id: "", kind: "", name: "", icon: "", description: "", group: "", format: "" }
+}
+
+pub fn standaloneCount(text str) int {
+    var n_out = 0
+    let n = json.len(text)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let g = unquote(json.get(json.get_at(text, i), "group"))
+        if g == "" {
+            n_out = n_out + 1
+        }
+        i = i + 1
+    }
+    return n_out
+}
+
+pub fn standaloneAt(text str, si int) any {
+    var hits = 0
+    let n = json.len(text)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let ent = json.get_at(text, i)
+        let g = unquote(json.get(ent, "group"))
+        if g == "" {
+            if hits == si {
+                return module_entry(ent)
+            }
+            hits = hits + 1
+        }
+        i = i + 1
+    }
+    return { id: "", kind: "", name: "", icon: "", description: "", group: "", format: "" }
+}
+
+/// Flat module selection (VG14: find-closure unavailable on vm).
+pub fn selectInfo(text str, id str) any {
+    let n = json.len(text)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let ent = json.get_at(text, i)
+        let mid = unquote(json.get(ent, "id"))
+        if mid == id {
+            let fmt = unquote(json.get(ent, "format"))
+            return {
+                found: true,
+                id: mid,
+                kind: unquote(json.get(ent, "kind")),
+                name: unquote(json.get(ent, "name")),
+                read_only: fmt == "frontmatter-md",
+            }
+        }
+        i = i + 1
+    }
+    return { found: false, id: "", kind: "", name: "", read_only: false }
+}
+
+/// Expand-by-module-id: which group ids must be expanded (flat string lists).
+pub fn expandGroupsFor(text str, expanded str, id str) str {
+    // expanded is a comma-joined string (vm-safe); returns the new joined string
+    var have = expanded
+    let gc = groupCount(text)
+    var gi = 0
+    loop {
+        if gi >= gc {
+            break
+        }
+        let lab = group_label_at(text, gi)
+        let mc = groupMemberCount(text, gi)
+        var hit = false
+        var mi = 0
+        loop {
+            if mi >= mc {
+                break
+            }
+            let m = groupMemberAt(text, gi, mi)
+            if m.id == id {
+                hit = true
+            }
+            mi = mi + 1
+        }
+        if hit {
+            let gid = lab.to_lower().replace(" ", "-")
+            var already = false
+            for part in have.split(",") {
+                if part == gid {
+                    already = true
+                }
+            }
+            if already == false {
+                if have == "" {
+                    have = gid
+                }
+                if have != "" && already == false {
+                    var parts = have.split(",")
+                    var out = ""
+                    var first = true
+                    for p in parts {
+                        if p != "" {
+                            if first == false {
+                                out = out + ","
+                            }
+                            first = false
+                            out = out + p
+                        }
+                    }
+                    out = out + "," + gid
+                    have = out
+                }
+            }
+        }
+        gi = gi + 1
+    }
+    return have
+}
+
+// ─── collection flat surface ────────────────────────────────────────────────
+
+pub fn fetchCollectionListRaw(mid str) any {
+    let t = get_text(daemon_base() + "/api/collection/" + mid)
+    if is_transport_error(t) || json.type_of(t) != "array" {
+        return { ok: false, error: "Failed to load collection", text: "" }
+    }
+    return { ok: true, error: "", text: t }
+}
+
+pub fn collectionCount(text str) int {
+    return json.len(text)
+}
+
+pub fn collectionAt(text str, i int) any {
+    let ent = json.get_at(text, i)
+    return { name: unquote(json.get(ent, "name")), description: unquote(json.get(ent, "description")) }
+}
+
+/// Flat entity fetch (VG12: no nested atom/fm maps).
+pub fn fetchEntityFlat(mid str, name str) any {
+    let t = get_text(daemon_base() + "/api/collection/" + mid + "/" + name)
+    if is_transport_error(t) {
+        return { ok: false, error: "Failed to load entity", is_atom: false, value: "", sidecar: "", fm_name: "", fm_description: "", fm_body: "" }
+    }
+    let value = json.get(t, "value")
+    if value != "" && value != "null" {
+        return { ok: true, error: "", is_atom: true, value: value, sidecar: unquote(json.get(t, "sidecar")), fm_name: "", fm_description: "", fm_body: "" }
+    }
+    return { ok: true, error: "", is_atom: false, value: "", sidecar: "", fm_name: unquote(json.get(t, "name")), fm_description: unquote(json.get(t, "description")), fm_body: unquote(json.get(t, "body")) }
+}
+
+/// entries count of an atom body text.
+pub fn entriesCount(body str) int {
+    return json.len(body)
+}
+
+/// entryAt with full descriptor (flat): k/ckind/label/display/frag/is_table/ek/ew/ep/url
+pub fn entryAt(body str, i int, module_id str) any {
+    let ks = json.keys(body)
+    var ku = ""
+    var i2 = 0
+    for k in ks {
+        if i2 == i {
+            ku = unquote(k)
+        }
+        i2 = i2 + 1
+    }
+    let frag = json.get(body, ku)
+    let spec = inferField(ku, frag, module_id, "")
+    return {
+        key: ku,
+        kind: spec.kind,
+        label: spec.label,
+        value: displayOf(frag),
+        frag: frag,
+        is_table: is_object_array(frag),
+        ek: spec.ek,
+        ew: spec.ew,
+        ep: spec.ep,
+        url: enumUrlOfEk(spec.ek, spec.ew, module_id, spec.ep),
+    }
+}
+
+/// Key of the i-th entry (for arg-free rebuilds).
+pub fn entryKeyAt(body str, i int) str {
+    let ks = json.keys(body)
+    var ku = ""
+    var i2 = 0
+    for k in ks {
+        if i2 == i {
+            ku = unquote(k)
+        }
+        i2 = i2 + 1
+    }
+    return ku
+}
+
+/// The group id (expanded-form) of the module `id`, "" when standalone.
+pub fn groupOfModule(text str, id str) str {
+    let gc = groupCount(text)
+    var gi = 0
+    loop {
+        if gi >= gc {
+            break
+        }
+        let lab = group_label_at(text, gi)
+        let mc = groupMemberCount(text, gi)
+        var mi = 0
+        loop {
+            if mi >= mc {
+                break
+            }
+            let m = groupMemberAt(text, gi, mi)
+            if m.id == id {
+                return lab.to_lower().replace(" ", "-")
+            }
+            mi = mi + 1
+        }
+        gi = gi + 1
+    }
+    return ""
+}
+
+/// Whole edit: old fragment lookup + typed re-fragment + body text rebuild.
+pub fn editField(body str, path str, new_str str) str {
+    let parts = path.split(".")
+    var old_frag = ""
+    if parts.len() == 1 {
+        old_frag = json.get(body, path)
+    }
+    if parts.len() == 2 {
+        let head = parts[0]
+        let tail = parts[1]
+        old_frag = json.get(json.get(body, head), tail)
+    }
+    let frag = new_value_fragment(old_frag, new_str)
+    return setBodyField(body, path, frag)
+}
+
+/// Append one string to a comma-joined list (model []str <-> text helpers).
+pub fn listJoinHas(joined str, item str) bool {
+    for part in joined.split(",") {
+        if part == item {
+            return true
+        }
+    }
+    return false
 }

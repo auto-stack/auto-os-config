@@ -25,15 +25,11 @@ const emit = defineEmits<{
 
 function AddRow(): void {
   emit('Value', { path: props.path, value: props.modelValue.concat([blankRow(info.value.cols)]) });
-
-  emit('AddRow')
 }
 
 function RemoveRow(i: any): void {
   if (props.modelValue != null) {emit('Value', { path: props.path, value: removeRowAt(props.modelValue, i) });
   }
-
-  emit('RemoveRow', i)
 }
 
 function SetCell(args: any): void {
@@ -41,8 +37,6 @@ function SetCell(args: any): void {
   if (args.num) {v = parseInt(args.e.target.value);
   }
   emit('Value', { path: props.path, value: setCell(props.modelValue, args.i, args.c, v) });
-
-  emit('SetCell', args)
 }
 
 onMounted(() => {

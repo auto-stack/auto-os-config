@@ -1,13 +1,17 @@
-// modules_store.at — module registry + selection state (Plan 006 Phase 2).
-// Port of composables/useModules.ts. The remote `custom` dispatch is REMOVED
-// (Plan 006 §1: protocol retired; custom renders a placeholder in the shell).
+// modules_store.at — module registry + selection state (Plan 006 Phase 2;
+// Plan 007 vm-safe rewrite). Port of composables/useModules.ts. The remote
+// `custom` dispatch is REMOVED (Plan 006 §1: protocol retired).
 //
 // State is precomputed for the view (D4): groups carry their member module
 // objects; `title` is the active module's display name. All mutations are
-// whole-replace (D5). Helpers live in src/lib/api.ts — module-level fns in a
-// store file get their params emitted as refs (broken), and `view` is a
-// reserved property name that silently eats an access chain (r.view.x → .x).
-use back.api: fetchModulesViewSafe, getHash, expandGroupFor
+// whole-replace (D5).
+//
+// Plan 007: handlers use the flat api surface (text + per-item getters,
+// VG12/VG13-safe): NO nested reads of returned maps, NO array fn args, NO
+// find-closures (VG14), NO concat (VG5). `raw` keeps the authoritative text
+// so Select never re-fetches. The MODEL shape is unchanged — vue widgets and
+// the sidebar ext facade are untouched.
+use back.api: fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, selectInfo, groupOfModule, getHash
 
 store Modules {
     model {
@@ -23,6 +27,8 @@ store Modules {
         var loading bool = false
         var error str = ""
         var title str = "AutoOS Settings"
+        // Plan 007: authoritative raw modules text (vm selection without fetch)
+        var raw str = ""
     }
 
     msg Msg { Init, Select(str), ToggleGroup(str) }
@@ -30,37 +36,107 @@ store Modules {
     on {
         .Init -> {
             .loading = true
-            .error = "m1-fetch"
-            var r = fetchModulesViewSafe()
-            .error = "m2-back"
+            .error = ""
+            var r = fetchModulesRaw()
             if r.ok {
-                .error = "m3-ok"
-                .modules = r.data.modules
-                .title = "fg=" + r.data.firstGroup
-                .modules = r.data.modules
-                .error = "m4-mods"
-                .groups = r.data.groups
-                .standalone = r.data.standalone
-                .error = "m5-groups"
-                if .expanded.len() == 0 && r.data.firstGroup != "" {
-                    .expanded = [r.data.firstGroup]
+                .raw = r.text
+                var mods = []
+                let n = modulesCount(r.text)
+                var i = 0
+                loop {
+                    if i >= n {
+                        break
+                    }
+                    let m = moduleAt(r.text, i)
+                    mods.push({ id: m.id, kind: m.kind, name: m.name, icon: m.icon, description: m.description, group: m.group, format: m.format })
+                    i = i + 1
                 }
-                .error = "m6-expanded"
-                // Deep-link: #module-id auto-selects when valid.
+                .modules = mods
+                var grps = []
+                let gc = groupCount(r.text)
+                var gi = 0
+                loop {
+                    if gi >= gc {
+                        break
+                    }
+                    let g = groupAt(r.text, gi)
+                    var members = []
+                    let mc = groupMemberCount(r.text, gi)
+                    var mi = 0
+                    loop {
+                        if mi >= mc {
+                            break
+                        }
+                        let mm = groupMemberAt(r.text, gi, mi)
+                        members.push({ id: mm.id, kind: mm.kind, name: mm.name, icon: mm.icon, description: mm.description, group: mm.group, format: mm.format })
+                        mi = mi + 1
+                    }
+                    grps.push({ id: g.id, label: g.label, members: members })
+                    gi = gi + 1
+                }
+                .groups = grps
+                var sa = []
+                let sc = standaloneCount(r.text)
+                var si = 0
+                loop {
+                    if si >= sc {
+                        break
+                    }
+                    let sm = standaloneAt(r.text, si)
+                    sa.push({ id: sm.id, kind: sm.kind, name: sm.name, icon: sm.icon, description: sm.description, group: sm.group, format: sm.format })
+                    si = si + 1
+                }
+                .standalone = sa
+                // seed: first group expanded by default (whole-replace, D5)
+                if groupCount(r.text) > 0 {
+                    let g0 = groupAt(r.text, 0)
+                    var has = false
+                    for x in .expanded {
+                        if x == g0.id {
+                            has = true
+                        }
+                    }
+                    if has == false && g0.id != "" {
+                        var out = []
+                        for x in .expanded {
+                            out.push(x)
+                        }
+                        out.push(g0.id)
+                        .expanded = out
+                    }
+                }
+                // Deep-link: #module-id auto-selects when valid (vm: hash is
+                // always "" so this branch skips naturally).
                 var h = getHash()
                 if h != "" {
-                    var m = .modules.find(x => x.id == h)
-                    if m != nil {
-                        .active_id = m.id
-                        .active_kind = m.kind
-                        .read_only = m.format == "frontmatter-md"
-                        .title = m.name
-                        .expanded = expandGroupFor(.expanded, .groups, h)
+                    var si2 = selectInfo(.raw, h)
+                    if si2.found {
+                        .active_id = si2.id
+                        .active_kind = si2.kind
+                        .read_only = si2.read_only
+                        .title = si2.name
+                        var gid = groupOfModule(.raw, h)
+                        if gid != "" {
+                            var has2 = false
+                            for x in .expanded {
+                                if x == gid {
+                                    has2 = true
+                                }
+                            }
+                            if has2 == false {
+                                var out2 = []
+                                for x in .expanded {
+                                    out2.push(x)
+                                }
+                                out2.push(gid)
+                                .expanded = out2
+                            }
+                        }
                     }
                 }
             }
             if r.ok == false {
-                .error = "mE-" + r.error
+                .error = r.error
                 .modules = []
                 .groups = []
                 .standalone = []
@@ -69,23 +145,54 @@ store Modules {
         }
 
         .Select(id) -> {
-            var m = .modules.find(x => x.id == id)
-            if m != nil {
-                .active_id = m.id
-                .active_kind = m.kind
-                .read_only = m.format == "frontmatter-md"
-                .title = m.name
-                .expanded = expandGroupFor(.expanded, .groups, id)
+            var si = selectInfo(.raw, id)
+            if si.found {
+                .active_id = si.id
+                .active_kind = si.kind
+                .read_only = si.read_only
+                .title = si.name
+                var gid = groupOfModule(.raw, id)
+                if gid != "" {
+                    var has = false
+                    for x in .expanded {
+                        if x == gid {
+                            has = true
+                        }
+                    }
+                    if has == false {
+                        var out = []
+                        for x in .expanded {
+                            out.push(x)
+                        }
+                        out.push(gid)
+                        .expanded = out
+                    }
+                }
             }
         }
 
         .ToggleGroup(gid) -> {
-            if .expanded.includes(gid) {
-                .expanded = .expanded.filter(x => x != gid)
+            var has = false
+            for x in .expanded {
+                if x == gid {
+                    has = true
+                }
             }
-            if .expanded.includes(gid) == false {
-                .expanded = .expanded.concat([gid])
+            var out = []
+            if has {
+                for x in .expanded {
+                    if x != gid {
+                        out.push(x)
+                    }
+                }
             }
+            if has == false {
+                for x in .expanded {
+                    out.push(x)
+                }
+                out.push(gid)
+            }
+            .expanded = out
         }
     }
 }

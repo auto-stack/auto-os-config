@@ -51,33 +51,23 @@ function AddTag(): void {
   }if (arr.includes(tag_input.value.trim()) == false) {emit('Value', { path: props.path, value: arr.concat([tag_input.value.trim()]) });
   }tag_input.value = '';
   }
-
-  emit('AddTag')
 }
 
 function Changed(e: any): void {
   emit('Value', { path: props.path, value: e.target.value });
-
-  emit('Changed', e)
 }
 
 function NumChanged(e: any): void {
   emit('Value', { path: props.path, value: parseInt(e.target.value) });
-
-  emit('NumChanged', e)
 }
 
 function PickChanged(e: any): void {
   emit('Value', { path: props.path, value: e.target.value });
-
-  emit('PickChanged', e)
 }
 
 function RemoveTag(t: any): void {
   if (props.modelValue != null) {emit('Value', { path: props.path, value: props.modelValue.filter((x: any) => x != t) });
   }
-
-  emit('RemoveTag', t)
 }
 
 function TagInputChanged(): void {
@@ -88,8 +78,6 @@ function TagInputChanged(): void {
 
 function ToggleChanged(e: any): void {
   emit('Value', { path: props.path, value: e.target.checked });
-
-  emit('ToggleChanged', e)
 }
 
 function ToggleOption(v: any): void {
@@ -100,8 +88,6 @@ function ToggleOption(v: any): void {
   }
   if (arr.includes(v) == false) {emit('Value', { path: props.path, value: arr.concat([v]) });
   }
-
-  emit('ToggleOption', v)
 }
 
 function ToggleReveal(): void {

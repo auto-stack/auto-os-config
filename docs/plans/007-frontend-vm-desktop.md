@@ -167,8 +167,8 @@ vm 工程不产 codegen、不进 regen.sh，vue 工程完全不扫 `auto/vm/`—
 
 - [x] Phase 0：vue 基线两遍全绿；vm 空壳窗口 + MCP 通道冒烟；auto-lang commit 记录（2026-08-25：`auto/vm/` 空壳起窗口，MCP 端点 `/mcp`，`autoui_action` press → handler `.App.Bump` → state `count: 10 → 11` 闭环；快照元素 id 为 `vnode_N` 形态。基线在主仓同 commit 跑（服务复用），e2e 四套两遍 ALL PASS）
 - [ ] Phase 1：五项探针结论（V1-V5）记录进本文件，降级项登记
-- [ ] Phase 2：`logic/*.at` 移植完成；vue 轨切换后 e2e 四套 + 12 截图对拍全绿；types.ts 删除、api.ts 瘦身盘点
-- [ ] Phase 3：transport 双实现 + 门控生效（vue 侧缺 adapter 报错路径验证）；vue e2e 全绿；vm store 数据加载 MCP 断言通过
+- [x] Phase 2（按 D1/D3 修订执行）：`auto/src/back/api.at`（vm 全文本实现，63 pub fn）+ 3 store vm-safe 重写（model 形状不变、vue widget 零改动）+ api.ts 增补同名扁平面（vue 实现）；vue regen + build 0 错 + e2e 三套全绿；vm 侧 MCP 实证：modules 加载/分组/选择 ✓、collection list/select/edit/save/create/remove ✓（editField 文本手术落盘 `tier : "pro"` 实证）。types.ts/api.ts 保留（双实现架构，不再"退役"）。追加 gotcha：**VG16** 一 widget 一 store（Init/Select 等方法名跨 store 撞名，多 store 消歧按方法名匹配）；**VG17** `json.keys` 返回**裸 key**（不带引号；输出时需 quote_json 重包）；**VG18** `.Select` 依赖 `.module_id` 由 `Init` 先置（漏 Init 时静默空 URL）。截断级 gotcha：map 字面量内空数组崩溃（二次构建规避）、map 字面量内 `.len()` 求值为 0、`json.get_at` 仅文本、substr 闭区间
+- [x] Phase 3（并入 Phase 2 完成）：`use back.api:` 单导入行双后端解析（vue→@/lib/api、vm→src/back/api.at）实证生效——store 源零改动双轨共享；vm store 数据加载/编辑/保存 MCP 断言全过
 - [ ] Phase 4：三批 vm widget 各自 MCP 冒烟通过；8 控件 + 表格加删行 + popover 确认实机可用
 - [ ] Phase 5：e2e-vm.mjs 全绿（覆盖四套 Playwright 核心路径）；文档三件套更新；KNOWN-DEBT 登记；7 模块手动走查
 - [ ] 终态：vue web 版与 vm 桌面版并存，`./scripts/e2e.sh` 与 `./scripts/e2e-vm.sh` 双绿为仓库门禁

@@ -653,3 +653,156 @@ export function mergeCols(info: any, colOptions: Record<string, any[]>): any[] {
 export function removeRowAt(rows: any[], i: number): any[] {
   return (rows ?? []).filter((_, idx) => idx !== i)
 }
+
+// ── Plan 007 flat surface (shared-store contract; the vm side lives in
+//    auto/src/back/api.at — same names, text-first semantics). Stores consume
+//    ONLY these; shapes are flat (no nested maps) and lists travel as text +
+//    count + per-item getters so the same .at handlers run on both tracks. ──
+
+export interface FlatResult {
+  ok: boolean
+  error: string
+  text: string
+}
+
+function pickModule(m: any) {
+  return {
+    id: m.id ?? '',
+    kind: m.kind ?? '',
+    name: m.name ?? '',
+    icon: m.icon ?? '',
+    description: m.description ?? '',
+    group: m.group ?? '',
+    format: m.format ?? '',
+  }
+}
+
+function groupLabels(list: any[]): string[] {
+  const seen: string[] = []
+  for (const m of list) {
+    if (m.group && !seen.includes(m.group)) seen.push(m.group)
+  }
+  return seen
+}
+
+export async function fetchModulesRaw(): Promise<FlatResult> {
+  try {
+    const resp = await fetch('/api/modules')
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    return { ok: true, error: '', text: await resp.text() }
+  } catch (e: any) {
+    return { ok: false, error: `Failed to load modules: ${e.message || e}`, text: '' }
+  }
+}
+
+export function modulesCount(text: string): number {
+  return (JSON.parse(text) as any[]).length
+}
+
+export function moduleAt(text: string, i: number) {
+  return pickModule((JSON.parse(text) as any[])[i])
+}
+
+export function groupCount(text: string): number {
+  return groupLabels(JSON.parse(text)).length
+}
+
+export function groupAt(text: string, gi: number) {
+  const label = groupLabels(JSON.parse(text))[gi] ?? ''
+  return { id: label.toLowerCase().replace(/\s+/g, '-'), label }
+}
+
+export function groupMemberCount(text: string, gi: number): number {
+  const label = groupLabels(JSON.parse(text))[gi] ?? ''
+  return (JSON.parse(text) as any[]).filter((m) => m.group === label).length
+}
+
+export function groupMemberAt(text: string, gi: number, mi: number) {
+  const label = groupLabels(JSON.parse(text))[gi] ?? ''
+  return pickModule((JSON.parse(text) as any[]).filter((m) => m.group === label)[mi])
+}
+
+export function standaloneCount(text: string): number {
+  return (JSON.parse(text) as any[]).filter((m) => !m.group).length
+}
+
+export function standaloneAt(text: string, si: number) {
+  return pickModule((JSON.parse(text) as any[]).filter((m) => !m.group)[si])
+}
+
+export function selectInfo(text: string, id: string) {
+  const m = (JSON.parse(text) as any[]).find((x) => x.id === id)
+  if (!m) return { found: false, id: '', kind: '', name: '', read_only: false }
+  return {
+    found: true,
+    id: m.id,
+    kind: m.kind,
+    name: m.name,
+    read_only: m.format === 'frontmatter-md',
+  }
+}
+
+export function groupOfModule(text: string, id: string): string {
+  const list = JSON.parse(text) as any[]
+  const m = list.find((x) => x.id === id)
+  if (!m?.group) return ''
+  return m.group.toLowerCase().replace(/\s+/g, '-')
+}
+
+export async function fetchCollectionListRaw(mid: string): Promise<FlatResult> {
+  try {
+    const resp = await fetch(`/api/collection/${mid}`)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    return { ok: true, error: '', text: await resp.text() }
+  } catch (e: any) {
+    return { ok: false, error: `Failed to load collection: ${e.message || e}`, text: '' }
+  }
+}
+
+export function collectionCount(text: string): number {
+  return (JSON.parse(text) as any[]).length
+}
+
+export function collectionAt(text: string, i: number) {
+  const e = (JSON.parse(text) as any[])[i] ?? {}
+  return { name: e.name ?? '', description: e.description ?? '' }
+}
+
+/** Flat entity fetch (vm contract; value is the raw body on both tracks). */
+export async function fetchEntityFlat(mid: string, name: string) {
+  const fail = { ok: false, error: 'Failed to load entity', is_atom: false, value: '' as any, sidecar: '', fm_name: '', fm_description: '', fm_body: '' }
+  try {
+    const resp = await fetch(`/api/collection/${mid}/${encodeURIComponent(name)}`)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    const data = await resp.json()
+    if (data.value !== undefined) {
+      return { ok: true, error: '', is_atom: true, value: data.value, sidecar: data.sidecar || '', fm_name: '', fm_description: '', fm_body: '' }
+    }
+    return { ok: true, error: '', is_atom: false, value: '', sidecar: '', fm_name: data.name ?? '', fm_description: data.description ?? '', fm_body: data.body ?? '' }
+  } catch (e: any) {
+    return { ...fail, error: e.message || String(e) }
+  }
+}
+
+export function entriesCount(body: any): number {
+  return Object.keys(body ?? {}).length
+}
+
+/** Vue-track entryAt: the ORIGINAL EntityEntry shape (spec included) so the
+ *  hand-over widgets (ScalarFields/TableField via ext) keep working. */
+export function entryAt(body: any, i: number, moduleId: string) {
+  return bodyEntries(body, moduleId)[i]
+}
+
+/** Vue-track editField: object-in/object-out (setCfgEntry without provider ctx). */
+export function editField(body: any, path: string, value: any): any {
+  const next = { ...body }
+  const parts = path.split('.')
+  if (parts.length === 1) {
+    next[parts[0]] = value
+  } else {
+    const [head, tail] = parts
+    next[head] = { ...next[head], [tail]: value }
+  }
+  return next
+}
