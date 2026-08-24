@@ -1,8 +1,0 @@
-name: "auto-os-config-vm"
-version: "0.1.0"
-scene: "ui"
-render: "vm"
-shadcn: off
-default_classes: off
-window: "1280x860"
-title: "AutoOS Settings"

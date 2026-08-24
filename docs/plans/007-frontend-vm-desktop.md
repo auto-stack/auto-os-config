@@ -197,13 +197,20 @@ vm 工程不产 codegen、不进 regen.sh，vue 工程完全不扫 `auto/vm/`—
 - **VG1** fn 模块内**禁 `use auto.str`**——与 http 模块共编时 stdlib `Response.status(self…)` 解析成 `str.status` 链接失败；字符串一律用方法调用形态（`k.to_lower()`）；
 - **VG2** handler 内多语句禁同行（`let q = f()  .r = q.x` 吞链）——一律分行；
 - **VG3** `.status()`/builder 链/`res.body()` 禁用（见 V1 三不用）；
-- **VG4** handler 内 map 字段读取不可用——handler 只处理标量/文本，map 构造留给模块 fn（字面量 key OK）；
+- **VG4**（已收窄）map 字段读取：**fn 模块内完全可用**（循环变量/入参/重建全过，L1/L2/L3 实证）；仅 **handler 内对 model 数组循环变量的 map 读取失效**（vmref 未物化，静默不匹配）。规范：handler 保持薄（调 api fn + 赋值），数据加工全在 fn 模块。链式直读 fn 返回值（`r.data.modules`）在 handler 内可用，但经局部变量中转（`let d = r.data` 再 `d.x`）失效——handler 内一律链式直读；
 - **VG5** `concat`/双变量 for（handler）/动态 map key——禁用，loop+push 重建；
 - **VG6** 模块导入用冒号形式（`use probe_logic: fn1, fn2`）；花括号 use 块与文件级 `use x from "path"` 在 vm UI 均不可用；
 - **VG7** handler 崩溃会回滚整次状态写入（原子性）——分步调试需逐步设值；
 - **VG8** json.parse 占位、JsonValue 方法链不可用——全部走 json.keys/get/get_at/type_of 文本工具链。
 
 **架构修正（对 Phase 2-4 的直接影响）**：vm 轨逻辑层 = **纯文本进出**（body text → 投影 fn → 值内嵌描述符 map 列表给 view；编辑 = handler 收标量新值 → text 手术替换 → 重投影）。D4 描述符范式不受影响反而强化（view 端 map 点访问可用，恰是描述符的消费端）。store 中跨 handler 数据一律存标量/文本/描述符列表，不依赖 handler 读 map。
+
+### Phase 1 补充：架构修订 D1/D3（探针后定稿，2026-08-25）
+
+1. **D1 修订——单工程双后端**：放弃独立 `auto/vm/` 子工程，回到 widgets-gallery 模式：**同一 `auto/` 工程，CLI `-r vm` 切换**。理由：vm widget 与共享 store 的跨工程相对导入无解析机制，单工程天然共享；vm 专属文件（`*_vm.at`）与 vue 文件同住 `src/front/`。
+2. **D3 修订——`back.api` 天然双解析，vue 轨零改动**：vm 解释器把 `use back.api: fn` 解析到 `<root>/src/back/api.at`（lib.rs resolve_module_path），vue codegen 映射 `@/lib/api`——**同一导入行双后端各自解析**。因此：新建 `auto/src/back/api.at`（vm 侧全文本实现：transport 配方 + inferField 移植 + 投影/重建），**3 个 store 源零改动即双轨共享**；vue 轨 api.ts/types.ts 保留（作为 vue 端实现，不再"切换消费"——Phase 2 原目标的"单一真源 .at 化"修正为"单一接口 + 双实现"，musk 037 ports 精神）。chain 前提已实证：store handler 的读取模式（`r.data.modules`、`e.atom.value` 链式直读）在 vm 全部可用。
+3. **入口冲突**（待 Phase 4 落定）：vue 轨 app.at 占位 vs vm 入口固定 app.at——方案：app.at 升格为真 vm shell（vue gen 多生成一个未引用的 App.vue，vue-tsc 应通过；regen 验证，不行则 regen.sh 过滤）。
+4. **vue TS adapter 只映射 `json.parse/stringify`**（ts_adapter.rs:1731）——文本工具链不可跨轨，证实双实现必要性。
 
 ---
 

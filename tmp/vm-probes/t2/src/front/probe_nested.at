@@ -1,0 +1,10 @@
+pub fn nested_result() any {
+    return { ok: true, data: { modules: 7, firstGroup: "ai-daemon" } }
+}
+
+pub fn list_result() any {
+    var items = []
+    items.push({ id: "a" })
+    items.push({ id: "b" })
+    return { items: items }
+}

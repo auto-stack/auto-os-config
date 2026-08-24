@@ -1,3 +1,5 @@
+use probe_loop: read_fields, read_arg, replace_key, build
+use probe_nested: nested_result, list_result
 widget App {
     model {
         var a str = "-"
@@ -13,6 +15,12 @@ widget App {
             text (text: "c=" + .c) {}
             button (text: "D builder PUT") { onclick: .D }
             text (text: "d=" + .d) {}
+            button (text: "L1 loop read") { onclick: .L1 }
+            button (text: "L2 arg read") { onclick: .L2 }
+            button (text: "L3 replace") { onclick: .L3 }
+            button (text: "N1 two-step") { onclick: .N1 }
+            button (text: "N2 deep") { onclick: .N2 }
+            button (text: "N3 list") { onclick: .N3 }
             button (text: "E1 no send") { onclick: .E1 }
             button (text: "E2 send only") { onclick: .E2 }
             button (text: "E3 status") { onclick: .E3 }
@@ -216,6 +224,38 @@ widget App {
                 i = i + 1
             }
             .e = "H3 still-there=" + found.to_string()
+        }
+        .N1 -> {
+            let r = nested_result()
+            let d = r.data
+            let mods = d.modules
+            let first = d.firstGroup
+            .e = "r.ok=" + r.ok.to_string() + " mods=" + mods.to_string() + " first=" + first
+        }
+        .N2 -> {
+            let r = nested_result()
+            .e = "deep=" + r.data.modules
+        }
+        .N3 -> {
+            let r = list_result()
+            let items = r.items
+            var n = 0
+            for item in items {
+                n = n + 1
+            }
+            .e = "items=" + n.to_string()
+        }
+        .L1 -> {
+            .e = read_fields()
+        }
+        .L2 -> {
+            let m = { key: "zed", kind: "t" }
+            .e = read_arg(m)
+        }
+        .L3 -> {
+            let list = build()
+            let out = replace_key(list, "a", "NEW")
+            .e = read_fields_of(out)
         }
         .E -> {
             .e = "s1"
