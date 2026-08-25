@@ -94,7 +94,12 @@ vue（Tailwind 3.4）与 vm（auto-lang `ui/style/class.rs` → iced）消费**�
    （vm 解析 secondary 为 indigo 品牌色）全部不进共享词汇；唯一语义 token = `primary` 族。
 3. **hover:/焦点类**只作 web 增强，写法合法（vm 容错跳过），核心状态必须有静态等价。
 4. 条件样式 = store/handler **预计算完整类串**存字段（`row_class` 型）或视图
-   `if` 双分支静态串——两种形态 vm 均实证可用（P1）。
+   `if` 双分支静态串（仅限无子元素的简单控件——见规则 6）。
+5. **类串绑定必须用 `class:` 属性**：vue codegen 对 `style:` 只有字面量才映射
+   class，绑定形态（`style: m.nav_class`）会编译成 `:style` 内联样式；
+   `class: m.nav_class` 两端皆正确（038 minesweeper 官方姿势，批 1 实证）。
+6. **if 表达式 style 禁用于带子元素/事件的按钮**：vm 会把 style/onclick 提升
+   到包装容器（按钮本体裸奔）——静态串按钮不受影响；条件类一律下沉 store。
 
 **D6 组件基线串（Phase 2 定稿，Phase 3 迁移即用）**：
 

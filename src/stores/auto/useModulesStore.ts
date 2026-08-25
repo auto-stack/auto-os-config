@@ -12,6 +12,10 @@ const loading = ref<boolean>(false)
 const error = ref<string>('')
 const title = ref<string>('AutoOS Settings')
 const raw = ref<string>('')
+const search = ref<string>('')
+const view_standalone = ref<any>([])
+const view_groups = ref<any>([])
+const has_results = ref<boolean>(true)
 
 export function useModulesStore(): any {
     const Init = async () => { loading.value = true;
@@ -85,12 +89,99 @@ for (const x of expanded.value) {out2.push(x);
 out2.push(gid);
 expanded.value = out2;
 }}}}}
+
+
+
+
+
+let vg = [];
+let q = search.value.toLowerCase();
+let any_hit: boolean = false;
+for (const g of groups.value) {let members = [];
+for (const m of g.members) {let hit: boolean = true;
+if (q != '') {hit = false;
+if (m.name.toLowerCase().includes(q)) {hit = true;
+}if (m.description.toLowerCase().includes(q)) {hit = true;
+}}if (hit) {let ncls: string = 'nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded';
+let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == m.id) {ncls = 'nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10';
+nmcls = 'nav-name text-sm font-medium text-primary';
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls });
+}}
+let open: boolean = false;
+for (const x of expanded.value) {if (x == g.id) {open = true;
+}}
+if (q != '') {open = true;
+}if (members.length > 0) {vg.push({ id: g.id, label: g.label, open: open, members: members });
+any_hit = true;
+}}
+view_groups.value = vg;
+let vs = [];
+for (const sm of standalone.value) {let shit: boolean = true;
+if (q != '') {shit = false;
+if (sm.name.toLowerCase().includes(q)) {shit = true;
+}if (sm.description.toLowerCase().includes(q)) {shit = true;
+}}if (shit) {let scls: string = 'nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded';
+let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == sm.id) {scls = 'nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10';
+snm = 'nav-name text-sm font-medium text-primary';
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm });
+any_hit = true;
+}}
+view_standalone.value = vs;
+has_results.value = any_hit;
 if (r.ok == false) {error.value = r.error;
 modules.value = [];
 groups.value = [];
 standalone.value = [];
+view_groups.value = [];
+view_standalone.value = [];
+has_results.value = true;
 }
 loading.value = false;
+ }
+    const Search = (query: string) => { search.value = query;
+
+
+
+
+
+let vg = [];
+let q = search.value.toLowerCase();
+let any_hit: boolean = false;
+for (const g of groups.value) {let members = [];
+for (const m of g.members) {let hit: boolean = true;
+if (q != '') {hit = false;
+if (m.name.toLowerCase().includes(q)) {hit = true;
+}if (m.description.toLowerCase().includes(q)) {hit = true;
+}}if (hit) {let ncls: string = 'nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded';
+let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == m.id) {ncls = 'nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10';
+nmcls = 'nav-name text-sm font-medium text-primary';
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls });
+}}
+let open: boolean = false;
+for (const x of expanded.value) {if (x == g.id) {open = true;
+}}
+if (q != '') {open = true;
+}if (members.length > 0) {vg.push({ id: g.id, label: g.label, open: open, members: members });
+any_hit = true;
+}}
+view_groups.value = vg;
+let vs = [];
+for (const sm of standalone.value) {let shit: boolean = true;
+if (q != '') {shit = false;
+if (sm.name.toLowerCase().includes(q)) {shit = true;
+}if (sm.description.toLowerCase().includes(q)) {shit = true;
+}}if (shit) {let scls: string = 'nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded';
+let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == sm.id) {scls = 'nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10';
+snm = 'nav-name text-sm font-medium text-primary';
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm });
+any_hit = true;
+}}
+view_standalone.value = vs;
+has_results.value = any_hit;
  }
     const Select = async (id: string) => { let si = await selectInfo(raw.value, id);
 if (si.found) {active_id.value = si.id;
@@ -107,6 +198,47 @@ for (const x of expanded.value) {out.push(x);
 out.push(gid);
 expanded.value = out;
 }}}
+
+
+
+
+
+let vg = [];
+let q = search.value.toLowerCase();
+let any_hit: boolean = false;
+for (const g of groups.value) {let members = [];
+for (const m of g.members) {let hit: boolean = true;
+if (q != '') {hit = false;
+if (m.name.toLowerCase().includes(q)) {hit = true;
+}if (m.description.toLowerCase().includes(q)) {hit = true;
+}}if (hit) {let ncls: string = 'nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded';
+let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == m.id) {ncls = 'nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10';
+nmcls = 'nav-name text-sm font-medium text-primary';
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls });
+}}
+let open: boolean = false;
+for (const x of expanded.value) {if (x == g.id) {open = true;
+}}
+if (q != '') {open = true;
+}if (members.length > 0) {vg.push({ id: g.id, label: g.label, open: open, members: members });
+any_hit = true;
+}}
+view_groups.value = vg;
+let vs = [];
+for (const sm of standalone.value) {let shit: boolean = true;
+if (q != '') {shit = false;
+if (sm.name.toLowerCase().includes(q)) {shit = true;
+}if (sm.description.toLowerCase().includes(q)) {shit = true;
+}}if (shit) {let scls: string = 'nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded';
+let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == sm.id) {scls = 'nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10';
+snm = 'nav-name text-sm font-medium text-primary';
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm });
+any_hit = true;
+}}
+view_standalone.value = vs;
+has_results.value = any_hit;
  }
     const ToggleGroup = (gid: string) => { let has: boolean = false;
 for (const x of expanded.value) {if (x == gid) {has = true;
@@ -120,6 +252,47 @@ if (has == false) {for (const x of expanded.value) {out.push(x);
 out.push(gid);
 }
 expanded.value = out;
+
+
+
+
+
+let vg = [];
+let q = search.value.toLowerCase();
+let any_hit: boolean = false;
+for (const g of groups.value) {let members = [];
+for (const m of g.members) {let hit: boolean = true;
+if (q != '') {hit = false;
+if (m.name.toLowerCase().includes(q)) {hit = true;
+}if (m.description.toLowerCase().includes(q)) {hit = true;
+}}if (hit) {let ncls: string = 'nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded';
+let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == m.id) {ncls = 'nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10';
+nmcls = 'nav-name text-sm font-medium text-primary';
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls });
+}}
+let open: boolean = false;
+for (const x of expanded.value) {if (x == g.id) {open = true;
+}}
+if (q != '') {open = true;
+}if (members.length > 0) {vg.push({ id: g.id, label: g.label, open: open, members: members });
+any_hit = true;
+}}
+view_groups.value = vg;
+let vs = [];
+for (const sm of standalone.value) {let shit: boolean = true;
+if (q != '') {shit = false;
+if (sm.name.toLowerCase().includes(q)) {shit = true;
+}if (sm.description.toLowerCase().includes(q)) {shit = true;
+}}if (shit) {let scls: string = 'nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded';
+let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == sm.id) {scls = 'nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10';
+snm = 'nav-name text-sm font-medium text-primary';
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm });
+any_hit = true;
+}}
+view_standalone.value = vs;
+has_results.value = any_hit;
  }
     return {
         modules,
@@ -133,7 +306,12 @@ expanded.value = out;
         error,
         title,
         raw,
+        search,
+        view_standalone,
+        view_groups,
+        has_results,
         Init,
+        Search,
         Select,
         ToggleGroup,
     }

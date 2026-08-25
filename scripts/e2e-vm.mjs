@@ -15,13 +15,14 @@
 // Real assertion failures and boot failures are NOT retried.
 //
 // Usage: node scripts/e2e-vm.mjs
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { setTimeout as sleep } from 'timers/promises';
 
 const MCP_PORT = process.env.E2E_VM_PORT || '9321';
 const MCP = `http://127.0.0.1:${MCP_PORT}/mcp`;
 const results = { passed: true };
-let channelDead = false; // set when a call exhausts retries (dead/wedged app)
+let channelDead = false; // set when a call exhausts retries AFTER the channel was proven up
+let channelEverUp = false; // boot-phase failures (port not bound yet) are NOT deaths
 const pass = (m) => console.log('  ✓ PASS: ' + m);
 const fail = (m) => { results.passed = false; console.log('  ✗ FAIL: ' + m); };
 
@@ -35,10 +36,15 @@ async function call(name, args, retries = 3) {
         signal: AbortSignal.timeout(15000),
       });
       const j = await r.json();
-      return j.result?.content?.[0]?.text ?? '';
+      const t = j.result?.content?.[0]?.text ?? '';
+      channelEverUp = true;
+      return t;
     } catch { await sleep(1200); }
   }
-  channelDead = true;
+  // Only a proven-up channel that stops answering counts as a mid-run death
+  // (the self-heal trigger). Boot-phase refusals (MCP port not bound yet)
+  // must not latch — they previously poisoned every subsequent press/nav.
+  if (channelEverUp) channelDead = true;
   return null;
 }
 
@@ -61,6 +67,27 @@ async function press(label, waitMs = 3000) {
       if (line.includes('button') && line.includes(`"${label}"`)) {
         const m = line.match(/(vnode_|aura_)\d+/);
         if (m) { await call('autoui_action', { element_id: m[0], action: 'press' }); await sleep(waitMs); return true; }
+      }
+    }
+    await sleep(1200);
+  }
+  return false;
+}
+
+// Nav buttons carry icon/name/description as separate text children, so the
+// vm snapshot shows their label as a multiline string — match the exact-name
+// text child, then walk back to the enclosing button (Plan 008 batch 1).
+async function pressNav(name, waitMs = 3000) {
+  for (let a = 0; a < 4; a++) {
+    if (channelDead) return false;
+    const lines = (await snapshot()).split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/text #(vnode_\d+) "(.+)"$/);
+      if (m && m[2] === name) {
+        for (let j = i - 1; j >= 0; j--) {
+          const b = lines[j].match(/button #(vnode_\d+)/);
+          if (b) { await call('autoui_action', { element_id: b[1], action: 'press' }); await sleep(waitMs); return true; }
+        }
       }
     }
     await sleep(1200);
@@ -103,6 +130,31 @@ async function runAttempt() {
     return { crashed: infraCrash, ran: false, bootFailed: !infraCrash };
   }
   pass('vm app up, MCP channel ready');
+  // iced defers lazy child-widget builds to the first RENDER pass — a
+  // minimized/occluded window never renders, so the sidebar subtree stays an
+  // unbuilt reference in snapshots forever. Restore + foreground the window
+  // (best-effort; desktop-dependent).
+  try {
+    execSync(
+      'powershell -NoProfile -Command "' +
+      "$p = Get-Process auto -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq 'Auto - App' } | Select-Object -First 1; " +
+      'if ($p) { Add-Type \'using System; using System.Runtime.InteropServices; public class FG { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c); }\'; ' +
+      '[FG]::ShowWindow($p.MainWindowHandle, 9) | Out-Null; [FG]::SetForegroundWindow($p.MainWindowHandle) | Out-Null }"',
+      { stdio: 'ignore', timeout: 10000 },
+    );
+  } catch { /* best-effort */ }
+  // Content-readiness wait: MCP state sync answers BEFORE the UI tree is
+  // fully built (the first frame runs the modules-store projection + child
+  // widget builds), and snapshotting that window returns a partial tree —
+  // or trips the upstream early-poll crash (Phase 0 gap). Poll until the
+  // sidebar actually rendered.
+  let ready = false;
+  for (let i = 0; i < 20 && !ready && !channelDead; i++) {
+    const snap = await call('autoui_snapshot', { include_state: false }, 1);
+    if (snap && snap.includes('AutoOS Settings') && snap.includes('button')) ready = true;
+    else await sleep(1500);
+  }
+  if (!ready) fail('sidebar did not render (content-readiness timeout)');
 
   // 1. boot: modules loaded via fire_init
   let st = await state('modules', 'expanded');
@@ -110,7 +162,7 @@ async function runAttempt() {
   else fail('modules not loaded');
 
   // 2. sidebar: pick Roles (collection)
-  if (!(await press('🎭  Roles'))) fail('Roles nav button not found');
+  if (!(await pressNav('Roles'))) fail('Roles nav button not found');
   st = await state('active_kind', 'active_id');
   if (st.active_kind === '"collection"' && st.active_id === '"roles"') pass('Roles selected (kind=collection)');
   else fail(`Roles selection: kind=${st.active_kind} id=${st.active_id}`);
@@ -129,7 +181,16 @@ async function runAttempt() {
 
   // 5. edit Description → Apply → dirty
   const snap1 = await snapshot();
-  const inputs = [...snap1.matchAll(/input #(vnode_\d+)/g)].map((m) => m[1]);
+  // Detail-field inputs: in the vm snapshot they appear as BARE lines
+  // (`input #id`, no attribute block), while the unified sidebar's search
+  // box renders WITH a block (style/placeholder/value/oninput) — the block
+  // form shifted the old bare index.
+  const NL = String.fromCharCode(10);
+  const inputs = [];
+  for (const l of snap1.split(NL)) {
+    const m = l.trim().match(/^input #(vnode_\d+)$/);
+    if (m) inputs.push(m[1]);
+  }
   const applies = [...snap1.matchAll(/button #(vnode_\d+) "Apply"/g)].map((m) => m[1]);
   if (inputs.length >= 2 && applies.length >= 1) {
     await call('autoui_type', { element_id: inputs[1], text: 'vm e2e edited' });
@@ -154,7 +215,7 @@ async function runAttempt() {
   // vm http blocks the interpreter while it runs (so MCP polls can starve
   // too). Poll the status for up to ~30s instead of asserting after one
   // fixed sleep.
-  if (!(await press('🔌  AI Daemon', 4500))) fail('AI Daemon nav not found');
+  if (!(await pressNav('AI Daemon', 4500))) fail('AI Daemon nav not found');
   if (!(await press('Test connection', 2000))) fail('Test connection button not found');
   for (let i = 0; i < 15 && (!st.status || st.status === '"idle"' || st.status === '""'); i++) {
     st = await state('status');

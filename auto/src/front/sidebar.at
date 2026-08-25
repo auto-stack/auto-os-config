@@ -1,331 +1,111 @@
+// sidebar.at — unified module navigation (Plan 008 Phase 3 batch 1).
+//
+// ONE view source for BOTH backends: vue (regen → Sidebar.vue consumed by
+// AppShell) and vm (auto run -r vm, child of the vm root App). Replaces the
+// vue-only named-class sidebar (Plan 006) AND sidebar_vm.at (Plan 007).
+//
+// Style vocabulary per auto/README §共享样式词汇 (Plan 008 Phase 2):
+//   - marker classes (sidebar/nav-item/nav-name/nav-desc/theme-picker/swatch)
+//     are INERT test hooks — no CSS defines them on web, vm skips them;
+//   - neutrals are deterministic hex classes; accent only via `primary`;
+//   - no fractional spacing (vm drops py-1.5/gap-1.5);
+//   - conditional classes use if-literal form (P1-proven both backends).
+//
+// Structure notes:
+//   - search/filter/fold state lives in modules_store projections
+//     (view_standalone/view_groups) — vm views cannot call .includes(), and
+//     widget `computed` blocks with ext fns are vue-only;
+//   - nav buttons carry two spans (name / description): vue renders them as
+//     stacked elements, vm collapses children into a two-line label
+//     (extract_children_text joins with \n) — D5 structural parity;
+//   - the theme picker moved into its own ThemePicker widget (VG16: one
+//     store per widget — Sidebar owns Modules only).
+use modules_store: Modules
+use theme_picker: ThemePicker
+
 widget Sidebar {
-    use {
-        composable: useModulesStore from "src/front/utils/sidebar_ext.ts"
-        composable: useThemeStore from "src/front/utils/sidebar_ext.ts"
-        fn: ACCENT_OPTIONS, filterStandalone, filterGroups from "src/front/utils/sidebar_ext.ts"
-    }
-
-    msg Msg { SearchChanged, SelectModule(str), ToggleGroup(str), PickAccent(str) }
-
-    model {
-        var search str = ""
-    }
-
-    computed {
-        searching => .search.trim() != ""
-        view_standalone => filterStandalone(modulesStore.standalone, .search)
-        view_groups => filterGroups(modulesStore.groups, .search)
-        has_results => view_standalone.len() > 0 || view_groups.len() > 0
-    }
+    msg Msg { SearchChanged(str), SelectModule(str), ToggleGroup(str) }
 
     view {
-        aside {
-            class: "sidebar"
-            div {
-                class: "sidebar-title"
-                span {
-                    class: "logo"
-                    text "⚙️"
-                }
-                text "AutoOS Settings"
+        aside (style: "sidebar flex flex-col w-[280px] shrink-0 bg-[#f9f9f9] border-r border-[#e0e0e0]") {
+            div (style: "flex items-center gap-2 px-5 py-4 text-base font-semibold text-[#1a1a1a]") {
+                span (text: "⚙️", style: "text-xl") {}
+                text (text: "AutoOS Settings") {}
             }
-            div {
-                class: "search-bar"
-                input {
-                    class: "search-input"
-                    value: .search
-                    oninput: .SearchChanged
-                    placeholder: "Search settings"
-                }
+            div (style: "px-4 pb-3") {
+                input (style: "search-input w-full px-3 py-2 text-sm bg-[#f0f0f0] border border-[#e0e0e0] rounded", value: .store.search, oninput: .SearchChanged, placeholder: "Search settings") {}
             }
-            nav {
-                class: "nav-list"
-                if .searching == false {
-                    for m in .view_standalone {
-                        button {
-                            class: if modulesStore.active_id == m.id { "nav-item active" } else { "nav-item" }
-                            key: m.id
+            nav (style: "nav-list flex-1 overflow-auto px-2") {
+                if .store.search == "" {
+                    for m in .store.view_standalone {
+                        button (class: m.nav_class, key: m.id) {
                             onclick: .SelectModule(m.id)
-                            span {
-                                class: "nav-icon"
-                                text m.icon
-                            }
-                            div {
-                                class: "nav-text"
-                                div {
-                                    class: "nav-name"
-                                    text m.name
-                                }
-                                div {
-                                    class: "nav-desc"
-                                    text m.description
-                                }
-                            }
+                            span (text: m.icon, style: "nav-icon text-lg") {}
+                            span (text: m.name, class: m.name_class) {}
+                            span (text: m.description, style: "nav-desc text-xs text-[#8a8a8a]") {}
                         }
                     }
                 }
 
-                for g in .view_groups {
-                    div {
-                        class: "group"
+                for g in .store.view_groups {
+                    div (style: "contents") {
                         key: g.id
-                        if .searching {
-                            for m in g.members {
-                                button {
-                                    class: if modulesStore.active_id == m.id { "nav-item indented active" } else { "nav-item indented" }
-                                    key: m.id
-                                    onclick: .SelectModule(m.id)
-                                    span {
-                                        class: "nav-icon"
-                                        text m.icon
-                                    }
-                                    div {
-                                        class: "nav-text"
-                                        div {
-                                            class: "nav-name"
-                                            text m.name
-                                        }
-                                        div {
-                                            class: "nav-desc"
-                                            text m.description
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if .searching == false {
-                            button {
-                                class: if modulesStore.expanded.includes(g.id) { "group-header expanded" } else { "group-header" }
+                        if .store.search == "" {
+                            button (style: "group-header w-full text-left flex items-center gap-2 px-3 py-[10px] mt-2 rounded") {
                                 key: g.id
                                 onclick: .ToggleGroup(g.id)
-                                span {
-                                    class: "group-chevron"
-                                    if modulesStore.expanded.includes(g.id) { text "▾" }
-                                    if modulesStore.expanded.includes(g.id) == false { text "▸" }
+                                if g.open {
+                                    text (text: "▾ ", style: "text-xs text-[#8a8a8a]") {}
                                 }
-                                span {
-                                    class: "group-label"
-                                    text g.label
+                                if g.open == false {
+                                    text (text: "▸ ", style: "text-xs text-[#8a8a8a]") {}
+                                }
+                                text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a]") {}
+                            }
+                        }
+                        if .store.search != "" {
+                            for m in g.members {
+                                button (class: m.nav_class, key: m.id) {
+                                    onclick: .SelectModule(m.id)
+                                    span (text: m.icon, style: "nav-icon text-lg") {}
+                                    span (text: m.name, class: m.name_class) {}
+                                    span (text: m.description, style: "nav-desc text-xs text-[#8a8a8a]") {}
                                 }
                             }
-                            if modulesStore.expanded.includes(g.id) {
-                                div {
-                                    class: "group-members"
-                                    for m in g.members {
-                                        button {
-                                            class: if modulesStore.active_id == m.id { "nav-item indented active" } else { "nav-item indented" }
-                                            key: m.id
-                                            onclick: .SelectModule(m.id)
-                                            span {
-                                                class: "nav-icon"
-                                                text m.icon
-                                            }
-                                            div {
-                                                class: "nav-text"
-                                                div {
-                                                    class: "nav-name"
-                                                    text m.name
-                                                }
-                                                div {
-                                                    class: "nav-desc"
-                                                    text m.description
-                                                }
-                                            }
-                                        }
+                        }
+                        if .store.search == "" {
+                            if g.open {
+                                for m in g.members {
+                                    button (class: m.nav_class, key: m.id) {
+                                        onclick: .SelectModule(m.id)
+                                        span (text: m.icon, style: "nav-icon text-lg") {}
+                                        span (text: m.name, class: m.name_class) {}
+                                        span (text: m.description, style: "nav-desc text-xs text-[#8a8a8a]") {}
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            if modulesStore.loading {
-                div {
-                    class: "sidebar-loading"
-                    text "Loading modules..."
+                if .store.loading {
+                    text (text: "Loading modules...", style: "block p-4 text-center text-xs text-[#8a8a8a]") {}
                 }
-            }
-
-            if modulesStore.loading == false && .has_results == false {
-                div {
-                    class: "sidebar-empty"
-                    text "No modules found."
-                }
-            }
-
-            div {
-                class: "theme-picker"
-                div {
-                    class: "theme-label"
-                    text "Accent color"
-                }
-                div {
-                    class: "swatches"
-                    for o in ACCENT_OPTIONS {
-                        button {
-                            class: if themeStore.current == o.name { "swatch active" } else { "swatch" }
-                            key: o.name
-                            style_obj: { background: o.swatch }
-                            title: o.label
-                            onclick: .PickAccent(o.name)
-                            if themeStore.current == o.name {
-                                svg {
-                                    class: "check"
-                                    viewBox: "0 0 16 16"
-                                    width: "12"
-                                    height: "12"
-                                    path {
-                                        d: "M3.5 8.5l3 3 6-6.5"
-                                        fill: "none"
-                                        stroke: "#fff"
-                                        "stroke-width": "2.2"
-                                        "stroke-linecap": "round"
-                                        "stroke-linejoin": "round"
-                                    }
-                                }
-                            }
+                if .store.loading == false {
+                    if .store.search != "" {
+                        if .store.has_results == false {
+                            text (text: "No modules found.", style: "block p-4 text-center text-xs text-[#8a8a8a]") {}
                         }
                     }
                 }
             }
+            ThemePicker { }
         }
     }
 
     on {
-        .SearchChanged -> { .search = .search }
-        .SelectModule(mid) -> { modulesStore.Select(mid) }
-        .ToggleGroup(gid) -> { modulesStore.ToggleGroup(gid) }
-        .PickAccent(name) -> { themeStore.SetAccent(name) }
-    }
-
-    style {
-        .sidebar {
-            width: var(--sidebar-width);
-            min-width: var(--sidebar-width);
-            background: var(--bg-sidebar);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .sidebar-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 16px 20px;
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-        }
-        .logo { font-size: 20px; }
-        .search-bar { padding: 8px 16px 12px; }
-        .search-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--bg-search);
-            font-size: var(--font-size-base);
-            outline: none;
-        }
-        .search-input:focus {
-            background: var(--bg-input);
-            border-color: var(--border-focus);
-        }
-        .nav-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 8px;
-        }
-        .group-header {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            width: 100%;
-            padding: 10px 12px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            text-align: left;
-            border-radius: var(--radius-sm);
-            transition: background 0.12s;
-            margin-top: 8px;
-        }
-        .group-header:hover { background: var(--bg-hover); }
-        .group-chevron {
-            font-size: 11px;
-            color: var(--text-muted);
-            width: 14px;
-            flex-shrink: 0;
-        }
-        .group-label {
-            font-size: var(--font-size-base);
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .nav-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            width: 100%;
-            padding: 10px 12px;
-            border: none;
-            background: transparent;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            text-align: left;
-            transition: background 0.12s;
-        }
-        .nav-item:hover { background: var(--bg-hover); }
-        .nav-item.active { background: var(--bg-active); }
-        .nav-item.active .nav-name { color: var(--accent); font-weight: 600; }
-        .nav-item.indented { padding-left: 28px; }
-        .nav-icon {
-            font-size: 18px;
-            flex-shrink: 0;
-            padding-top: 1px;
-        }
-        .nav-text { flex: 1; min-width: 0; }
-        .nav-name { font-size: var(--font-size-base); font-weight: 500; }
-        .nav-desc {
-            font-size: var(--font-size-sm);
-            color: var(--text-muted);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .sidebar-loading,
-        .sidebar-empty {
-            padding: 16px;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: var(--font-size-sm);
-        }
-        .theme-picker {
-            padding: 12px 20px 16px;
-            border-top: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-        .theme-label {
-            font-size: var(--font-size-sm);
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        .swatches { display: flex; gap: 10px; }
-        .swatch {
-            width: 24px; height: 24px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            cursor: pointer;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.12s, box-shadow 0.12s;
-        }
-        .swatch:hover { transform: scale(1.12); }
-        .swatch.active { box-shadow: 0 0 0 2px var(--bg-sidebar), 0 0 0 4px currentColor; }
-        .swatch .check { pointer-events: none; }
+        .SearchChanged(q) -> { store.Search(q) }
+        .SelectModule(mid) -> { store.Select(mid) }
+        .ToggleGroup(gid) -> { store.ToggleGroup(gid) }
     }
 }
