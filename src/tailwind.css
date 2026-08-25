@@ -1,0 +1,6 @@
+/* Tailwind entry (Plan 008 Phase 1). Import order in main.ts matters:
+   fontsource Inter → this file → styles.css (design tokens + named-class
+   residual). styles.css wins over preflight at equal specificity. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

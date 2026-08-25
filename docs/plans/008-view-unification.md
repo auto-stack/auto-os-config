@@ -148,7 +148,7 @@
 ## 4. 验证清单
 
 - [x] Phase 0（2026-08-25，worktree `plan-008-view-unification`）：vue 基线两连绿（ALL E2E PASS ×2；首轮失败为 worktree 冷启动竞态 + 环境僵尸 vite/daemon 混占端口，清场后两绿——**教训：服务必须确认来路再复用**）；vm 基线暴露**上游崩溃缺陷**（见下）——`scripts/e2e-vm.mjs` 自愈化改造后 6 连跑全绿（含 1 次崩溃自愈重跑，正是设计行为）；P1-P4 结论回填（见 §Phase 0 探针结论）
-- [ ] Phase 1：Tailwind 接入后 vue 门禁全绿；12 截图基准重拍留档
+- [x] Phase 1（2026-08-25）：Tailwind 3.4 + postcss + autoprefixer + @fontsource/inter（400/500/600/700）落地；`tailwind.config.cjs`——primary token 用 `hsl(var(--primary) / <alpha-value>)` 形态（`bg-primary/10` alpha 修饰可用，实测 rgb(100,103,242)=靛蓝）、content 直扫 `auto/src/front/**/*.at`（类串第一现场，免疫 regen 滞后）、safelist 仅 primary 族骨干 5 类；`main.ts` 引入链 = fontsource → tailwind.css → styles.css（令牌层最后加载压 preflight）；styles.css `--font-family` 改 Inter-first；Inter 加载/工具类/preflight/命名类优先级四项 playwright 实证 ✓。vue 门禁 ALL PASS（Tailwind 激活态）。12 张截图基准重拍（旧基准归档 `tmp/phase1-baseline-old/`；像素 diff 侧栏 2.2%/集合页 4.1-4.4%/daemon 页 14.3-14.4%——daemon 为密文本表单对字体度量敏感，目检确认差异全为字体级重排、零结构破坏/控件丢失，可安全作新基准）。顺手修正 `screenshot-ui.mjs` OUT 为脚本相对路径（原硬编码主仓路径，worktree 下会写错位置）
 - [ ] Phase 2：令牌对照表 + 基线类串定稿；探针 widget 双端并排截图
 - [ ] Phase 3 批 1-6：每批双轨门禁绿 + vm 截图对拍；对应 `*_vm.at` 当批删除
 - [ ] Phase 4：`*_vm.at` 清零；e2e-vm 14 断言两连绿；文档三件套；双端 7 模块实机走查

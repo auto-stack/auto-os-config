@@ -1,8 +1,10 @@
 // Capture the current config UI for inspection (7 modules).
 import { chromium } from 'playwright'
 import { mkdirSync } from 'fs'
+import { fileURLToPath } from 'url'
 
-const OUT = 'D:/autostack/auto-os-config/screenshots'
+// Plan 008: repo-relative (was a hardcoded main-repo path — wrong in worktrees)
+const OUT = fileURLToPath(new URL('./screenshots/', import.meta.url))
 mkdirSync(OUT, { recursive: true })
 
 const browser = await chromium.launch({ headless: true })
