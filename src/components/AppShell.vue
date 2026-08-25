@@ -56,6 +56,7 @@ onMounted(() => {
           <template v-else-if="modulesStore.active_kind == 'file'">
             <template v-if="modulesStore.active_id == 'ai-daemon'">
               <DaemonView :key="modulesStore.active_id" :module_id="modulesStore.active_id" />
+              <ConfigEditor :key="'aaid-cfg'" :module_id="modulesStore.active_id" />
             </template>
             <template v-else>
               <ConfigEditor :key="modulesStore.active_id" :module_id="modulesStore.active_id" />

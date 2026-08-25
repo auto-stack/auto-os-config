@@ -131,6 +131,8 @@
 
 **批 1 完成记录（2026-08-25）**：sidebar/theme_picker/modules_store 统一落地，`sidebar_vm.at`+`theme_picker_vm.at`+`sidebar_ext.ts` 退役删除；vue 三套 e2e 全绿 + vm 9 断言两连绿；双端截图验收（vm 侧栏与 web 同设计语言：浅灰底/搜索框/三行导航项/分组折叠/靛蓝高亮/五色胶囊）。**新词汇硬规则（本批实证）**：⑤ 类串**绑定必须用 `class:` 属性**——vue codegen 对 `style:` 仅字面量映射 class，绑定形态编译成 `:style` 内联样式（minesweeper 官方姿势即 `class: cell.cell_class`）；⑥ vm 对"if 表达式 style + 子元素 + 事件"的按钮会把 style/onclick **提升到包装容器**（静态串正常）——条件类一律 store 预计算 + `class:` 绑定。**门禁韧性三课**：channelDead 闩锁须区分"启动期连接拒绝"与"运行中死亡"；iced 子 widget 懒构建依赖窗口渲染（被最小化/遮挡的窗口永不建树——门禁需前置窗口）；vm 快照对详情输入框只出裸行（`input #id` 无属性块）而带属性输入框出块——检测正则需区分。
 | 2 | `daemon_view` | 最小（159 行），Test connection 状态色 | `vm_daemon` |
+
+**批 2 完成记录（2026-08-25）**：daemon_view.at 统一（测试卡：白底卡片/状态五态色/`flex-1` spacer 替代 ml-auto/`disabled` 表达式弃用——vm prop 位表达式风险且阻塞调用已防重入）；编辑器子组件上提到两端根（vue AppShell / vm App 各自渲染 DaemonView + editor 兄弟——编辑器批 3 合并、根批 6 合并）；`vm_daemon.at`+`daemon_view_ext.ts` 退役；vue R001 双 key 冲突以静态 key 解；门禁按钮标签随设计基准改 'Test'。vue 三套全绿 + vm 两连绿 + web 测试卡目检复刻。已知偏差：vm 无 latency 毫秒显示、无 italic、hover/disabled 透明度为 web 专属。
 | 3 | `config_editor` + `scalar_fields` | 8 控件基线类串应用；password 显隐；multiselect/tags 的 vm 形态复验 | `vm_editor` |
 | 4 | `collection_browser` | master-detail、行类串、确认层（007 if 块形态保留） | `vm_collection` |
 | 5 | `table_field` | D7 分叉例外评估点：若必须保 vue 编辑则登记例外 | — |

@@ -47,6 +47,7 @@ widget AppShell {
                     } else if modulesStore.active_kind == "file" {
                         if modulesStore.active_id == "ai-daemon" {
                             DaemonView(module_id: modulesStore.active_id, key: modulesStore.active_id)
+                            ConfigEditor(module_id: modulesStore.active_id, key: "aaid-cfg")
                         } else {
                             ConfigEditor(module_id: modulesStore.active_id, key: modulesStore.active_id)
                         }

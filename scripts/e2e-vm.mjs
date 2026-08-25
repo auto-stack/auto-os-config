@@ -216,7 +216,8 @@ async function runAttempt() {
   // too). Poll the status for up to ~30s instead of asserting after one
   // fixed sleep.
   if (!(await pressNav('AI Daemon', 4500))) fail('AI Daemon nav not found');
-  if (!(await press('Test connection', 2000))) fail('Test connection button not found');
+  // batch 2: the unified card follows the vue design — button label is 'Test'
+if (!(await press('Test', 2000))) fail('Test button not found');
   for (let i = 0; i < 15 && (!st.status || st.status === '"idle"' || st.status === '""'); i++) {
     st = await state('status');
     if (!st.status || st.status === '"idle"' || st.status === '""') await sleep(2000);
