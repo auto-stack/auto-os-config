@@ -134,6 +134,8 @@
 
 **批 2 完成记录（2026-08-25）**：daemon_view.at 统一（测试卡：白底卡片/状态五态色/`flex-1` spacer 替代 ml-auto/`disabled` 表达式弃用——vm prop 位表达式风险且阻塞调用已防重入）；编辑器子组件上提到两端根（vue AppShell / vm App 各自渲染 DaemonView + editor 兄弟——编辑器批 3 合并、根批 6 合并）；`vm_daemon.at`+`daemon_view_ext.ts` 退役；vue R001 双 key 冲突以静态 key 解；门禁按钮标签随设计基准改 'Test'。vue 三套全绿 + vm 两连绿 + web 测试卡目检复刻。已知偏差：vm 无 latency 毫秒显示、无 italic、hover/disabled 透明度为 web 专属。
 | 3 | `config_editor` + `scalar_fields` | 8 控件基线类串应用；password 显隐；multiselect/tags 的 vm 形态复验 | `vm_editor` |
+
+**批 3 完成记录（2026-08-25）**：config_editor 统一（8 控件内联分发，ScalarFields/TableField 子 widget 退役——vm props 通道仅标量）；**api 层定型为 vm 文本契约**：`fetchConfigSafe/putConfigSafe` 改文本语义（消费者唯编辑器族）、api.ts 补齐 entryAt/subAt/subCount/editField/editTagField/addBlockText/bodyHasText/deleteBlockSafe/metaFile 孪生族（含 asBodyObj 双态防御——collection_store 在 vue 侧仍传对象）；**扁平 entries 设计**（subform 子字段经 subAt 交错、depth 区分、链式直读组装——规避 VG4 局部变量中转与嵌套数组 map）；**无 handler 间调用**（vue codegen 把 `.Msg` 自派发编译成死标识符——Rebuild/保存流内联展开 6 处）；D7 统一降级落地：select→自由文本+提示、table/嵌套子表单→只读 JSON、toggle→原生 checkbox、tags 只加不减、confirm→内联行、**Load 按钮两端统一**（vm 子 widget 无 auto-Init）。vue e2e 契约同步改约（generic-editor 全套断言重写、theme-switch Load-first + 主按钮选择器改 `.bg-primary`——styles.css 遗留 `.btn` 规则会压过 bg-primary 工具类，主按钮弃用 btn 标记）。vue 三套全绿 + vm 两连绿 + 截图基准随设计变更重拍（编辑器页 diff 18-36% 为预期重设计）。scalar_fields.at/table_field.at/controls_ext.ts 保留至批 4（collection_browser 仍消费）。
 | 4 | `collection_browser` | master-detail、行类串、确认层（007 if 块形态保留） | `vm_collection` |
 | 5 | `table_field` | D7 分叉例外评估点：若必须保 vue 编辑则登记例外 | — |
 | 6 | `app_shell`/`app.at` 合一 | 共享根（007 已证 vue gen 产未引用 App.vue 无害） | — |

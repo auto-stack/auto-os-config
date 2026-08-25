@@ -38,6 +38,12 @@ const pass = (msg) => console.log('  ✓ PASS: ' + msg);
  *  "Roles" vs "Harness Roles"). */
 async function clickModule(page, name) {
   await page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('..').click();
+  await page.waitForTimeout(600);
+  // Plan 008 batch 3: the unified editor is Load-first on BOTH tracks (vm
+  // children get no auto-Init) — kick the initial load before inspecting.
+  const load = page.locator('.config-editor button:has-text("Load")');
+  if (await load.count()) { await load.click(); }
+  await page.waitForTimeout(1200);
 }
 
 // Snapshot the original musk config so we can restore it after the save test.
@@ -53,17 +59,20 @@ await clickModule(page, "AI Daemon");
 await page.waitForTimeout(1500);
 
 let info = await page.evaluate(() => {
-  // Count field rows + look for specific controls.
-  const rows = document.querySelectorAll('.field-row, .subform');
-  const selects = document.querySelectorAll('select');
+  // Count field rows + look for specific controls (Plan 008 batch 3 unified
+  // contract: select renders as free text + hint; tables as readonly JSON;
+  // toggle as a plain checkbox).
+  const rows = document.querySelectorAll('.field-row');
+  const subforms = document.querySelectorAll('.subform-header');
   const passwordInputs = document.querySelectorAll('input[type="password"]');
-  const tables = document.querySelectorAll('.tbl');
+  const selectsAsHint = [...document.querySelectorAll('.field-row')].filter((r) =>
+    r.textContent?.includes('(select — free text accepted)'));
   const fileMeta = document.querySelector('.mono')?.textContent;
   const hasError = !!document.querySelector('.state-msg.error');
   const labels = [...document.querySelectorAll('.field-label')].map((e) => e.textContent);
-  return { rowCount: rows.length, selectCount: selects.length, passwordCount: passwordInputs.length, tableCount: tables.length, fileMeta, hasError, labels };
+  return { rowCount: rows.length, subformCount: subforms.length, passwordCount: passwordInputs.length, selectHintCount: selectsAsHint.length, fileMeta, hasError, labels };
 });
-console.log('  fields:', info.rowCount, '| selects:', info.selectCount, '| passwords:', info.passwordCount, '| tables:', info.tableCount);
+console.log('  fields:', info.rowCount, '| subforms:', info.subformCount, '| passwords:', info.passwordCount, '| select-hints:', info.selectHintCount);
 console.log('  file:', info.fileMeta);
 console.log('  labels:', info.labels.join(', '));
 
@@ -77,26 +86,25 @@ if (info.hasError) {
 // auth_required:false and no api_key — so 2 password fields is correct.
 if (info.passwordCount >= 2) pass(`api_key rendered as password (${info.passwordCount} found)`);
 else fail(`expected >=2 password fields, got ${info.passwordCount}`);
-if (info.selectCount >= 1) pass(`select dropdowns present (${info.selectCount} selects)`);
-else fail('no select dropdowns');
+if (info.selectHintCount >= 1) pass(`select fields render as free text + hint (${info.selectHintCount})`);
+else fail('no select-kind fields with hint');
 if (info.labels.some((l) => l?.toLowerCase().includes('idle timeout'))) pass('scalar field (idle_timeout_min) rendered');
 else fail('idle_timeout_min field not found');
-if (info.tableCount >= 1) pass(`tier_routing rendered as table (${info.tableCount} tables)`);
-else fail('no tables — tier_routing arrays should render as tables');
+// tier_routing lives inside provider subforms as Lite/Max/Mid/Min/Pro arrays
+if (info.labels.some((l) => ['Lite', 'Max', 'Mid', 'Min', 'Pro'].includes(l))) pass('tier routing arrays rendered (readonly JSON blocks)');
+else fail('tier routing fields not found');
+if (info.subformCount >= 1) pass(`provider subforms rendered (${info.subformCount})`);
+else fail('no subform headers');
 
-// default_provider dropdown should list zhipu/deepseek/local (from enum endpoint).
-// Find the select whose options include provider names, rather than the first.
-const providerOptions = await page.evaluate(() => {
-  const sels = [...document.querySelectorAll('select')];
-  const prov = sels.find((s) => [...s.options].some((o) => ['zhipu', 'deepseek', 'local'].includes(o.value)));
-  return prov ? [...prov.options].map((o) => o.value) : [];
+// default_provider renders as a free-text input (degraded select, D7).
+const providerField = await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('.field-row')];
+  const r = rows.find((x) => x.querySelector('.field-label')?.textContent?.toLowerCase().includes('default provider'));
+  return r ? r.querySelector('input')?.value : undefined;
 });
-console.log('  provider options:', providerOptions);
-if (providerOptions.includes('zhipu') && providerOptions.includes('deepseek') && providerOptions.includes('local')) {
-  pass('default_provider dropdown lists providers from /api/enums/self');
-} else {
-  fail('provider dropdown missing expected options');
-}
+console.log('  default_provider value:', providerField);
+if (providerField !== undefined) pass('default_provider field present (free text)');
+else fail('default_provider field missing');
 
 // ── Test connection button (aaid offline or online) ───────────────────────
 // ai-daemon renders DaemonView (a built-in bespoke file view) which includes
@@ -132,7 +140,7 @@ info = await page.evaluate(() => ({
   labels: [...document.querySelectorAll('.field-label')].map((e) => e.textContent),
   hasError: !!document.querySelector('.state-msg.error'),
   file: document.querySelector('.mono')?.textContent,
-  toggleChecked: document.querySelector('.field-row > .field-control .toggle input, .toggle input')?.checked,
+  toggleChecked: document.querySelector('.field-row input[type="checkbox"]')?.checked,
 }));
 console.log('  labels:', info.labels.join(', '));
 console.log('  file:', info.file);
@@ -146,21 +154,23 @@ else fail('auto_start_daemon field missing');
 // ── Save round-trip: toggle auto_start_daemon, save, verify file ──────────
 console.log('\n=== Save round-trip (auto_start_daemon) ===');
 const beforeToggle = await page.evaluate(() => {
-  const t = document.querySelector('.toggle input');
+  const t = document.querySelector('.field-row input[type="checkbox"]');
   return t ? t.checked : null;
 });
 console.log('  auto_start_daemon before:', beforeToggle);
 if (beforeToggle === null) fail('could not find auto_start_daemon toggle');
-// The native checkbox is display:none (the toggle is styled); click the label.
-await page.click('.toggle');
+// Plan 008 batch 3: toggle is a plain checkbox in the unified editor.
+await page.click('.field-row input[type="checkbox"]');
 await page.waitForTimeout(200);
 const dirtyShown = await page.evaluate(() => !!document.querySelector('.dirty'));
 if (dirtyShown) pass('dirty indicator shown after edit');
-else fail('dirty indicator not shown');
+else fail('dirty indicator not shown after edit');
 
-// handle the confirm() dialog (first save)
-page.once('dialog', (d) => d.accept());
+// inline first-save confirm (Plan 008: state-driven row, no browser dialog)
 await page.click('button:has-text("Save")');
+await page.waitForTimeout(400);
+const confirmRow = page.locator('button:has-text("Yes, save")');
+if (await confirmRow.count()) { await confirmRow.click(); }
 await page.waitForTimeout(1500);
 const afterFile = readFileSync(MUSK_AT, 'utf8');
 const autoStartInFile = /auto_start_daemon\s*:\s*(true|false)/.exec(afterFile);

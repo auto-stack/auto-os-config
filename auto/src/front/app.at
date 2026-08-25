@@ -8,7 +8,6 @@
 use modules_store: Modules
 use sidebar: Sidebar
 use vm_collection: CollectionBrowserVm
-use vm_editor: ConfigEditorVm
 use daemon_view: DaemonView
 
 widget App {
@@ -31,7 +30,7 @@ widget App {
                     if .store.active_kind == "file" {
                         if .store.active_id == "ai-daemon" {
                             DaemonView(module_id: .store.active_id) { }
-                            ConfigEditorVm(module_id: .store.active_id) { }
+                            ConfigEditor(module_id: .store.active_id) { }
                         }
                         if .store.active_id != "ai-daemon" {
                             ConfigEditorVm(module_id: .store.active_id) { }

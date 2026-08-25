@@ -34,6 +34,10 @@ for (const [name, file] of modules) {
   const nav = page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('..')
   if (await nav.count()) {
     await nav.click()
+    await page.waitForTimeout(600)
+    // Plan 008 batch 3: the unified editor is Load-first — capture the LOADED state.
+    const load = page.locator('.config-editor button:has-text("Load")')
+    if (await load.count()) { await load.click() }
     await page.waitForTimeout(1200)
     await shot(file)
   } else {

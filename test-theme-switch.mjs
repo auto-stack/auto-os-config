@@ -25,10 +25,14 @@ const navNameColor = () =>
 console.log('=== default (indigo) — click AI Daemon ===');
 await page.click('.nav-item:has-text("AI Daemon")');
 await page.waitForSelector('.test-card', { timeout: 10000 });
-await page.waitForSelector('.config-editor .btn.primary', { timeout: 10000 });
+// Plan 008 batch 3: the unified editor is Load-first — kick the initial
+// load so the primary Save button (accent-asserted below) exists.
+const loadBtn = page.locator('.config-editor button:has-text("Load")');
+if (await loadBtn.count()) { await loadBtn.click(); }
+await page.waitForSelector('.config-editor .bg-primary', { timeout: 10000 });
 const navBefore = await navNameColor();
 const btnBefore = await page.$eval(
-  '.config-editor .btn.primary', el => getComputedStyle(el).backgroundColor);
+  '.config-editor .bg-primary', el => getComputedStyle(el).backgroundColor);
 console.log(`  nav name color   = ${navBefore}`);
 console.log(`  save button bg   = ${btnBefore}`);
 await page.screenshot({ path: 'screenshot-theme-daemon-indigo.png', fullPage: true });
@@ -38,7 +42,7 @@ await page.$$eval('.theme-picker .swatch', (els, i) => els[i].click(), 1);
 await page.waitForTimeout(400);
 const navAfter = await navNameColor();
 const btnAfter = await page.$eval(
-  '.config-editor .btn.primary', el => getComputedStyle(el).backgroundColor);
+  '.config-editor .bg-primary', el => getComputedStyle(el).backgroundColor);
 console.log(`  nav name color   = ${navAfter}`);
 console.log(`  save button bg   = ${btnAfter}`);
 await page.screenshot({ path: 'screenshot-theme-daemon-coral.png', fullPage: true });
