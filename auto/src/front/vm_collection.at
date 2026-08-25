@@ -36,6 +36,7 @@ widget CollectionBrowserVm(module_id: str, read_only: bool) {
                     col (style: "gap-1 p-2") {
                         for n in .store.names {
                             button (text: n, style: "w-full text-left px-2 py-1 rounded") {
+                                key: n
                                 onclick: .Pick(n)
                             }
                         }
@@ -80,7 +81,9 @@ widget CollectionBrowserVm(module_id: str, read_only: bool) {
                             scroll (style: "flex-1 p-4") {
                                 col (style: "gap-3") {
                                     for i, e in .store.entries {
-                                        if e.is_table {
+                                        div (class: "contents") {
+                                            key: e.key
+                                            if e.is_table {
                                             col (style: "border rounded p-2 gap-1") {
                                                 text (text: e.label, style: "font-medium") {}
                                                 text (text: e.frag, style: "text-xs text-gray-500") {}
@@ -164,6 +167,7 @@ widget CollectionBrowserVm(module_id: str, read_only: bool) {
                                                     }
                                                     button (text: "Add") { onclick: .ApplyEntry(i) }
                                                 }
+                                            }
                                             }
                                         }
                                     }

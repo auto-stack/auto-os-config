@@ -46,7 +46,9 @@ widget ConfigEditorVm(module_id: str) {
                         text (text: "⚠️ " + .error, style: "text-red-500") {}
                     }
                     for e in .entries {
-                        if e.is_table {
+                        div (class: "contents") {
+                            key: e.key
+                            if e.is_table {
                             // v1: nested tables render as the raw JSON text
                             // (read-only) — the table editor lands with the
                             // collection browser refinement.
@@ -125,6 +127,7 @@ widget ConfigEditorVm(module_id: str) {
                             }
                         }
                     }
+                        }
                 }
             }
         }

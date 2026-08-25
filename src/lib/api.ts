@@ -806,3 +806,16 @@ export function editField(body: any, path: string, value: any): any {
   }
   return next
 }
+
+/** vm contract twin (auto/src/back/api.at fieldDisplayOf). */
+export function fieldDisplayOf(body: any, key: string): string {
+  const v = body?.[key]
+  return v == null ? '' : String(v)
+}
+
+/** vm contract twin (auto/src/back/api.at editTagField): add one tag. */
+export function editTagField(body: any, key: string, add: string, _remove: string): any {
+  const arr: string[] = Array.isArray(body?.[key]) ? [...body[key]] : []
+  if (add && !arr.includes(add)) arr.push(add)
+  return { ...body, [key]: arr }
+}

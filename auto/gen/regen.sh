@@ -40,8 +40,15 @@ done
 # the auto tree (../../ = repo root from src/components/). @/ext/src/lib/api
 # (direct api imports in components) maps to the host transport layer.
 mkdir -p ../src/components
+# Plan 007: vm-only widgets (and the vm root App) are never used by the web
+# app and import stores via a path the vue codegen emits incorrectly —
+# remove stale copies and skip them in the web deployment. They only need to
+# run on the vm track (auto run -r vm).
+VM_ONLY="App.vue SidebarVm.vue ThemePickerVm.vue ConfigEditorVm.vue DaemonViewVm.vue CollectionBrowserVm.vue"
+for vm in $VM_ONLY; do rm -f "../src/components/${vm}"; done
 for f in gen/front/vue/src/components/*.vue; do
   base=$(basename "$f")
+  case " $VM_ONLY " in *" $base "*) continue ;; esac
   sed -e "s|@/ext/src/front/utils/|../../auto/src/front/utils/|g" \
       -e "s|@/ext/src/lib/api|../../lib/api|g" \
       "$f" > "../src/components/${base}"

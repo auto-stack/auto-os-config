@@ -29,6 +29,7 @@
 | 006 | 已知限制 | 21 条 DSL gotcha（G1-G21）以 workaround 形态存在（静默降级/吞链/编译陷阱），见 `auto/README.md`——待 auto-lang 回填后逐条删除。 | `auto/README.md` |
 | 007 | 已知限制 | **vm 轨 v1 偏差**：侧栏无分组折叠、集合无过滤、select=自由文本+提示、markdown sidecar 单行、表格/subform 只读 JSON、块增删未暴露；字段顺序字母序（serde_json 无 preserve_order）。 | `auto/README.md` vm 章节 |
 | 007 | 已知限制 | **vm 后端薄弱区（候选上报 auto-lang）**：多 store 方法名消歧按全工程 msg 表匹配（撞名/漏声明即落错 store）；store 列表循环的事件参数（字段访问/map 实参）导致 MCP 通道死亡；popover 元素为解析毒药；fn 返回嵌套结构/数组跨界丢失；handler 崩溃静默回滚无诊断。 | `docs/plans/007-frontend-vm-desktop.md` Phase 1-4 |
+| 007 | 已知限制 | vue codegen 对 widget 内 `use XStore: Store` 直连导入生成错误路径（`@/stores/useXStore` 应为 `src/stores/auto/`）——vm 专属组件已从 web 部署排除（regen.sh VM_ONLY 清单）规避；vue widget 若需直连 store 仍会踩（006 惯例 ext facade 即为此）。 | `auto/gen/regen.sh` |
 | 007 | 已知限制 | e2e-vm 依赖 MCP 通道时序（快速连发偶发丢响应），等待阈值已加固；vm 实例偶发闲置死亡（疑似环境/GPU，非代码路径）。 | `scripts/e2e-vm.mjs` |
 
 ## 📋 未来增强

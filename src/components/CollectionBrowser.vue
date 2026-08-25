@@ -69,7 +69,7 @@ function CancelDelete(): void {
 
 function DoCreate(): void {
   let name = new_name.value.trim();
-  if (name != '') {collectionStore.Create(name);
+  if (name != '') {collectionStore.NewEntity(name);
   creating.value = false;
   new_name.value = '';
   }
@@ -78,7 +78,7 @@ function DoCreate(): void {
 }
 
 function DoDelete(): void {
-  if (confirm_delete.value != null) {collectionStore.Remove(confirm_delete.value);
+  if (confirm_delete.value != null) {collectionStore.DelEntity(confirm_delete.value);
   }
   confirm_delete.value = null;
 
@@ -110,13 +110,13 @@ function Reload(): void {
 }
 
 function Save(): void {
-  collectionStore.Save();
+  collectionStore.SaveEntity();
 
   emit('Save')
 }
 
 function SelectEntity(name: any): void {
-  collectionStore.Select(name);
+  collectionStore.Pick(name);
   sidecar_draft.value = collectionStore.sidecar;
 
   emit('SelectEntity', name)
@@ -135,7 +135,7 @@ function ToggleCreate(): void {
 }
 
 onMounted(() => {
-  collectionStore.Init(props.module_id);
+  collectionStore.Open(props.module_id);
 })
 
 
