@@ -162,7 +162,7 @@ widget ConfigEditor(module_id: str) {
                                     div (style: "w-4 shrink-0 border-l-2 border-[#e0e0e0]") {}
                                 }
                                 text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                checkbox (id: e.key, checked: e.value == "true", label: "") {
+                                checkbox (id: e.key, checked: e.is_on, label: "") {
                                     onclick: .Toggle(e)
                                 }
                                 if e.value == "true" {

@@ -47,13 +47,13 @@ console.log('\n=== Module: Roles (collection browser) ===');
 await clickModule(page, 'Roles');
 await page.waitForTimeout(1500);
 
-let listItems = await page.$$eval('.entity-list > div .e-name', (els) => els.map((e) => e.textContent));
+let listItems = await page.$$eval('.entity-list .e-name', (els) => els.map((e) => e.textContent));
 console.log('  list:', listItems);
 if (listItems.includes('assistant')) pass('roles list shows assistant');
 else fail('assistant not in roles list');
 
 // select assistant → check fields render
-await page.click('.entity-list > div:has-text("assistant")');
+await page.click('.entity-list button:has-text("assistant")');
 await page.waitForTimeout(1200);
 let labels = await page.$$eval('.field-label', (els) => els.map((e) => e.textContent?.replace(/\s+/g, ' ').trim()));
 console.log('  labels:', labels.join(' | '));
@@ -63,21 +63,21 @@ if (labels.some((l) => l?.toLowerCase().includes('soul'))) pass('soul sidecar te
 else fail('soul sidecar missing');
 
 // tier should be a select (enum)
-const tierSelectVal = await page.evaluate(() => {
+// Plan 008 batch 4: select-kind fields render as free text + hint (D7).
+const tierVal = await page.evaluate(() => {
   const labels = [...document.querySelectorAll('.field-label')];
   const tierLabel = labels.find((l) => l.textContent?.toLowerCase().includes('model tier'));
   if (!tierLabel) return null;
-  const row = tierLabel.closest('.field-row, .field-control') || tierLabel.parentElement;
-  const sel = row?.parentElement?.querySelector('select') || row?.querySelector('select');
-  return sel ? sel.value : null;
+  const row = tierLabel.closest('.field-row');
+  return row?.querySelector('input')?.value ?? null;
 });
-console.log('  tier select value:', tierSelectVal);
-if (tierSelectVal) pass(`model_tier rendered as select (=${tierSelectVal})`);
-else fail('model_tier not a select');
+console.log('  tier field value:', tierVal);
+if (tierVal) pass(`model_tier rendered as free-text input (=${tierVal})`);
+else fail('model_tier input missing');
 
 // ── Create / edit / delete a throwaway role ───────────────────────────────
 console.log('\n=== Create → edit → delete role ===');
-await page.click('.list-head button.icon'); // "+" new
+await page.click('.list-head button'); // "+" new (unified browser: the only list-head button)
 await page.waitForTimeout(300);
 await page.fill('.name-input', '_e2e_role');
 await page.click('.create-row button:has-text("Add")');
@@ -85,13 +85,13 @@ await page.click('.create-row button:has-text("Add")');
 // + select are three round-trips; a fixed 1500ms sleep flaked on a busy
 // machine — Plan 006 baseline hardening).
 try {
-  await page.waitForSelector('.entity-list > div:has-text("_e2e_role")', { timeout: 10000 });
+  await page.waitForSelector('.entity-list button:has-text("_e2e_role")', { timeout: 10000 });
 } catch { /* fall through — the check below reports the failure */ }
 try {
   await page.waitForSelector('.detail-pane button:has-text("Save")', { timeout: 10000 });
 } catch { /* fall through — the Save click below times out with a clear error */ }
 
-let createdInList = await page.$$eval('.entity-list > div .e-name', (els) => els.map((e) => e.textContent));
+let createdInList = await page.$$eval('.entity-list .e-name', (els) => els.map((e) => e.textContent));
 if (createdInList.includes('_e2e_role')) pass('created role appears in list');
 else fail('created role not in list');
 
@@ -101,9 +101,12 @@ await page.waitForTimeout(300);
 // label is exactly "Description", then its text input. (A loose hasText match
 // would also catch the Name row or the Soul row.)
 const descRow = page.locator('.field-row').filter({ has: page.locator('.field-label', { hasText: /^Description$/ }) }).first();
-const descInput = descRow.locator('input[type="text"]').first();
+const descInput = descRow.locator('input').first();
 if ((await descInput.count()) > 0) {
   await descInput.fill('E2E test role');
+  // Plan 008: edits are draft + Apply — commit before checking dirty.
+  await descRow.locator('button:has-text("Apply")').click();
+  await page.waitForTimeout(400);
 }
 // set soul sidecar
 const soulTextarea = await page.locator('textarea.sidecar');
@@ -114,9 +117,11 @@ const dirtyBefore = await page.evaluate(() => !!document.querySelector('.dirty')
 if (dirtyBefore) pass('dirty shown after editing new role');
 else fail('dirty not shown');
 
-// first save → confirm() dialog (AST rewrite notice)
-page.once('dialog', (d) => d.accept());
+// first save → inline confirm row (Plan 008: state-driven, no dialog)
 await page.click('.detail-pane button:has-text("Save")');
+await page.waitForTimeout(400);
+const yesBtn = page.locator('button:has-text("Yes, save")');
+if (await yesBtn.count()) { await yesBtn.click(); }
 await page.waitForTimeout(1500);
 
 // verify files
@@ -135,9 +140,9 @@ if (existsSync(soulMd)) {
 // delete via confirm modal
 await page.click('.detail-pane button:has-text("Delete")');
 await page.waitForTimeout(400);
-await page.click('.modal button:has-text("Delete")');
+await page.click('button:has-text("Yes, delete")');
 await page.waitForTimeout(1200);
-const afterDelete = await page.$$eval('.entity-list > div .e-name', (els) => els.map((e) => e.textContent));
+const afterDelete = await page.$$eval('.entity-list .e-name', (els) => els.map((e) => e.textContent));
 if (!afterDelete.includes('_e2e_role')) pass('role deleted from list');
 else fail('role still in list after delete');
 // .bak may linger (safety net) — clean it
@@ -149,21 +154,21 @@ try { unlinkSync(soulMd); } catch {}
 console.log('\n=== Module: Skills (read-only collection) ===');
 await clickModule(page, 'Skills');
 await page.waitForTimeout(1500);
-const skillList = await page.$$eval('.entity-list > div .e-name', (els) => els.map((e) => e.textContent));
+const skillList = await page.$$eval('.entity-list .e-name', (els) => els.map((e) => e.textContent));
 console.log('  skills:', skillList.length, 'items:', skillList.slice(0, 3).join(', '), '...');
 if (skillList.length >= 5) pass(`skills list loaded (${skillList.length} items)`);
 else fail(`expected several skills, got ${skillList.length}`);
 
 // no "+ New" button for read-only collections
 const newBtnVisible = await page.evaluate(() => {
-  const b = document.querySelector('.list-head button.icon');
+  const b = document.querySelector('.list-head button');
   return b ? b.checkVisibility() : false;
 });
 if (!newBtnVisible) pass('no "New" button on read-only skills');
 else fail('New button should be hidden for read-only skills');
 
 // click one skill → read-only view
-await page.click('.entity-list > div:has-text("brainstorming")');
+await page.click('.entity-list button:has-text("brainstorming")');
 await page.waitForTimeout(1000);
 const roBadge = await page.evaluate(() => !!document.querySelector('.ro-badge'));
 const skillBody = await page.evaluate(() => document.querySelector('.skill-body')?.textContent?.slice(0, 40));

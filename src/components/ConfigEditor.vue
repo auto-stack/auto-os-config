@@ -321,7 +321,7 @@ function ToggleAddBlock(): void {
           <span class="text-xs text-[#c42b1c]">{{ block_error }}</span>
         </template>
         <template v-if="adding_block">
-          <input class="block-name w-[160px] px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-white" :placeholder="'block name'" v-model="new_block_name" @input="NameDraft" />
+          <input class="block-name w-[160px] px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-white" :placeholder="'block name'" v-model="new_block_name" @input="NameDraft(($event.target as HTMLInputElement).value)" />
           <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="AddBlock">Add</button>
           <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="CancelAddBlock">Cancel</button>
         </template>
@@ -379,7 +379,7 @@ function ToggleAddBlock(): void {
                 <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
               </template>
               <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-              <input type="checkbox" :checked="e.value == 'true'" :id="e.key" :label="''" @click="Toggle(e)" />
+              <input type="checkbox" :checked="e.is_on" :id="e.key" :label="''" @click="Toggle(e)" />
               <template v-if="e.value == 'true'">
                 <span class="text-xs text-[#616161]">On</span>
               </template>
@@ -394,7 +394,7 @@ function ToggleAddBlock(): void {
                 <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
               </template>
               <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-              <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :type="'number'" :value="e.value" @input="Draft($event)" />
+              <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :type="'number'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
               <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Apply(e)">Apply</button>
             </div>
           </template>
@@ -405,10 +405,10 @@ function ToggleAddBlock(): void {
               </template>
               <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
               <template v-if="pw_show">
-                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px] font-mono" :placeholder="e.label" :value="e.value" @input="Draft($event)" />
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px] font-mono" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
               </template>
               <template v-if="pw_show == false">
-                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px] font-mono" :placeholder="e.label" :type="'password'" :value="e.value" @input="Draft($event)" />
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px] font-mono" :placeholder="e.label" :type="'password'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
               </template>
               <button class="btn px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="PwToggle(e)">👁</button>
               <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Apply(e)">Apply</button>
@@ -420,7 +420,7 @@ function ToggleAddBlock(): void {
                 <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
               </template>
               <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-              <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft($event)" />
+              <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
               <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Apply(e)">Apply</button>
             </div>
           </template>
@@ -431,7 +431,7 @@ function ToggleAddBlock(): void {
                   <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
                 </template>
                 <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft($event)" />
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
                 <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Apply(e)">Apply</button>
               </div>
               <template v-if="e.url != ''">
@@ -446,7 +446,7 @@ function ToggleAddBlock(): void {
                   <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
                 </template>
                 <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" @input="Draft($event)" />
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" @input="Draft(($event.target as HTMLInputElement).value)" />
                 <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="TagAdd(e)">Add</button>
               </div>
               <span class="text-xs text-[#8a8a8a] font-mono">{{ e.value }}</span>
@@ -459,7 +459,7 @@ function ToggleAddBlock(): void {
                   <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
                 </template>
                 <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" @input="Draft($event)" />
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" @input="Draft(($event.target as HTMLInputElement).value)" />
                 <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="TagAdd(e)">Add</button>
               </div>
               <span class="text-xs text-[#8a8a8a] font-mono">{{ e.value }}</span>

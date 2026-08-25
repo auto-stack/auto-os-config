@@ -847,6 +847,7 @@ export function entryAt(body: any, i: number, moduleId: string): any {
     is_table: isObjectArrayVal(frag),
     url: enumUrlOf(spec.optionsFrom),
     depth: 0,
+    is_on: displayOfValue(frag) === 'true',
     // vue-only extras: the still-unified CollectionBrowser (batch 4) consumes
     // the spec-bearing EntityEntry shape; `raw` keeps the original JS value.
     spec,
@@ -876,6 +877,7 @@ export function subAt(body: any, head: string, j: number, moduleId: string): any
     is_table: isObjectArrayVal(frag),
     url: enumUrlOf(spec.optionsFrom),
     depth: 1,
+    is_on: displayOfValue(frag) === 'true',
   }
 }
 

@@ -858,6 +858,7 @@ pub fn entryAt(body str, i int, module_id str) any {
         ep: spec.ep,
         url: enumUrlOfEk(spec.ek, spec.ew, module_id, spec.ep),
         depth: 0,
+        is_on: displayOf(frag) == "true",
     }
 }
 
@@ -946,6 +947,7 @@ pub fn subAt(body str, head str, j int, module_id str) any {
         is_table: is_object_array(frag),
         url: enumUrlOfEk(spec.ek, spec.ew, module_id, head),
         depth: 1,
+        is_on: displayOf(frag) == "true",
     }
 }
 

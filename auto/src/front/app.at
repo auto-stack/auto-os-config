@@ -7,8 +7,9 @@
 // imports.
 use modules_store: Modules
 use sidebar: Sidebar
-use vm_collection: CollectionBrowserVm
 use daemon_view: DaemonView
+use config_editor: ConfigEditor
+use collection_browser: CollectionBrowser
 
 widget App {
     msg Msg { Init }
@@ -33,11 +34,11 @@ widget App {
                             ConfigEditor(module_id: .store.active_id) { }
                         }
                         if .store.active_id != "ai-daemon" {
-                            ConfigEditorVm(module_id: .store.active_id) { }
+                            ConfigEditor(module_id: .store.active_id) { }
                         }
                     }
                     if .store.active_kind == "collection" {
-                        CollectionBrowserVm(module_id: .store.active_id, read_only: .store.read_only) { }
+                        CollectionBrowser(module_id: .store.active_id, read_only: .store.read_only) { }
                     }
                 }
             }

@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, fieldDisplayOf } from '../../lib/api'
+import { fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, editTagField, fieldDisplayOf } from '../../lib/api'
 
 const module_id = ref<string>('')
 const list = ref<any>([])
@@ -13,6 +13,8 @@ const fm_name = ref<string>('')
 const fm_description = ref<string>('')
 const fm_body = ref<string>('')
 const is_read_only = ref<boolean>(false)
+const name_filter = ref<string>('')
+const view_names = ref<any>([])
 const list_loading = ref<boolean>(false)
 const loading = ref<boolean>(false)
 const saving = ref<boolean>(false)
@@ -40,6 +42,14 @@ i = i + 1;
 }
 list.value = items;
 names.value = nm;
+
+let vn = [];
+let fq = name_filter.value.toLowerCase();
+for (const x of names.value) {let hit: boolean = true;
+if (fq != '') {hit = x.toLowerCase().includes(fq);
+}if (hit) {vn.push(x);
+}}
+view_names.value = vn;
 }list_loading.value = false;
 }
 if (r.ok == false) {error.value = r.error;
@@ -81,6 +91,14 @@ i = i + 1;
 }
 list.value = items;
 names.value = nm;
+
+let vn = [];
+let fq = name_filter.value.toLowerCase();
+for (const x of names.value) {let hit: boolean = true;
+if (fq != '') {hit = x.toLowerCase().includes(fq);
+}if (hit) {vn.push(x);
+}}
+view_names.value = vn;
 }list_loading.value = false;
 Pick(name);
 }
@@ -105,6 +123,14 @@ i = i + 1;
 }
 list.value = items;
 names.value = nm;
+
+let vn = [];
+let fq = name_filter.value.toLowerCase();
+for (const x of names.value) {let hit: boolean = true;
+if (fq != '') {hit = x.toLowerCase().includes(fq);
+}if (hit) {vn.push(x);
+}}
+view_names.value = vn;
 }
 if (r.ok == false) {error.value = r.error;
 list.value = [];
@@ -165,6 +191,14 @@ i = i + 1;
 }
 list.value = items;
 names.value = nm;
+
+let vn = [];
+let fq = name_filter.value.toLowerCase();
+for (const x of names.value) {let hit: boolean = true;
+if (fq != '') {hit = x.toLowerCase().includes(fq);
+}if (hit) {vn.push(x);
+}}
+view_names.value = vn;
 }
 if (r.ok == false) {error.value = r.error;
 }
@@ -215,12 +249,45 @@ i = i + 1;
 }
 list.value = items;
 names.value = nm;
+
+let vn = [];
+let fq = name_filter.value.toLowerCase();
+for (const x of names.value) {let hit: boolean = true;
+if (fq != '') {hit = x.toLowerCase().includes(fq);
+}if (hit) {vn.push(x);
+}}
+view_names.value = vn;
 }list_loading.value = false;
 }if (r.ok == false) {error.value = r.error;
 }saving.value = false;
 }
  }
+    const SetFilter = (q: string) => { name_filter.value = q;
+let vn = [];
+let fq = name_filter.value.toLowerCase();
+for (const x of names.value) {let hit: boolean = true;
+if (fq != '') {hit = x.toLowerCase().includes(fq);
+}if (hit) {vn.push(x);
+}}
+view_names.value = vn;
+ }
     const SetSidecar = (v: string) => { sidecar.value = v;
+dirty.value = true;
+ }
+    const TagField = async (k: string, add: string) => { body_text.value = await editTagField(body_text.value, k, add, '');
+let es = [];
+let ek = [];
+let n = await entriesCount(body_text.value);
+let i: number = 0;
+while (true) {
+if (i >= n) {break;
+}let d = await entryAt(body_text.value, i, module_id.value);
+es.push(d);
+ek.push(d.key);
+i = i + 1;
+}
+entries.value = es;
+entry_keys.value = ek;
 dirty.value = true;
  }
     return {
@@ -236,6 +303,8 @@ dirty.value = true;
         fm_description,
         fm_body,
         is_read_only,
+        name_filter,
+        view_names,
         list_loading,
         loading,
         saving,
@@ -249,6 +318,8 @@ dirty.value = true;
         Pick,
         Reload,
         SaveEntity,
+        SetFilter,
         SetSidecar,
+        TagField,
     }
 }

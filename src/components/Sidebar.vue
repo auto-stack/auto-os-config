@@ -41,7 +41,7 @@ function ToggleGroup(gid: any): void {
         <span>AutoOS Settings</span>
       </div>
       <div class="px-4 pb-3">
-        <input class="search-input w-full px-3 py-2 text-sm bg-[#f0f0f0] border border-[#e0e0e0] rounded" :placeholder="'Search settings'" :value="store.search" @input="SearchChanged" />
+        <input class="search-input w-full px-3 py-2 text-sm bg-[#f0f0f0] border border-[#e0e0e0] rounded" :placeholder="'Search settings'" :value="store.search" @input="SearchChanged(($event.target as HTMLInputElement).value)" />
       </div>
       <nav class="nav-list flex-1 overflow-auto px-2">
         <template v-if="store.search == ''">
