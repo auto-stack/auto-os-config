@@ -5,7 +5,7 @@
 // v1 deviations (registered): select renders as text input + option hint (no
 // dropdown on vm); multiselect/tags use text add + chip remove; block
 // add/delete not exposed (web-only until Phase 5+).
-use back.api: fetchConfigSafe, putConfigSafe, entriesCount, entryAt, editField, editTagField, fieldListJoined
+use back.api: fetchConfigSafe, putConfigSafe, entriesCount, entryAt, editField, editTagField
 
 widget ConfigEditorVm(module_id: str) {
     model {

@@ -187,7 +187,7 @@ widget CollectionBrowserVm(module_id: str, read_only: bool) {
 
     on {
         .Boot -> {
-            store.Open("roles")
+            store.Open(.module_id)
         }
         .NewName(v str) -> {
             .new_name = v

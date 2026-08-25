@@ -1,6 +1,0 @@
-name: "t2"
-version: "0.1.0"
-scene: "ui"
-render: "vm"
-window: "600x400"
-title: "t2"

@@ -244,61 +244,6 @@ fn module_entry(ent str) any {
     }
 }
 
-pub fn fetchModulesViewSafe() any {
-    let t = get_text(daemon_base() + "/api/modules")
-    if is_transport_error(t) || json.type_of(t) != "array" {
-        return { ok: false, error: "Failed to load modules: bad response" }
-    }
-    var modules = []
-    let n = json.len(t)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        modules.push(module_entry(json.get_at(t, i)))
-        i = i + 1
-    }
-    // pass 1: unique group labels (strings only — no empty-array literals in maps)
-    var labels = []
-    for m in modules {
-        let g = m.group
-        if g != "" {
-            var dup = false
-            for x in labels {
-                if x == g {
-                    dup = true
-                }
-            }
-            if dup == false {
-                labels.push(g)
-            }
-        }
-    }
-    // pass 2: build groups with their members
-    var groups = []
-    for lab in labels {
-        var members = []
-        for m in modules {
-            if m.group == lab {
-                members.push(m)
-            }
-        }
-        groups.push({ id: lab.to_lower().replace(" ", "-"), label: lab, members: members })
-    }
-    var standalone = []
-    for m in modules {
-        if m.group == "" {
-            standalone.push(m)
-        }
-    }
-    var first = ""
-    for grp in groups {
-        first = grp.id
-        break
-    }
-    return { ok: true, data: { modules: modules, groups: groups, standalone: standalone, firstGroup: first } }
-}
 
 pub fn getHash() str {
     // no URL hash on the desktop; deep-link branch skips naturally
@@ -352,37 +297,8 @@ pub fn putConfigSafe(id str, body str) any {
     return { ok: true }
 }
 
-pub fn deleteBlockSafe(id str, name str) any {
-    let del = http.delete(daemon_base() + "/api/config/" + id + "/blocks/" + name)
-    let verify = get_text(daemon_base() + "/api/config/" + id)
-    if is_transport_error(verify) {
-        return { ok: false, error: "Delete failed" }
-    }
-    return { ok: true }
-}
 
-pub fn addBlockBody(body str, name str) str {
-    let blk = quote_json(name)
-    let existing = json.get(body, name)
-    if existing != "" && existing != "null" {
-        return body
-    }
-    let val = "{\"kind\":\"openai\",\"base_url\":\"\",\"api_key\":\"\",\"models\":[]}"
-    if json.len(body) <= 2 {
-        return "{" + blk + ":" + val + "}"
-    }
-    return body.substr(0, body.len() - 1) + "," + blk + ":" + val + "}"
-}
 
-pub fn bodyHas(body str, key str) bool {
-    let ks = json.keys(body)
-    for k in ks {
-        if unquote(k) == key {
-            return true
-        }
-    }
-    return false
-}
 
 /// Replace (or insert) a top-level or one-level-nested field, whole-replace.
 /// path is "a" or "a.b" (D5 projection depth covers exactly these).
@@ -448,66 +364,10 @@ pub fn remove_obj_field(obj str, key str) str {
     return out + "}"
 }
 
-/// The current default_provider value (display string).
-pub fn cfgProvider(body str) str {
-    let v = json.get(body, "default_provider")
-    return displayOf(v)
-}
 
 // ─── projections (D4 descriptors, text fragments embedded) ──────────────────
 
-/// bodyEntries: atom entity body → [{key, kind, label, frag, display,
-/// is_table, ek, ew, ep, url}]
-pub fn bodyEntries(body str, module_id str) []any {
-    var out = []
-    let ks = json.keys(body)
-    for k in ks {
-        let ku = unquote(k)
-        let frag = json.get(body, ku)
-        let spec = inferField(ku, frag, module_id, "")
-        let is_table = is_object_array(frag)
-        out.push({
-            key: ku,
-            kind: spec.kind,
-            label: spec.label,
-            frag: frag,
-            display: displayOf(frag),
-            is_table: is_table,
-            ek: spec.ek,
-            ew: spec.ew,
-            ep: spec.ep,
-            url: enumUrlOfEk(spec.ek, spec.ew, module_id, spec.ep),
-        })
-    }
-    return out
-}
 
-/// Whole-replace one entry's value by key (D5) — new value is a user string.
-pub fn setEntry(entries []any, key str, new_str str, module_id str) []any {
-    var out = []
-    for e in entries {
-        if e.key == key {
-            let frag = new_value_fragment(e.frag, new_str)
-            let spec = inferField(key, frag, module_id, "")
-            out.push({
-                key: key,
-                kind: spec.kind,
-                label: spec.label,
-                frag: frag,
-                display: displayOf(frag),
-                is_table: is_object_array(frag),
-                ek: spec.ek,
-                ew: spec.ew,
-                ep: spec.ep,
-                url: enumUrlOfEk(spec.ek, spec.ew, module_id, spec.ep),
-            })
-        }
-        if e.key != key {
-            out.push(e)
-        }
-    }
-    return out
-}
 
 /// Rebuild the atom body text from entries (inverse of bodyEntries).
 pub fn entriesBody(entries []any) str {
@@ -562,47 +422,6 @@ pub fn setEntryTag(frag str, add str, remove str) str {
     return out + "]"
 }
 
-/// Set one element of a multiselect fragment (value toggle).
-pub fn setEntryMulti(frag str, val str, on bool) str {
-    var items = []
-    let n = json.len(frag)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        items.push(displayOf(json.get_at(frag, i)))
-        i = i + 1
-    }
-    var has = false
-    for x in items {
-        if x == val {
-            has = true
-        }
-    }
-    if on && has == false {
-        items.push(val)
-    }
-    if on == false && has {
-        var out_items = []
-        for x in items {
-            if x != val {
-                out_items.push(x)
-            }
-        }
-        items = out_items
-    }
-    var out = "["
-    var first = true
-    for x in items {
-        if first == false {
-            out = out + ","
-        }
-        first = false
-        out = out + quote_json(x)
-    }
-    return out + "]"
-}
 
 // ─── tables ─────────────────────────────────────────────────────────────────
 
@@ -627,44 +446,6 @@ fn is_object_array(frag str) bool {
     return true
 }
 
-/// Column list with specs: [{name, kind, options}] — options_list is an
-/// optional [{name, options}] preload (loaded enum options per column).
-pub fn tableCols(frag str, module_id str, options_list []any) []any {
-    var cols = []
-    var seen = []
-    let n = json.len(frag)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        let row = json.get_at(frag, i)
-        let ks = json.keys(row)
-        for k in ks {
-            let ku = unquote(k)
-            var dup = false
-            for s in seen {
-                if s == ku {
-                    dup = true
-                }
-            }
-            if dup == false {
-                seen.push(ku)
-                let sample = json.get(row, ku)
-                let spec = infer_column(ku, sample, module_id)
-                var options = []
-                for pre in options_list {
-                    if pre.name == ku {
-                        options = pre.options
-                    }
-                }
-                cols.push({ name: ku, kind: spec.kind, options: options })
-            }
-        }
-        i = i + 1
-    }
-    return cols
-}
 
 fn infer_column(key str, frag str, module_id str) any {
     let spec = inferField(key, frag, module_id, "")
@@ -674,93 +455,9 @@ fn infer_column(key str, frag str, module_id str) any {
     return spec
 }
 
-/// Cell display grid for the view: rows of [{col, val}] pairs.
-pub fn tableCells(frag str) []any {
-    var rows = []
-    let n = json.len(frag)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        let row = json.get_at(frag, i)
-        let ks = json.keys(row)
-        var cells = []
-        for k in ks {
-            let ku = unquote(k)
-            cells.push({ col: ku, val: displayOf(json.get(row, ku)) })
-        }
-        rows.push(cells)
-        i = i + 1
-    }
-    return rows
-}
 
-/// Whole-replace one cell (immutable row text rebuild).
-pub fn setCell(frag str, row_i int, col str, new_str str) str {
-    var out = "["
-    var first = true
-    let n = json.len(frag)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        if first == false {
-            out = out + ","
-        }
-        first = false
-        if i == row_i {
-            let row = json.get_at(frag, i)
-            let old_cell = json.get(row, col)
-            let frag2 = new_value_fragment(old_cell, new_str)
-            out = out + set_obj_field(row, col, frag2)
-        }
-        if i != row_i {
-            out = out + json.get_at(frag, i)
-        }
-        i = i + 1
-    }
-    return out + "]"
-}
 
-pub fn removeRowAt(frag str, row_i int) str {
-    var out = "["
-    var first = true
-    let n = json.len(frag)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        if i != row_i {
-            if first == false {
-                out = out + ","
-            }
-            first = false
-            out = out + json.get_at(frag, i)
-        }
-        i = i + 1
-    }
-    return out + "]"
-}
 
-pub fn addRow(frag str, cols []any) str {
-    var row = "{"
-    var first = true
-    for c in cols {
-        if first == false {
-            row = row + ","
-        }
-        first = false
-        row = row + quote_json(c.name) + ":\"\""
-    }
-    row = row + "}"
-    if json.len(frag) == 0 {
-        return "[" + row + "]"
-    }
-    return frag.substr(0, frag.len() - 1) + "," + row + "]"
-}
 
 // ─── collection (collection_store surface) ──────────────────────────────────
 
@@ -905,126 +602,13 @@ pub fn testDaemon() any {
 
 
 
-pub fn probeG1() any {
-    let t = get_text(daemon_base() + "/api/modules")
-    var modules = []
-    let n = json.len(t)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        modules.push(module_entry(json.get_at(t, i)))
-        i = i + 1
-    }
-    var labels = []
-    for m in modules {
-        let g = m.group
-        if g != "" {
-            var dup = false
-            for x in labels {
-                if x == g {
-                    dup = true
-                }
-            }
-            if dup == false {
-                labels.push(g)
-            }
-        }
-    }
-    var groups = []
-    for lab in labels {
-        var members = []
-        for m in modules {
-            if m.group == lab {
-                members.push(m)
-            }
-        }
-        groups.push({ id: lab.to_lower().replace(" ", "-"), label: lab, members: members })
-    }
-    return { step: "G1", ngroups: groups.len(), nlabels: labels.len() }
-}
 
-pub fn probeG2() any {
-    let t = get_text(daemon_base() + "/api/modules")
-    var modules = []
-    let n = json.len(t)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        modules.push(module_entry(json.get_at(t, i)))
-        i = i + 1
-    }
-    var groups = []
-    var standalone = []
-    for m in modules {
-        if m.group == "" {
-            standalone.push(m)
-        }
-    }
-    return { step: "G2", data: { modules: modules, groups: groups, standalone: standalone, firstGroup: "" } }
-}
 
-/// vm-safe module selection: field reads live HERE (fn modules can read maps).
-pub fn select_info(modules []any, id str) any {
-    for m in modules {
-        if m.id == id {
-            return { found: true, id: m.id, kind: m.kind, name: m.name, read_only: m.format == "frontmatter-md", group: m.group }
-        }
-    }
-    return { found: false, id: "", kind: "", name: "", read_only: false, group: "" }
-}
 
-pub fn arr_len(a []any) int {
-    return a.len()
-}
 
-pub fn first_id(mods []any) str {
-    for m in mods {
-        return m.id
-    }
-    return "(empty)"
-}
 
-pub fn fetch_mods_flat() []any {
-    let t = get_text(daemon_base() + "/api/modules")
-    var modules = []
-    let n = json.len(t)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        modules.push(module_entry(json.get_at(t, i)))
-        i = i + 1
-    }
-    return modules
-}
 
-pub fn entry_at(body str, i int) any {
-    let ks = json.keys(body)
-    let ku = unquote(json.get_at(ks, i))
-    let frag = json.get(body, ku)
-    let spec = inferField(ku, frag, "ai-daemon", "")
-    return { key: ku, kind: spec.kind, display: displayOf(frag) }
-}
 
-pub fn entry_at2(body str, i int) any {
-    let ks = json.keys(body)
-    var ku = ""
-    var i2 = 0
-    for k in ks {
-        if i2 == i {
-            ku = unquote(k)
-        }
-        i2 = i2 + 1
-    }
-    let frag = json.get(body, ku)
-    let spec = inferField(ku, frag, "ai-daemon", "")
-    return { k: ku, ckind: spec.kind, d: displayOf(frag) }
-}
 
 // ─── flat list surface (VG12/VG13-safe: text + count + per-item getters) ────
 
@@ -1211,64 +795,6 @@ pub fn selectInfo(text str, id str) any {
     return { found: false, id: "", kind: "", name: "", read_only: false }
 }
 
-/// Expand-by-module-id: which group ids must be expanded (flat string lists).
-pub fn expandGroupsFor(text str, expanded str, id str) str {
-    // expanded is a comma-joined string (vm-safe); returns the new joined string
-    var have = expanded
-    let gc = groupCount(text)
-    var gi = 0
-    loop {
-        if gi >= gc {
-            break
-        }
-        let lab = group_label_at(text, gi)
-        let mc = groupMemberCount(text, gi)
-        var hit = false
-        var mi = 0
-        loop {
-            if mi >= mc {
-                break
-            }
-            let m = groupMemberAt(text, gi, mi)
-            if m.id == id {
-                hit = true
-            }
-            mi = mi + 1
-        }
-        if hit {
-            let gid = lab.to_lower().replace(" ", "-")
-            var already = false
-            for part in have.split(",") {
-                if part == gid {
-                    already = true
-                }
-            }
-            if already == false {
-                if have == "" {
-                    have = gid
-                }
-                if have != "" && already == false {
-                    var parts = have.split(",")
-                    var out = ""
-                    var first = true
-                    for p in parts {
-                        if p != "" {
-                            if first == false {
-                                out = out + ","
-                            }
-                            first = false
-                            out = out + p
-                        }
-                    }
-                    out = out + "," + gid
-                    have = out
-                }
-            }
-        }
-        gi = gi + 1
-    }
-    return have
-}
 
 // ─── collection flat surface ────────────────────────────────────────────────
 
@@ -1334,19 +860,6 @@ pub fn entryAt(body str, i int, module_id str) any {
     }
 }
 
-/// Key of the i-th entry (for arg-free rebuilds).
-pub fn entryKeyAt(body str, i int) str {
-    let ks = json.keys(body)
-    var ku = ""
-    var i2 = 0
-    for k in ks {
-        if i2 == i {
-            ku = unquote(k)
-        }
-        i2 = i2 + 1
-    }
-    return ku
-}
 
 /// The group id (expanded-form) of the module `id`, "" when standalone.
 pub fn groupOfModule(text str, id str) str {
@@ -1390,15 +903,6 @@ pub fn editField(body str, path str, new_str str) str {
     return setBodyField(body, path, frag)
 }
 
-/// Append one string to a comma-joined list (model []str <-> text helpers).
-pub fn listJoinHas(joined str, item str) bool {
-    for part in joined.split(",") {
-        if part == item {
-            return true
-        }
-    }
-    return false
-}
 
 /// Tags control edit: add/remove one element of the string-array at `key`.
 pub fn editTagField(body str, key str, add str, remove str) str {
@@ -1407,31 +911,7 @@ pub fn editTagField(body str, key str, add str, remove str) str {
     return set_obj_field(body, key, frag2)
 }
 
-/// Multiselect edit: toggle `val` membership of the string-array at `key`.
-pub fn editMultiField(body str, key str, val str, on bool) str {
-    let frag = json.get(body, key)
-    let frag2 = setEntryMulti(frag, val, on)
-    return set_obj_field(body, key, frag2)
-}
 
-/// Current string-array values at `key`, joined "," (view display helper).
-pub fn fieldListJoined(body str, key str) str {
-    let frag = json.get(body, key)
-    var out = ""
-    let n = json.len(frag)
-    var i = 0
-    loop {
-        if i >= n {
-            break
-        }
-        if out != "" {
-            out = out + ","
-        }
-        out = out + displayOf(json.get_at(frag, i))
-        i = i + 1
-    }
-    return out
-}
 
 /// Display value of one top-level field (toggle flip logic in child handlers).
 pub fn fieldDisplayOf(body str, key str) str {
