@@ -1,10 +1,18 @@
 #!/usr/bin/env node
-// e2e-vm.mjs — VM desktop track regression gate (Plan 007 Phase 5).
+// e2e-vm.mjs — VM desktop track regression gate (Plan 007 Phase 5; hardened
+// Plan 008 Phase 0).
 //
 // Launches `auto run -r vm` (in auto/) with an MCP channel and drives the
 // desktop app via the AutoUI MCP JSON-RPC tools, asserting on model state —
 // the same channel desktop_mcp.py uses for auto-lang's own examples.
 // Requires: daemon on :17701, the auto CLI on PATH.
+//
+// KNOWN INFRA FLAKE (Plan 008 Phase 0, upstream auto-lang gap): the vm
+// process hard-crashes (exit 0xFFFFFFFF, no stderr) within ~30s under MCP
+// polling — reproducible on an idle app (tmp/probe-mcp-health.mjs), i.e.
+// unrelated to this repo's code. The gate therefore self-heals: a mid-run
+// channel death (app was up, then died) reboots and reruns, up to 3 attempts.
+// Real assertion failures and boot failures are NOT retried.
 //
 // Usage: node scripts/e2e-vm.mjs
 import { spawn } from 'child_process';
@@ -13,6 +21,7 @@ import { setTimeout as sleep } from 'timers/promises';
 const MCP_PORT = process.env.E2E_VM_PORT || '9321';
 const MCP = `http://127.0.0.1:${MCP_PORT}/mcp`;
 const results = { passed: true };
+let channelDead = false; // set when a call exhausts retries (dead/wedged app)
 const pass = (m) => console.log('  ✓ PASS: ' + m);
 const fail = (m) => { results.passed = false; console.log('  ✗ FAIL: ' + m); };
 
@@ -29,6 +38,7 @@ async function call(name, args, retries = 3) {
       return j.result?.content?.[0]?.text ?? '';
     } catch { await sleep(1200); }
   }
+  channelDead = true;
   return null;
 }
 
@@ -45,6 +55,7 @@ async function snapshot() { return (await call('autoui_snapshot', { include_stat
 
 async function press(label, waitMs = 3000) {
   for (let a = 0; a < 4; a++) {
+    if (channelDead) return false;
     const snap = await snapshot();
     for (const line of snap.split('\n')) {
       if (line.includes('button') && line.includes(`"${label}"`)) {
@@ -69,75 +80,120 @@ async function state(...fields) {
   return out;
 }
 
-// ── launch ──────────────────────────────────────────────────────────────────
-const proc = spawn('auto', ['run', '-r', 'vm'], {
-  cwd: new URL('../auto/', import.meta.url),
-  env: { ...process.env, AUTOUI_MCP_PORT: MCP_PORT },
-  stdio: 'ignore',
-  detached: false,
-});
-process.on('exit', () => { try { proc.kill(); } catch {} });
+// ── one full attempt ────────────────────────────────────────────────────────
+let proc = null;
+function killApp() { if (proc) { try { proc.kill(); } catch {} proc = null; } }
 
-console.log('=== VM desktop e2e (Plan 007) ===');
-if (!(await waitUp())) { console.log('FATAL: vm app / MCP channel never came up'); process.exit(1); }
-pass('vm app up, MCP channel ready');
+async function runAttempt() {
+  channelDead = false;
+  proc = spawn('auto', ['run', '-r', 'vm'], {
+    cwd: new URL('../auto/', import.meta.url),
+    env: { ...process.env, AUTOUI_MCP_PORT: MCP_PORT },
+    stdio: 'ignore',
+    detached: false,
+  });
+  let exitedWith = null;
+  proc.on('exit', (c) => { exitedWith = c; });
 
-// 1. boot: modules loaded via fire_init
-let st = await state('modules', 'expanded');
-if (st.modules && st.modules.includes('vmref')) pass(`modules loaded (${(st.modules.match(/vmref/g) || []).length})`);
-else fail('modules not loaded');
+  if (!(await waitUp())) {
+    // Boot failure: real regression (app up but MCP broken) unless the
+    // process already hard-crashed (the known infra flake) — only then retry.
+    const infraCrash = exitedWith !== null;
+    killApp();
+    return { crashed: infraCrash, ran: false, bootFailed: !infraCrash };
+  }
+  pass('vm app up, MCP channel ready');
 
-// 2. sidebar: pick Roles (collection)
-if (!(await press('🎭  Roles'))) fail('Roles nav button not found');
-st = await state('active_kind', 'active_id');
-if (st.active_kind === '"collection"' && st.active_id === '"roles"') pass('Roles selected (kind=collection)');
-else fail(`Roles selection: kind=${st.active_kind} id=${st.active_id}`);
+  // 1. boot: modules loaded via fire_init
+  let st = await state('modules', 'expanded');
+  if (st.modules && st.modules.includes('vmref')) pass(`modules loaded (${(st.modules.match(/vmref/g) || []).length})`);
+  else fail('modules not loaded');
 
-// 3. collection: Load → names
-if (!(await press('Load', 5000))) fail('Load button not found');
-st = await state('names');
-if (st.names && st.names.includes('assistant')) pass('collection list loaded (assistant)');
-else fail(`collection names: ${st.names}`);
+  // 2. sidebar: pick Roles (collection)
+  if (!(await press('🎭  Roles'))) fail('Roles nav button not found');
+  st = await state('active_kind', 'active_id');
+  if (st.active_kind === '"collection"' && st.active_id === '"roles"') pass('Roles selected (kind=collection)');
+  else fail(`Roles selection: kind=${st.active_kind} id=${st.active_id}`);
 
-// 4. pick assistant → entries
-if (!(await press('assistant', 5500))) fail('assistant button not found');
-st = await state('selected_name', 'entries');
-if (st.selected_name === '"assistant"' && st.entries?.includes('vmref')) pass('entity selected, entries projected');
-else fail(`entity select: ${st.selected_name} entries=${st.entries}`);
+  // 3. collection: Load → names
+  if (!(await press('Load', 5000))) fail('Load button not found');
+  st = await state('names');
+  if (st.names && st.names.includes('assistant')) pass('collection list loaded (assistant)');
+  else fail(`collection names: ${st.names}`);
 
-// 5. edit Description → Apply → dirty
-const snap1 = await snapshot();
-const inputs = [...snap1.matchAll(/input #(vnode_\d+)/g)].map((m) => m[1]);
-const applies = [...snap1.matchAll(/button #(vnode_\d+) "Apply"/g)].map((m) => m[1]);
-if (inputs.length >= 2 && applies.length >= 1) {
-  await call('autoui_type', { element_id: inputs[1], text: 'vm e2e edited' });
-  await sleep(1000);
-  await call('autoui_action', { element_id: applies[0], action: 'press' });
-  await sleep(1500);
-  st = await state('dirty', 'body_text');
-  if (st.dirty === 'true' && st.body_text?.includes('vm e2e edited')) pass('field edit → dirty (body rebuilt)');
-  else fail(`edit/dirty: dirty=${st.dirty}`);
-  // 6. save → clean
-  if (!(await press('Save', 4000))) fail('Save button not found');
-  st = await state('dirty');
-  if (st.dirty === 'false') pass('save → dirty cleared');
-  else fail(`save: dirty=${st.dirty}`);
-} else {
-  fail(`detail inputs/applies missing (inputs=${inputs.length} applies=${applies.length})`);
+  // 4. pick assistant → entries
+  if (!(await press('assistant', 5500))) fail('assistant button not found');
+  st = await state('selected_name', 'entries');
+  if (st.selected_name === '"assistant"' && st.entries?.includes('vmref')) pass('entity selected, entries projected');
+  else fail(`entity select: ${st.selected_name} entries=${st.entries}`);
+
+  // 5. edit Description → Apply → dirty
+  const snap1 = await snapshot();
+  const inputs = [...snap1.matchAll(/input #(vnode_\d+)/g)].map((m) => m[1]);
+  const applies = [...snap1.matchAll(/button #(vnode_\d+) "Apply"/g)].map((m) => m[1]);
+  if (inputs.length >= 2 && applies.length >= 1) {
+    await call('autoui_type', { element_id: inputs[1], text: 'vm e2e edited' });
+    await sleep(1000);
+    await call('autoui_action', { element_id: applies[0], action: 'press' });
+    await sleep(1500);
+    st = await state('dirty', 'body_text');
+    if (st.dirty === 'true' && st.body_text?.includes('vm e2e edited')) pass('field edit → dirty (body rebuilt)');
+    else fail(`edit/dirty: dirty=${st.dirty}`);
+    // 6. save → clean
+    if (!(await press('Save', 4000))) fail('Save button not found');
+    st = await state('dirty');
+    if (st.dirty === 'false') pass('save → dirty cleared');
+    else fail(`save: dirty=${st.dirty}`);
+  } else {
+    fail(`detail inputs/applies missing (inputs=${inputs.length} applies=${applies.length})`);
+  }
+
+  // 7. daemon: Test connection
+  // The provider roundtrip (/api/action/test-daemon with use_default) is a
+  // real network call — observed 1.3s–5.4s with occasional longer stalls, and
+  // vm http blocks the interpreter while it runs (so MCP polls can starve
+  // too). Poll the status for up to ~30s instead of asserting after one
+  // fixed sleep.
+  if (!(await press('🔌  AI Daemon', 4500))) fail('AI Daemon nav not found');
+  if (!(await press('Test connection', 2000))) fail('Test connection button not found');
+  for (let i = 0; i < 15 && (!st.status || st.status === '"idle"' || st.status === '""'); i++) {
+    st = await state('status');
+    if (!st.status || st.status === '"idle"' || st.status === '""') await sleep(2000);
+  }
+  if (st.status === '"ok"') pass('Test connection → ok');
+  else fail(`test connection: ${st.status}`);
+
+  // 8. theme
+  if (!(await press('Coral', 1500))) fail('Coral swatch not found');
+  st = await state('current');
+  if (st.current === '"coral"') pass('accent switch → coral');
+  else fail(`accent: ${st.current}`);
+
+  const crashed = channelDead;
+  killApp();
+  return { crashed, ran: true };
 }
 
-// 7. daemon: Test connection
-if (!(await press('🔌  AI Daemon', 4500))) fail('AI Daemon nav not found');
-if (!(await press('Test connection', 7000))) fail('Test connection button not found');
-st = await state('status');
-if (st.status === '"ok"') pass('Test connection → ok');
-else fail(`test connection: ${st.status}`);
-
-// 8. theme
-if (!(await press('Coral', 1500))) fail('Coral swatch not found');
-st = await state('current');
-if (st.current === '"coral"') pass('accent switch → coral');
-else fail(`accent: ${st.current}`);
+// ── main: self-healing loop ─────────────────────────────────────────────────
+console.log('=== VM desktop e2e (Plan 007/008) ===');
+let attempt = 0;
+let last = null;
+while (attempt < 3) {
+  attempt++;
+  if (attempt > 1) {
+    console.log(`[e2e-vm] attempt ${attempt - 1} hit the known infra crash (channel died) — rebooting app`);
+    results.passed = true; // verdict comes from the attempt that runs to completion
+  }
+  last = await runAttempt();
+  if (!last.crashed) break;
+  await sleep(2000);
+}
+if (!last || (last.crashed && attempt >= 3)) {
+  console.log('FATAL: vm app / MCP channel never came up (3 crashes in a row)');
+  process.exit(1);
+}
+if (last.bootFailed) { console.log('FATAL: vm app booted but MCP channel never came up'); process.exit(1); }
+process.on('exit', () => killApp());
 
 // restore the fixture description over HTTP (leave no e2e residue)
 try {

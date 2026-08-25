@@ -147,12 +147,21 @@
 
 ## 4. 验证清单
 
-- [ ] Phase 0：双轨基线两遍绿；P1-P4 结论回填本文件
+- [x] Phase 0（2026-08-25，worktree `plan-008-view-unification`）：vue 基线两连绿（ALL E2E PASS ×2；首轮失败为 worktree 冷启动竞态 + 环境僵尸 vite/daemon 混占端口，清场后两绿——**教训：服务必须确认来路再复用**）；vm 基线暴露**上游崩溃缺陷**（见下）——`scripts/e2e-vm.mjs` 自愈化改造后 6 连跑全绿（含 1 次崩溃自愈重跑，正是设计行为）；P1-P4 结论回填（见 §Phase 0 探针结论）
 - [ ] Phase 1：Tailwind 接入后 vue 门禁全绿；12 截图基准重拍留档
 - [ ] Phase 2：令牌对照表 + 基线类串定稿；探针 widget 双端并排截图
 - [ ] Phase 3 批 1-6：每批双轨门禁绿 + vm 截图对拍；对应 `*_vm.at` 当批删除
 - [ ] Phase 4：`*_vm.at` 清零；e2e-vm 14 断言两连绿；文档三件套；双端 7 模块实机走查
 - [ ] 终态：`auto/src/front/` 一套 widget 双后端消费；`./scripts/e2e.sh` + `node scripts/e2e-vm.mjs` 双绿为仓库门禁
+
+### Phase 0 探针结论（2026-08-25，tmp/vm-probes2/ 实机 MCP + 视觉验证）
+
+- **P1 字段直读类串：✅ 三形态全过**——根模型标量（`style: .row_class`）✓、循环变量 map 字段（`style: m.klass`）✓（实机视觉确认红/绿/灰三色均生效）、if 表达式字面量（`style: if .on { … } else { … }`）✓。任意值 hex（`bg-[#f3f3f3]`/`border-[#e0e0e0]`/`text-[#1a1a1a]`）与 `bg-primary/10` alpha 修饰均生效。**D3 主方案（预计算类串进 store/描述符）成立，无需降级**。快照口径注意：`autoui_snapshot` 的 `style:` 行对循环项**不上报**（静态/根模型位置正常上报）——vm 侧样式断言以根模型字段位置为准，循环项靠视觉对拍。
+- **P2 视图层目标门控：❌ 不存在**——`X.at → X.vm.at → X.web.at` adapter 链仅作用于 `use` 模块导入解析（lib.rs `load_ext_imports_for_vm`），vm 加载器（rust_ui.rs）枚举 widget 文件不经过任何目标过滤。D7 维持"统一降级优于后端分叉"。
+- **P3 排版定标：✅ 全阶梯生效**——text-xs→xl 逐级、font-medium/bold 三级递进清晰、rounded→xl 逐级（rounded-lg ≈8px 对应 `--radius`）、Inter 无衬线渲染清晰无锯齿；D6 基线类串（按钮/主按钮/危险按钮/输入框占位/卡片/muted）vm 端全部渲染正常，primary 实心=靛蓝、danger=红底白字、白底灰边卡片成立。D6 草案类串直接定稿进 Phase 2 对照表。
+- **P4 中性色模式无关性：✅**——确定性类（`bg-white`/`bg-[#f3f3f3]`/`text-[#1a1a1a]`）在 vm 默认深色模式下渲染为浅色（P1/P3 探针窗口实证）；对照主应用深色窗口（语义 token 呈深色）证实：**中性色走确定性类可完全绕开 DARK_MODE 漂移，语义 token 仅用于 primary 族**——D2 决策实证成立。
+- **上游缺陷登记（P0 回报 auto-lang）**：vm 进程在 MCP 轮询下**硬崩溃**——exit code 0xFFFFFFFF（-1）、无 stderr/panic 输出（日志止于 "AutoUI MCP: first state sync"）、监听随进程消失。触发条件：**零交互空闲 app + ≥500ms 或 2s 周期的 autoui_snapshot/state 轮询，约 30s 内 40-60% 概率**；无轮询流量时可存活 30min+（本日实机对照）。与本仓代码无关（探针最小工程复现，tmp/probe-mcp-health.mjs 为复现脚本，Phase 4 收尾决定去留）。**缓解**：e2e-vm.mjs 自愈化——mid-run 通道死亡判定为基础设施崩溃，重启 app 重跑（最多 3 次）；真实断言失败/boot 失败不重试照常 FAIL；6 连跑验证全绿。另修 Test connection 断言为 30s 轮询（/api/action/test-daemon 是真实 LLM provider 往返，实测 1.3-5.4s 波动，固定 7s sleep 会假阴性）。
+- **流程教训**：多实例调试后必须核验端口占用者身份再复用（本轮双 vite 双 daemon 混战消耗大量定位时间）；`netstat -ano` + `wmic` 核对 PID/命令行是标准动作。
 
 ---
 
@@ -160,7 +169,8 @@
 
 | 风险 | 对策 |
 |---|---|
-| vm `style:` 不支持字段直读（D3 主方案落空） | P1 先行；降级 = 视图 if 双分支静态串（sidebar 现有形态，可行但视图膨胀） |
+| vm `style:` 不支持字段直读（D3 主方案落空） | ~~P1 先行~~ **P1 已实证三形态全过（根模型/循环项/if 表达式），风险消除**；if 双分支保留为风格备选 |
+| vm 进程 MCP 轮询下硬崩溃（上游缺陷，40-60%/30s） | e2e-vm 自愈门禁（崩溃重启重跑 ≤3 次，真回归不重试）；P0 回报 auto-lang；复现脚本 tmp/probe-mcp-health.mjs |
 | Tailwind reset 破坏现有 vue 视图（Phase 1 回归面） | 组件类本 phase 不清退；12 截图基准重拍门控；reset 范围排查（preflight 对 button/input 的影响逐项核对） |
 | 12 截图基准重拍掩盖真实回归 | 重拍仅限 Phase 1 一次；Phase 3 各批沿用新基准不再重拍 |
 | vm 对某类串静默跳过导致观感缺失不显性 | Phase 2 探针 widget 把 D6 全部基线类串双端渲染实证；类串清单即断言面 |
