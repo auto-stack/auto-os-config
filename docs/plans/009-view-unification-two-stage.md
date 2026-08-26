@@ -48,6 +48,22 @@
 2. ~~批6~~ ✅ 已完成（b4863b7，2026-08-26）。
 3. **M4 收尾**：e2e-vm 9→14（补搜索过滤/分组折叠/accent 持久化）、`auto/README.md` 重写 + 根 README + KNOWN-DEBT（含 J1-J4 上游交叉引用）、双端 7 模块实机走查、`tmp/probe-mcp-health.mjs` 去留决定。
 
+### 0.3 阶段一验收包（2026-08-26 16:3x，待用户验收确认）
+
+**工件**：`screenshots/stage1-acceptance-sheet.png`（12 视图并排：左 = CSS 手写版基准 `tmp/phase1-baseline-old/`（8-25 12:33，pre-Tailwind），右 = 当前 HEAD 统一类串版（批 6 后实拍）；生成脚本 `scripts/stage1-acceptance-sheet.mjs`（入库；产物 PNG 按仓库惯例不入库，可随时重拍重生成））。
+
+**对比结论（初筛 + 03-roles/01-ai-daemon/04-skills 三对放大抽查）**：12 对全部同结构、同色板、同间距节奏——同一设计语言成立。差异全部为**已登记的有意决策**，非漂移：
+
+| 差异 | 视图 | 性质 |
+|---|---|---|
+| Segoe UI → Inter 字体度量重排（像素 diff 2.2-14.4%） | 全部 | Phase 1 有意（D5：与 vm default_font 对齐，消最大默认差异） |
+| 编辑器 D7 统一降级形态（select→自由文本、table→只读 JSON、toggle→原生 checkbox、tags 只加不减、confirm→内联行、Load 按钮两端统一） | 01/02/05 | 批 3 有意（D7：双端统一降级优于分叉） |
+| 集合页统一浏览器（master-detail + 过滤框 + ＋内联创建确认 + sidecar textarea） | 03/04/06/07 | 批 4 有意（与 CSS 版同双栏结构，控制件族统一） |
+
+**门禁状态**：vue 轨 28 断言全绿（批 6 后复跑）；css-era 基准归档于 tmp/（未跟踪，验收后建议连表一起视为冻结凭证）。
+
+**验收通过与后续**：用户确认"同一设计语言" → N4 vue 轨冻结（基准截图与 28 断言不再动）→ 阶段二（VM 轨）继续，其关键路径 = 上游 J1 渲染器修复（证据已备 446 J 批）。
+
 ---
 
 ## 1. 目标 / 非目标

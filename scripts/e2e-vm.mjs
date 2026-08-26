@@ -75,24 +75,45 @@ async function press(label, waitMs = 3000) {
 }
 
 // Nav buttons carry icon/name/description as separate text children, so the
-// vm snapshot shows their label as a multiline string — match the exact-name
-// text child, then walk back to the enclosing button (Plan 008 batch 1).
+// vm snapshot joins them into a MULTILINE button label ("🎭\nRoles\nAgent
+// roles…"). Match the label's exact-name LINE and press that button's own id
+// — no walk-back, so the self-registered "Harness Roles" module (label line
+// "Harness Roles") can never shadow "Roles" (Plan 009 Phase 4 fix).
+const NL = String.fromCharCode(10);
+function navButtons(snap) {
+  const out = [];
+  const re = /button #(vnode_\d+) "([^"]*)"/g;
+  let m;
+  while ((m = re.exec(snap))) out.push({ id: m[1], lines: m[2].split(NL).map((s) => s.trim()) });
+  return out;
+}
 async function pressNav(name, waitMs = 3000) {
   for (let a = 0; a < 4; a++) {
     if (channelDead) return false;
-    const lines = (await snapshot()).split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const m = lines[i].match(/text #(vnode_\d+) "(.+)"$/);
-      if (m && m[2] === name) {
-        for (let j = i - 1; j >= 0; j--) {
-          const b = lines[j].match(/button #(vnode_\d+)/);
-          if (b) { await call('autoui_action', { element_id: b[1], action: 'press' }); await sleep(waitMs); return true; }
-        }
-      }
-    }
+    const hit = navButtons(await snapshot()).find((b) => b.lines.includes(name));
+    if (hit) { await call('autoui_action', { element_id: hit.id, action: 'press' }); await sleep(waitMs); return true; }
     await sleep(1200);
   }
   return false;
+}
+async function navVisible(name) {
+  if (channelDead) return false;
+  return navButtons(await snapshot()).some((b) => b.lines.includes(name));
+}
+// Inputs with attribute blocks (sidebar search) expose placeholder lines —
+// find the nearest preceding `input #id` (detail-field bare inputs are found
+// positionally by the edit step instead).
+async function findInputByPlaceholder(ph) {
+  const lines = (await snapshot()).split(NL);
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes(`placeholder: "${ph}"`)) {
+      for (let j = i; j >= 0; j--) {
+        const m = lines[j].match(/^input #(vnode_\d+)/);
+        if (m) return m[1];
+      }
+    }
+  }
+  return null;
 }
 
 async function state(...fields) {
@@ -161,6 +182,41 @@ async function runAttempt() {
   if (st.modules && st.modules.includes('vmref')) pass(`modules loaded (${(st.modules.match(/vmref/g) || []).length})`);
   else fail('modules not loaded');
 
+  // 1a/1b. group fold + unfold (Plan 008 D8: sidebar projections on vm)
+  if (!(await pressNav('Harness', 1800))) {
+    fail('Harness group header not found');
+  } else if (!(await navVisible('Roles'))) {
+    pass('group collapse hides members');
+  } else {
+    fail('group collapse: Roles still visible');
+  }
+  if (await pressNav('Harness', 1800)) {
+    if (await navVisible('Roles')) pass('group re-expand shows members');
+    else fail('group re-expand: Roles missing');
+  } else {
+    fail('Harness group header (re-expand) not found');
+  }
+
+  // 1c/1d. sidebar search: filter narrows nav, clear restores (store-side
+  // projections — the vm view itself has no filtering logic).
+  const searchId = await findInputByPlaceholder('Search settings');
+  if (!searchId) {
+    fail('sidebar search input not found');
+  } else {
+    await call('autoui_type', { element_id: searchId, text: 'roles' });
+    await sleep(1200);
+    st = await state('search');
+    const rolesVis = await navVisible('Roles');
+    const daemonVis = await navVisible('AI Daemon');
+    if (st.search === '"roles"' && rolesVis && !daemonVis) pass('search filter narrows nav');
+    else fail(`search filter: search=${st.search} roles=${rolesVis} daemon=${daemonVis}`);
+    await call('autoui_type', { element_id: searchId, text: '' });
+    await sleep(1200);
+    st = await state('search');
+    if ((await navVisible('AI Daemon')) && (!st.search || st.search === '""')) pass('search clear restores nav');
+    else fail(`search clear: search=${st.search}`);
+  }
+
   // 2. sidebar: pick Roles (collection)
   if (!(await pressNav('Roles'))) fail('Roles nav button not found');
   st = await state('active_kind', 'active_id');
@@ -185,7 +241,6 @@ async function runAttempt() {
   // (`input #id`, no attribute block), while the unified sidebar's search
   // box renders WITH a block (style/placeholder/value/oninput) — the block
   // form shifted the old bare index.
-  const NL = String.fromCharCode(10);
   const inputs = [];
   for (const l of snap1.split(NL)) {
     const m = l.trim().match(/^input #(vnode_\d+)$/);
@@ -230,6 +285,26 @@ if (!(await press('Test', 2000))) fail('Test button not found');
   st = await state('current');
   if (st.current === '"coral"') pass('accent switch → coral');
   else fail(`accent: ${st.current}`);
+
+  // 8b. accent persists across an app restart (theme_store.Init reloads via
+  // back.api — the daemon config is the source of truth, not process state).
+  killApp();
+  channelDead = false;
+  channelEverUp = false; // controlled reboot = fresh boot semantics for the latches
+  proc = spawn('auto', ['run', '-r', 'vm'], {
+    cwd: new URL('../auto/', import.meta.url),
+    env: { ...process.env, AUTOUI_MCP_PORT: MCP_PORT },
+    stdio: 'ignore',
+    detached: false,
+  });
+  if (!(await waitUp())) {
+    fail('accent persistence: app failed to reboot');
+  } else {
+    await sleep(2500);
+    st = await state('current');
+    if (st.current === '"coral"') pass('accent persists across restart');
+    else fail(`accent persistence: ${st.current}`);
+  }
 
   const crashed = channelDead;
   killApp();
