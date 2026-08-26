@@ -132,11 +132,10 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                         text (text: "Select an entity from the left, or create a new one.", style: "state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]") {}
                     }
                 }
-                if .store.selected_name != nil {
-                    if .store.loading {
-                        text (text: "Loading…", style: "state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]") {}
-                    }
-                    if .store.loading == false {
+                if .store.selected_name != nil && .store.loading {
+                    text (text: "Loading…", style: "state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]") {}
+                }
+                if .store.selected_name != nil && .store.loading == false {
                         row (style: "toolbar flex items-center gap-3 py-2 border-b border-[#e0e0e0]") {
                             text (text: .store.selected_name, style: "mono font-mono text-sm font-semibold text-[#1a1a1a]") {}
                             if .store.dirty {
@@ -146,17 +145,15 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                 text (text: "read-only", style: "ro-badge text-[11px] px-2 rounded-full bg-[#ededed] text-[#616161]") {}
                             }
                             div (style: "flex-1") {}
-                            if read_only == false {
-                                if .store.is_read_only == false {
-                                    button (text: "Reload", style: "px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                        onclick: .Reload
-                                    }
-                                    button (text: "Save", style: "px-4 py-1 text-xs rounded bg-primary border-primary text-white") {
-                                        onclick: .Save
-                                    }
-                                    button (text: "Delete", style: "px-3 py-1 text-xs rounded border border-[#c42b1c] text-[#c42b1c] bg-white") {
-                                        onclick: .AskDelete
-                                    }
+                            if read_only == false && .store.is_read_only == false {
+                                button (text: "Reload", style: "px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
+                                    onclick: .Reload
+                                }
+                                button (text: "Save", style: "px-4 py-1 text-xs rounded bg-primary border-primary text-white") {
+                                    onclick: .Save
+                                }
+                                button (text: "Delete", style: "px-3 py-1 text-xs rounded border border-[#c42b1c] text-[#c42b1c] bg-white") {
+                                    onclick: .AskDelete
                                 }
                             }
                         }
@@ -183,22 +180,29 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                             }
                         }
                         if .store.is_read_only == false {
+                            // vm: loops need a scrollable ancestor (iced drops
+                            // unbounded loop content in plain cols — J1 root cause)
+                            scroll (style: "flex-1") {
                             col (style: "fields gap-1") {
-                                // vm gotchas (batch 4): container-level keys (col/row/div) inside loops
-                                // kill the vm subtree, while vue strict (R006/G8) demands keyed loop
-                                // bodies — keys live on each branch FIRST TEXT (dual-track safe).
-                                for e in .store.entries {
+                                // PROBE removed (moved to detail-pane top)
+                                // vm: 007-proven loop form (J1/J2 workaround 2026-08-26) —
+                                // double-var loop + keyed `contents` wrapper; events carry the
+                                // INDEX i (field access on loop vars in event args kills the vm
+                                // channel); handlers resolve i → key via parallel store.entry_keys.
+                                for i, e in .store.entries {
+                                    div (class: "contents") {
+                                        key: e.key
                                     if e.is_table {
                                             col (style: "field-row border rounded p-2 gap-1 bg-white") {
-                                                    text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161]") {}
+                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161]") {}
                                                     text (text: e.frag, style: "text-xs text-[#8a8a8a] font-mono") {}
                                             }
                                     }
                                     if e.kind == "toggle" {
                                             row (style: "field-row flex items-center gap-3 py-2") {
-                                                    text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                                    checkbox (id: e.key, checked: e.is_on) {
-                                                        onclick: .Toggle(e.key)
+                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
+                                                    checkbox (id: e.key, checked: e.value) {
+                                                        onclick: .Toggle(i)
                                                     }
                                                     if e.value == "true" {
                                                         text (text: "On", style: "text-xs text-[#616161]") {}
@@ -210,18 +214,18 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.kind == "number" {
                                             row (style: "field-row flex items-center gap-3 py-2") {
-                                                    text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
+                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
                                                     input (placeholder: e.label, "type": "number", value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
                                                         oninput: .Draft
                                                     }
                                                     button (text: "Apply", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                        onclick: .ApplyEntry(e.key)
+                                                        onclick: .ApplyEntry(i)
                                                     }
                                             }
                                     }
                                     if e.kind == "password" {
                                             row (style: "field-row flex items-center gap-3 py-2") {
-                                                    text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
+                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
                                                     if .pw_show {
                                                                                                                 input (placeholder: e.label, value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
                                                             oninput: .Draft
@@ -236,30 +240,30 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                         onclick: .PwToggle
                                                     }
                                                     button (text: "Apply", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                        onclick: .ApplyEntry(e.key)
+                                                        onclick: .ApplyEntry(i)
                                                     }
                                             }
                                     }
                                     if e.kind == "text" {
                                             row (style: "field-row flex items-center gap-3 py-2") {
-                                                    text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
+                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
                                                     input (placeholder: e.label, value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
                                                         oninput: .Draft
                                                     }
                                                     button (text: "Apply", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                        onclick: .ApplyEntry(e.key)
+                                                        onclick: .ApplyEntry(i)
                                                     }
                                             }
                                     }
                                     if e.kind == "select" {
                                             col (style: "field-row py-2 gap-1") {
                                                     row (style: "flex items-center gap-3") {
-                                                        text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
+                                                        text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
                                                         input (placeholder: e.label, value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
                                                             oninput: .Draft
                                                         }
                                                         button (text: "Apply", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                            onclick: .ApplyEntry(e.key)
+                                                            onclick: .ApplyEntry(i)
                                                         }
                                                     }
                                                     if e.url != "" {
@@ -270,12 +274,12 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     if e.kind == "tags" {
                                             col (style: "field-row py-2 gap-1") {
                                                     row (style: "flex items-center gap-3") {
-                                                        text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
+                                                        text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
                                                         input (placeholder: "add value", value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
                                                             oninput: .Draft
                                                         }
                                                         button (text: "Add", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                            onclick: .TagAdd(e.key)
+                                                            onclick: .TagAdd(i)
                                                         }
                                                     }
                                                     text (text: e.value, style: "text-xs text-[#8a8a8a] font-mono") {}
@@ -284,12 +288,12 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     if e.kind == "multiselect" {
                                             col (style: "field-row py-2 gap-1") {
                                                     row (style: "flex items-center gap-3") {
-                                                        text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
+                                                        text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
                                                         input (placeholder: "add value", value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
                                                             oninput: .Draft
                                                         }
                                                         button (text: "Add", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                            onclick: .TagAdd(e.key)
+                                                            onclick: .TagAdd(i)
                                                         }
                                                     }
                                                     text (text: e.value, style: "text-xs text-[#8a8a8a] font-mono") {}
@@ -297,9 +301,10 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.kind == "subform" {
                                             col (style: "field-row border rounded p-2 gap-1 bg-white") {
-                                                    text (text: e.label, key: e.key, style: "field-label text-sm font-medium text-[#616161]") {}
+                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161]") {}
                                                     text (text: e.frag, style: "text-xs text-[#8a8a8a] font-mono") {}
                                             }
+                                    }
                                     }
                                 }
 
@@ -310,8 +315,8 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                 }
                             }
+                            }
                         }
-                    }
                 }
             }
         }
@@ -376,24 +381,45 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
         .PwToggle -> {
             .pw_show = .pw_show == false
         }
-        .ApplyEntry(p) -> {
-            var k = p
+        .ApplyEntry(i) -> {
+            var k = ""
+            var j = 0
+            for x in .store.entry_keys {
+                if j == i {
+                    k = x
+                }
+                j = j + 1
+            }
             if .draft != "" && k != "" {
                 store.FieldEdited({ path: k, value: .draft })
                 .draft = ""
             }
         }
 
-        .TagAdd(p) -> {
-            var k = p
+        .TagAdd(i) -> {
+            var k = ""
+            var j = 0
+            for x in .store.entry_keys {
+                if j == i {
+                    k = x
+                }
+                j = j + 1
+            }
             if .draft != "" && k != "" {
                 store.TagField(k, .draft)
                 .draft = ""
             }
         }
 
-        .Toggle(p) -> {
-            var k = p
+        .Toggle(i) -> {
+            var k = ""
+            var j = 0
+            for x in .store.entry_keys {
+                if j == i {
+                    k = x
+                }
+                j = j + 1
+            }
             var nv = "false"
             if k != "" {
                 let cur = fieldDisplayOf(.store.body_text, k)
