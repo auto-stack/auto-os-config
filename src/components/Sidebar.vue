@@ -46,9 +46,11 @@ function ToggleGroup(gid: any): void {
       <nav class="nav-list flex-1 overflow-auto px-2">
         <template v-if="store.search == ''">
           <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in store.view_standalone">
-            <span class="nav-icon text-lg">{{ m.icon }}</span>
-            <span :class="m.name_class">{{ m.name }}</span>
-            <span class="nav-desc text-xs text-[#8a8a8a]">{{ m.description }}</span>
+            <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+            <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-0">
+              <span :class="m.name_class">{{ m.name }}</span>
+              <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+            </div>
           </button>
         </template>
         <div class="contents" :key="g.id" v-for="g in store.view_groups">
@@ -65,17 +67,21 @@ function ToggleGroup(gid: any): void {
           </template>
           <template v-if="store.search != ''">
             <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
-              <span class="nav-icon text-lg">{{ m.icon }}</span>
-              <span :class="m.name_class">{{ m.name }}</span>
-              <span class="nav-desc text-xs text-[#8a8a8a]">{{ m.description }}</span>
+              <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+              <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-0">
+                <span :class="m.name_class">{{ m.name }}</span>
+                <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+              </div>
             </button>
           </template>
           <template v-if="store.search == ''">
             <template v-if="g.open">
               <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
-                <span class="nav-icon text-lg">{{ m.icon }}</span>
-                <span :class="m.name_class">{{ m.name }}</span>
-                <span class="nav-desc text-xs text-[#8a8a8a]">{{ m.description }}</span>
+                <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+                <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-0">
+                  <span :class="m.name_class">{{ m.name }}</span>
+                  <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+                </div>
               </button>
             </template>
           </template>

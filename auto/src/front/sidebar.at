@@ -40,9 +40,11 @@ widget Sidebar {
                     for m in .store.view_standalone {
                         button (class: m.nav_class, key: m.id) {
                             onclick: .SelectModule(m.id)
-                            span (text: m.icon, style: "nav-icon text-lg") {}
-                            span (text: m.name, class: m.name_class) {}
-                            span (text: m.description, style: "nav-desc text-xs text-[#8a8a8a]") {}
+                            span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                            col (style: "nav-text flex-1 min-w-0 flex flex-col gap-0") {
+                                text (text: m.name, class: m.name_class) {}
+                                text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                            }
                         }
                     }
                 }
@@ -67,9 +69,11 @@ widget Sidebar {
                             for m in g.members {
                                 button (class: m.nav_class, key: m.id) {
                                     onclick: .SelectModule(m.id)
-                                    span (text: m.icon, style: "nav-icon text-lg") {}
-                                    span (text: m.name, class: m.name_class) {}
-                                    span (text: m.description, style: "nav-desc text-xs text-[#8a8a8a]") {}
+                                    span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                                    col (style: "nav-text flex-1 min-w-0 flex flex-col gap-0") {
+                                        text (text: m.name, class: m.name_class) {}
+                                        text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                    }
                                 }
                             }
                         }
@@ -78,9 +82,11 @@ widget Sidebar {
                                 for m in g.members {
                                     button (class: m.nav_class, key: m.id) {
                                         onclick: .SelectModule(m.id)
-                                        span (text: m.icon, style: "nav-icon text-lg") {}
-                                        span (text: m.name, class: m.name_class) {}
-                                        span (text: m.description, style: "nav-desc text-xs text-[#8a8a8a]") {}
+                                        span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                                        col (style: "nav-text flex-1 min-w-0 flex flex-col gap-0") {
+                                            text (text: m.name, class: m.name_class) {}
+                                            text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                        }
                                     }
                                 }
                             }
