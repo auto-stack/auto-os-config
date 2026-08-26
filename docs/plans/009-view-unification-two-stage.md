@@ -34,7 +34,7 @@
 | V3 批1 sidebar | 批1（7f32195） | ✅ 双端绿（vm 侧栏已同设计语言）；新硬规则：绑定必须 `class:`（vue 把 `style:` 绑定编成内联 `:style`） |
 | V3 批2 daemon | 批2（f9a7ebf） | ✅ 双端绿 |
 | V3 批3 editor+scalar | 批3（b955004） | ✅ 双端绿；D7 统一降级落地（select→文本、table→只读 JSON 等） |
-| V3 批4 collection | 批4（8c97d0c） | **vue ✅ / vm ⛔ 上游 J1**（auto-lang 446 J 批：嵌套条件+循环子树构建静默失败） |
+| V3 批4 collection | 批4（8c97d0c）+ 009 增补（3d9c828） | **vue ✅ / vm ⛔ 上游 J1**——条件扁平化已救回工具栏/sidecar（循环体二分矩阵全灭，确认上游渲染器缺陷，视图侧无解；证据增补 446 J 批） |
 | V3 批5 table_field | 批3/批4 吸收（只读 JSON 降级） | ✅ 分叉例外未启用（P2 已证无视图级门控） |
 | V3 批6 app_shell | — | ⬜ 剩余 |
 | 阶段二 M（vm 切换） | 批1-3 随批完成（交织式） | ✅ 批1-3；批4 vm ⬜ 待 J1 |
