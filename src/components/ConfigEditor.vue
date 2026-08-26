@@ -1,50 +1,108 @@
 <!-- ConfigEditor component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ScalarFields } from '../../auto/src/front/utils/controls_ext'
-import { TableField } from '../../auto/src/front/utils/controls_ext'
-import { fetchConfigSafe, putConfigSafe, deleteBlockSafe, configEntries, setCfgEntry, addBlockBody, confirmDeleteBlock, confirmSaveOnce, bodyHas } from '../../auto/src/front/utils/controls_ext'
+import { ref } from 'vue'
+import { addBlockText, bodyHasText, deleteBlockSafe, editField, editTagField, entriesCount, entryAt, fetchConfigSafe, metaFile, putConfigSafe, subAt, subCount } from '@/lib/api'
 
-
+const body = ref<string>('')
+const entries = ref<any[]>([])
 const loading = ref<boolean>(false)
-const saving = ref<boolean>(false)
 const error = ref<string>('')
 const dirty = ref<boolean>(false)
+const saving = ref<boolean>(false)
+const status = ref<string>('')
+const loaded_once = ref<boolean>(false)
+const draft = ref<string>('')
+const pw_show = ref<boolean>(false)
 const meta_file = ref<string>('')
-const entries = ref<any[]>([])
-const body = ref<any>(null)
 const adding_block = ref<boolean>(false)
 const new_block_name = ref<string>('')
 const block_error = ref<string>('')
+const confirm_save = ref<boolean>(false)
+const save_acked = ref<boolean>(false)
+const confirm_del = ref<string>('')
 
 const props = defineProps<{
   module_id: string
 }>()
 
 const emit = defineEmits<{
-  Init: []
-  FieldEdited: [any]
+  Load: []
   Save: []
-  Reload: []
+  ConfirmSaveYes: []
+  ConfirmSaveNo: []
+  Draft: [string]
+  NameDraft: [string]
+  Apply: [any]
+  TagAdd: [any]
+  Toggle: [any]
+  PwToggle: []
   ToggleAddBlock: []
-  NewBlockNameChanged: []
   AddBlock: []
   CancelAddBlock: []
-  DeleteBlock: [string]
+  AskDelete: [string]
+  ConfirmDeleteYes: []
+  ConfirmDeleteNo: []
 }>()
 
-function AddBlock(): void {
+async function AddBlock(): Promise<void> {
   let name = new_block_name.value.trim();
-  if (name != '') {if (body.value != null) {if (bodyHas(body.value, name)) {block_error.value = `"${name}" already exists in this config`;
-  }if (bodyHas(body.value, name) == false) {body.value = addBlockBody(body.value, name);
-  entries.value = configEntries(body.value, props.module_id);
+  if (name != '') {if (await bodyHasText(body.value, name)) {block_error.value = '"' + name + '" already exists in this config';
+  }if (await bodyHasText(body.value, name) == false) {body.value = await addBlockText(body.value, name);
+  dirty.value = true;
   new_block_name.value = '';
   adding_block.value = false;
   block_error.value = '';
-  dirty.value = true;
-  }}}
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+  }}
 
   emit('AddBlock')
+}
+
+async function Apply(e: any): Promise<void> {
+  if (draft.value != '') {body.value = await editField(body.value, e.key, draft.value);
+  dirty.value = true;
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+  }
+
+  emit('Apply', e)
+}
+
+function AskDelete(name: any): void {
+  confirm_del.value = name;
+
+  emit('AskDelete', name)
 }
 
 function CancelAddBlock(): void {
@@ -55,206 +113,360 @@ function CancelAddBlock(): void {
   emit('CancelAddBlock')
 }
 
-function DeleteBlock(name: any): void {
-  if (confirmDeleteBlock(name)) {block_error.value = '';
-  let p = deleteBlockSafe(props.module_id, name);
-  p.then((r: any) => { if (r.ok) {let q = fetchConfigSafe(props.module_id);
-  q.then((rr: any) => { if (rr.ok) {body.value = rr.value;
-  entries.value = configEntries(rr.value, props.module_id);
-  meta_file.value = rr.meta.file;
+function ConfirmDeleteNo(): void {
+  confirm_del.value = '';
+
+  emit('ConfirmDeleteNo')
+}
+
+async function ConfirmDeleteYes(): Promise<void> {
+  let r = await deleteBlockSafe(props.module_id, confirm_del.value);
+  confirm_del.value = '';
+  if (r.ok) {block_error.value = '';
+  let q = await fetchConfigSafe(props.module_id);
+  if (q.ok) {body.value = q.value;
+  meta_file.value = await metaFile(q.meta);
   dirty.value = false;
-  }if (rr.ok == false) {error.value = rr.error;
-  } });
-  }if (r.ok == false) {block_error.value = `Delete failed: ${r.error}`;
-  } });
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+  }if (q.ok == false) {error.value = q.error;
+  }}
+  if (r.ok == false) {block_error.value = 'Delete failed';
   }
 
-  emit('DeleteBlock', name)
+  emit('ConfirmDeleteYes')
 }
 
-function FieldEdited(args: any): void {
-  let r = setCfgEntry(entries.value, args.path, args.value, body.value, props.module_id);
-  entries.value = r.entries;
-  body.value = r.body;
-  dirty.value = true;
+function ConfirmSaveNo(): void {
+  confirm_save.value = false;
 
-  emit('FieldEdited', args)
+  emit('ConfirmSaveNo')
 }
 
-function NewBlockNameChanged(): void {
-  new_block_name.value = new_block_name.value;
+async function ConfirmSaveYes(): Promise<void> {
+  confirm_save.value = false;
+  save_acked.value = true;
+  saving.value = true;
+  status.value = 'saving…';
+  let r = await putConfigSafe(props.module_id, body.value);
+  if (r.ok) {dirty.value = false;
+  status.value = 'saved ✓';
+  }
+  if (r.ok == false) {status.value = 'save failed';
+  error.value = r.error;
+  }
+  saving.value = false;
 
-  emit('NewBlockNameChanged')
+  emit('ConfirmSaveYes')
 }
 
-function Reload(): void {
+function Draft(v: any): void {
+  draft.value = v;
+
+  emit('Draft', v)
+}
+
+async function Load(): Promise<void> {
   loading.value = true;
   error.value = '';
-  let p = fetchConfigSafe(props.module_id);
-  p.then((r: any) => { if (r.ok) {body.value = r.value;
-  entries.value = configEntries(r.value, props.module_id);
-  meta_file.value = r.meta.file;
+  let r = await fetchConfigSafe(props.module_id);
+  if (r.ok) {body.value = r.value;
+  meta_file.value = await metaFile(r.meta);
   dirty.value = false;
-  }if (r.ok == false) {error.value = r.error;
-  }loading.value = false;
-   });
+  loaded_once.value = true;
+  status.value = 'loaded';
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+  }
+  if (r.ok == false) {error.value = 'Failed to load config';
+  }
+  loading.value = false;
 
-  emit('Reload')
+  emit('Load')
 }
 
-function Save(): void {
-  if (dirty.value && body.value != null) {if (confirmSaveOnce()) {saving.value = true;
-  error.value = '';
-  let p = putConfigSafe(props.module_id, body.value);
-  p.then((r: any) => { if (r.ok) {dirty.value = false;
-  }if (r.ok == false) {error.value = r.error;
+function NameDraft(v: any): void {
+  new_block_name.value = v;
+
+  emit('NameDraft', v)
+}
+
+function PwToggle(e: any): void {
+  pw_show.value = pw_show.value == false;
+
+  emit('PwToggle')
+}
+
+async function Save(): Promise<void> {
+  if (dirty.value && body.value != '') {if (save_acked.value) {saving.value = true;
+  status.value = 'saving…';
+  let r = await putConfigSafe(props.module_id, body.value);
+  if (r.ok) {dirty.value = false;
+  status.value = 'saved ✓';
+  }if (r.ok == false) {status.value = 'save failed';
+  error.value = r.error;
   }saving.value = false;
-   });
+  }if (save_acked.value == false) {confirm_save.value = true;
   }}
 
   emit('Save')
 }
 
+async function TagAdd(e: any): Promise<void> {
+  if (draft.value != '') {body.value = await editTagField(body.value, e.key, draft.value, '');
+  dirty.value = true;
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+  }
+
+  emit('TagAdd', e)
+}
+
+async function Toggle(e: any): Promise<void> {
+  let nv: string = 'false';
+  if (e.value == 'false' || e.value == '') {nv = 'true';
+  }
+  body.value = await editField(body.value, e.key, nv);
+  dirty.value = true;
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+
+  emit('Toggle', e)
+}
+
 function ToggleAddBlock(): void {
-  adding_block.value = !adding_block.value;
+  adding_block.value = adding_block.value == false;
+  block_error.value = '';
 
   emit('ToggleAddBlock')
 }
-
-onMounted(() => {
-  loading.value = true;
-  error.value = '';
-  let p = fetchConfigSafe(props.module_id);
-  p.then((r: any) => { if (r.ok) {body.value = r.value;
-  entries.value = configEntries(r.value, props.module_id);
-  meta_file.value = r.meta.file;
-  dirty.value = false;
-  }if (r.ok == false) {error.value = r.error;
-  body.value = null;
-  }loading.value = false;
-   });
-})
 
 
 </script>
 
 <template>
-    <div class="config-editor">
+    <div class="flex flex-col gap-4 config-editor max-w-[820px] gap-2">
+      <div class="flex flex-row gap-4 toolbar items-center gap-3 py-2 border-b border-[#e0e0e0]">
+        <span class="mono text-xs text-[#8a8a8a]">{{ meta_file }}</span>
+        <template v-if="dirty">
+          <span class="dirty text-xs font-medium text-primary">● unsaved</span>
+        </template>
+        <template v-if="dirty == false">
+          <template v-if="loaded_once">
+            <span class="text-xs text-[#8a8a8a]">{{ status }}</span>
+          </template>
+        </template>
+        <div class="flex-1" />
+        <template v-if="block_error != ''">
+          <span class="text-xs text-[#c42b1c]">{{ block_error }}</span>
+        </template>
+        <template v-if="adding_block">
+          <input class="block-name w-[160px] px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-white" :placeholder="'block name'" v-model="new_block_name" @input="NameDraft(($event.target as HTMLInputElement).value)" />
+          <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="AddBlock">Add</button>
+          <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="CancelAddBlock">Cancel</button>
+        </template>
+        <template v-if="adding_block == false">
+          <template v-if="loaded_once">
+            <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ToggleAddBlock">＋ Add block</button>
+            <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Load">Reload</button>
+            <button class="px-4 py-1 text-xs rounded bg-primary border-primary text-white" @click="Save">Save</button>
+          </template>
+        </template>
+        <template v-if="loaded_once == false">
+          <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Load">Load</button>
+        </template>
+      </div>
+      <template v-if="confirm_save">
+        <div class="flex flex-row gap-4 items-center gap-3 px-3 py-2 border border-[#e0e0e0] rounded bg-[#ededed]">
+          <span class="text-sm text-[#1a1a1a]">Save changes to disk? (.bak backup kept)</span>
+          <div class="flex-1" />
+          <button class="btn px-3 py-1 text-xs rounded bg-primary border-primary text-white" @click="ConfirmSaveYes">Yes, save</button>
+          <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ConfirmSaveNo">Cancel</button>
+        </div>
+      </template>
+      <template v-if="confirm_del != ''">
+        <div class="flex flex-row gap-4 items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]">
+          <span class="text-sm text-[#c42b1c]">{{ 'Delete block ' + confirm_del + '? (.bak kept)' }}</span>
+          <div class="flex-1" />
+          <button class="btn px-3 py-1 text-xs rounded bg-[#c42b1c] border-[#c42b1c] text-white" @click="ConfirmDeleteYes">Yes, delete</button>
+          <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ConfirmDeleteNo">Cancel</button>
+        </div>
+      </template>
       <template v-if="loading">
-        <div class="state-msg">
-          <span>Loading…</span>
-        </div>
+        <span class="state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]">Loading…</span>
       </template>
-      <template v-if="loading == false && error != '' && body == null">
-        <div class="state-msg error">
-          <span>✗ {{ error }}</span>
-          <span class="hint">
-            <span>Is the config daemon running on :17701?</span>
-          </span>
-        </div>
+      <template v-if="error != ''">
+        <span class="state-msg error px-4 py-3 rounded-lg text-sm text-[#c42b1c]">{{ '✗ ' + error }}</span>
       </template>
-      <template v-if="body != null">
-        <div class="toolbar">
-          <div class="meta">
-            <span class="mono">
-              <span>{{ meta_file }}</span>
-            </span>
-            <template v-if="dirty">
-              <span class="dirty">
-                <span>● unsaved</span>
-              </span>
-            </template>
-          </div>
-          <div class="actions">
-            <template v-if="block_error != ''">
-              <span class="block-error">
-                <span>{{ block_error }}</span>
-              </span>
-            </template>
-            <template v-if="adding_block">
-              <input class="block-name" :placeholder="'block name'" v-model="new_block_name" @input="NewBlockNameChanged" @keydown.enter="AddBlock" @keyup="NewBlockNameChanged" />
-              <button class="btn" @click="AddBlock">
-                <span>Add</span>
-              </button>
-              <button class="btn" @click="CancelAddBlock">
-                <span>Cancel</span>
-              </button>
-            </template>
-            <template v-if="adding_block == false">
-              <button class="btn" @click="ToggleAddBlock">
-                <span>＋ Add block</span>
-              </button>
-            </template>
-            <button class="btn" :disabled="saving" @click="Reload">
-              <span>Reload</span>
-            </button>
-            <button class="btn primary" :disabled="saving || dirty == false" @click="Save">
-              <template v-if="saving">
-                <span>Saving…</span>
+      <div class="flex flex-col gap-4 fields gap-1">
+        <div class="contents" :key="e.key" v-for="e in entries">
+          <template v-if="e.kind == 'subform'">
+            <div class="flex flex-row gap-4 subform-header items-center gap-2 px-3 py-2 mt-3 border border-[#e0e0e0] rounded-t-lg bg-[#ededed]">
+              <span class="subform-title font-semibold text-sm text-[#1a1a1a]">{{ e.label }}</span>
+              <div class="flex-1" />
+              <button class="btn text-xs text-[#c42b1c] border border-[#c42b1c] rounded px-2 py-[2px] bg-white" @click="AskDelete(e.key)">🗑 delete</button>
+            </div>
+          </template>
+          <template v-if="e.kind == 'table'">
+            <div class="flex flex-col gap-4 field-row border rounded p-2 gap-1 bg-white">
+              <span class="field-label text-sm font-medium text-[#616161]">{{ e.label }}</span>
+              <span class="text-xs text-[#8a8a8a] font-mono">{{ e.frag }}</span>
+            </div>
+          </template>
+          <template v-if="e.kind == 'toggle'">
+            <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
+              <template v-if="e.depth == 1">
+                <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
               </template>
-              <template v-if="saving == false">
-                <span>Save</span>
+              <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+              <input type="checkbox" :checked="e.is_on" :id="e.key" :label="''" @click="Toggle(e)" />
+              <template v-if="e.value == 'true'">
+                <span class="text-xs text-[#616161]">On</span>
               </template>
-            </button>
-          </div>
-        </div>
-        <div class="fields">
-          <div class="entry" :key="e.path" v-for="e in entries">
-            <template v-if="e.kind == 'subform'">
-              <div class="subform">
-                <div class="subform-header">
-                  <span class="subform-title">
-                    <span>{{ e.spec.label }}</span>
-                  </span>
-                  <template v-if="e.is_provider">
-                    <button class="btn danger btn-sm" :title="'Delete this block from the file'" @click="DeleteBlock(e.key)">
-                      <span>🗑</span>
-                    </button>
-                  </template>
-                </div>
-                <div class="subform-body">
-                  <div class="entry" :key="s.path" v-for="s in e.sub">
-                    <template v-if="s.is_table">
-                      <div class="field-row">
-                        <label class="field-label">
-                          <span>{{ s.spec.label }}</span>
-                        </label>
-                        <TableField :modelValue="s.value" :module_id="module_id" :path="s.path" :key="'TableField-1-' + (((s as any)?.id ?? s))" @Value="FieldEdited($event)" />
-                      </div>
-                    </template>
-                    <template v-if="s.is_table == false">
-                      <ScalarFields :modelValue="s.value" :path="s.path" :spec="s.spec" :key="'ScalarFields-2-' + (((s as any)?.id ?? s))" @Value="FieldEdited($event)" />
-                    </template>
-                  </div>
-                </div>
+              <template v-if="e.value != 'true'">
+                <span class="text-xs text-[#8a8a8a]">Off</span>
+              </template>
+            </div>
+          </template>
+          <template v-if="e.kind == 'number'">
+            <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
+              <template v-if="e.depth == 1">
+                <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
+              </template>
+              <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+              <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :type="'number'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+              <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Apply(e)">Apply</button>
+            </div>
+          </template>
+          <template v-if="e.kind == 'password'">
+            <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
+              <template v-if="e.depth == 1">
+                <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
+              </template>
+              <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+              <template v-if="pw_show">
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px] font-mono" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+              </template>
+              <template v-if="pw_show == false">
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px] font-mono" :placeholder="e.label" :type="'password'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+              </template>
+              <button class="btn px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="PwToggle(e)">👁</button>
+              <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Apply(e)">Apply</button>
+            </div>
+          </template>
+          <template v-if="e.kind == 'text'">
+            <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
+              <template v-if="e.depth == 1">
+                <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
+              </template>
+              <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+              <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+              <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Apply(e)">Apply</button>
+            </div>
+          </template>
+          <template v-if="e.kind == 'select'">
+            <div class="flex flex-col gap-4 field-row py-2 gap-1">
+              <div class="flex flex-row gap-4 items-center gap-3">
+                <template v-if="e.depth == 1">
+                  <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
+                </template>
+                <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Apply(e)">Apply</button>
               </div>
-            </template>
-            <template v-if="e.kind == 'table'">
-              <div class="field-row">
-                <label class="field-label">
-                  <span>{{ e.spec.label }}</span>
-                </label>
-                <TableField :modelValue="e.value" :module_id="module_id" :path="e.path" :key="'TableField-3-' + (((e as any)?.id ?? e))" @Value="FieldEdited($event)" />
+              <template v-if="e.url != ''">
+                <span class="text-xs text-[#8a8a8a]">(select — free text accepted)</span>
+              </template>
+            </div>
+          </template>
+          <template v-if="e.kind == 'tags'">
+            <div class="flex flex-col gap-4 field-row py-2 gap-1">
+              <div class="flex flex-row gap-4 items-center gap-3">
+                <template v-if="e.depth == 1">
+                  <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
+                </template>
+                <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" @input="Draft(($event.target as HTMLInputElement).value)" />
+                <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="TagAdd(e)">Add</button>
               </div>
-            </template>
-            <template v-if="e.kind == 'scalar'">
-              <ScalarFields :modelValue="e.value" :path="e.path" :spec="e.spec" :key="'ScalarFields-4-' + (((e as any)?.id ?? e))" @Value="FieldEdited($event)" />
-            </template>
-          </div>
+              <span class="text-xs text-[#8a8a8a] font-mono">{{ e.value }}</span>
+            </div>
+          </template>
+          <template v-if="e.kind == 'multiselect'">
+            <div class="flex flex-col gap-4 field-row py-2 gap-1">
+              <div class="flex flex-row gap-4 items-center gap-3">
+                <template v-if="e.depth == 1">
+                  <div class="w-4 shrink-0 border-l-2 border-[#e0e0e0]" />
+                </template>
+                <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" @input="Draft(($event.target as HTMLInputElement).value)" />
+                <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="TagAdd(e)">Add</button>
+              </div>
+              <span class="text-xs text-[#8a8a8a] font-mono">{{ e.value }}</span>
+            </div>
+          </template>
         </div>
-        <div class="toolbar bottom">
-          <div class="actions">
-            <button class="btn primary" :disabled="saving || dirty == false" @click="Save">
-              <template v-if="saving">
-                <span>Saving…</span>
-              </template>
-              <template v-if="saving == false">
-                <span>Save</span>
-              </template>
-            </button>
-          </div>
-        </div>
-      </template>
+      </div>
     </div>
 
 </template>
@@ -263,148 +475,3 @@ onMounted(() => {
 /* Component styles */
 
 </style>
-
-<style scoped>
-
-        .config-editor {
-            max-width: 820px;
-        }
-        .toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 0 16px 0;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 8px;
-        }
-        .toolbar.bottom {
-            border-bottom: none;
-            border-top: 1px solid var(--border);
-            margin-top: 16px;
-            padding-top: 16px;
-        }
-        .meta {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: var(--font-size-sm);
-            color: var(--text-muted);
-        }
-        .mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        }
-        .dirty {
-            color: var(--accent);
-            font-weight: 500;
-        }
-        .actions {
-            display: flex;
-            gap: 8px;
-            margin-left: auto;
-        }
-        .btn {
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-primary);
-            padding: 6px 16px;
-            border-radius: var(--radius-sm, 4px);
-            cursor: pointer;
-            font-size: var(--font-size-sm);
-            transition: all 0.15s;
-        }
-        .btn:hover:not(:disabled) {
-            background: var(--bg-hover);
-        }
-        .btn.primary {
-            background: var(--accent);
-            color: var(--accent-foreground);
-            border-color: var(--accent);
-        }
-        .btn.primary:hover:not(:disabled) {
-            background: var(--accent-hover);
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .fields {
-            display: flex;
-            flex-direction: column;
-        }
-        .subform {
-            border: 1px solid var(--border);
-            border-radius: var(--radius, 8px);
-            margin: 12px 0;
-            background: var(--bg-card);
-        }
-        .subform-header {
-            padding: 8px 14px;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg-hover);
-            border-radius: var(--radius, 8px) var(--radius, 8px) 0 0;
-            font-weight: 600;
-            font-size: var(--font-size-base);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .btn.danger {
-            border-color: var(--danger);
-            color: var(--danger);
-            background: transparent;
-        }
-        .btn.danger:hover:not(:disabled) {
-            background: rgba(196, 43, 28, 0.08);
-        }
-        .btn-sm {
-            padding: 2px 8px;
-            font-size: var(--font-size-sm);
-            line-height: 1.4;
-        }
-        .block-name {
-            width: 160px;
-            padding: 5px 8px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm, 4px);
-            font-size: var(--font-size-sm);
-            background: var(--bg-card);
-            color: var(--text-primary);
-        }
-        .block-error {
-            color: var(--danger);
-            font-size: var(--font-size-sm);
-        }
-        .subform-body {
-            padding: 8px 14px;
-        }
-        .field-row {
-            display: grid;
-            grid-template-columns: 160px 1fr;
-            gap: 12px;
-            align-items: start;
-            padding: 8px 0;
-        }
-        .field-label {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-            padding-top: 6px;
-            font-weight: 500;
-        }
-        .state-msg {
-            padding: 14px;
-            border-radius: var(--radius, 8px);
-            background: var(--bg-hover);
-            color: var(--text-secondary);
-            font-size: var(--font-size-base);
-        }
-        .state-msg.error {
-            background: rgba(196, 43, 28, 0.08);
-            color: var(--danger);
-        }
-        .state-msg.error .hint {
-            display: block;
-            margin-top: 6px;
-            font-size: var(--font-size-sm);
-            opacity: 0.85;
-        }
-    </style>

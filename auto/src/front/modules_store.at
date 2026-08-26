@@ -29,9 +29,16 @@ store Modules {
         var title str = "AutoOS Settings"
         // Plan 007: authoritative raw modules text (vm selection without fetch)
         var raw str = ""
+        // Plan 008 batch 1: search + view projection (fold/search state baked
+        // in). Entries: {id, icon, name, description}; groups additionally
+        // {label, open, members}.
+        var search str = ""
+        var view_standalone Array<str> = []
+        var view_groups Array<str> = []
+        var has_results bool = true
     }
 
-    msg Msg { Init, Select(str), ToggleGroup(str) }
+    msg Msg { Init, Select(str), ToggleGroup(str), Search(str) }
 
     on {
         .Init -> {
@@ -135,11 +142,85 @@ store Modules {
                     }
                 }
             }
+
+            // Plan 008 batch 1: rebuild the search-aware projection (open flag
+            // baked from .expanded; members filtered; has_results for the
+            // empty state) — vm views cannot call .includes(), and widget
+            // computed blocks with ext fns are vue-only.
+            var vg = []
+            let q = .search.to_lower()
+            var any_hit = false
+            for g in .groups {
+                var members = []
+                for m in g.members {
+                    var hit = true
+                    if q != "" {
+                        hit = false
+                        if m.name.to_lower().contains(q) {
+                            hit = true
+                        }
+                        if m.description.to_lower().contains(q) {
+                            hit = true
+                        }
+                    }
+                    if hit {
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded"
+                        var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        if .active_id == m.id {
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
+                            nmcls = "nav-name text-sm font-medium text-primary"
+                        }
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                    }
+                }
+                var open = false
+                for x in .expanded {
+                    if x == g.id {
+                        open = true
+                    }
+                }
+                if q != "" {
+                    open = true
+                }
+                if members.len() > 0 {
+                    vg.push({ id: g.id, label: g.label, open: open, members: members })
+                    any_hit = true
+                }
+            }
+            .view_groups = vg
+            var vs = []
+            for sm in .standalone {
+                var shit = true
+                if q != "" {
+                    shit = false
+                    if sm.name.to_lower().contains(q) {
+                        shit = true
+                    }
+                    if sm.description.to_lower().contains(q) {
+                        shit = true
+                    }
+                }
+                if shit {
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded"
+                    var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    if .active_id == sm.id {
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
+                        snm = "nav-name text-sm font-medium text-primary"
+                    }
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    any_hit = true
+                }
+            }
+            .view_standalone = vs
+            .has_results = any_hit
             if r.ok == false {
                 .error = r.error
                 .modules = []
                 .groups = []
                 .standalone = []
+                .view_groups = []
+                .view_standalone = []
+                .has_results = true
             }
             .loading = false
         }
@@ -169,6 +250,77 @@ store Modules {
                     }
                 }
             }
+
+            // Plan 008 batch 1: rebuild the search-aware projection (open flag
+            // baked from .expanded; members filtered; has_results for the
+            // empty state) — vm views cannot call .includes(), and widget
+            // computed blocks with ext fns are vue-only.
+            var vg = []
+            let q = .search.to_lower()
+            var any_hit = false
+            for g in .groups {
+                var members = []
+                for m in g.members {
+                    var hit = true
+                    if q != "" {
+                        hit = false
+                        if m.name.to_lower().contains(q) {
+                            hit = true
+                        }
+                        if m.description.to_lower().contains(q) {
+                            hit = true
+                        }
+                    }
+                    if hit {
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded"
+                        var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        if .active_id == m.id {
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
+                            nmcls = "nav-name text-sm font-medium text-primary"
+                        }
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                    }
+                }
+                var open = false
+                for x in .expanded {
+                    if x == g.id {
+                        open = true
+                    }
+                }
+                if q != "" {
+                    open = true
+                }
+                if members.len() > 0 {
+                    vg.push({ id: g.id, label: g.label, open: open, members: members })
+                    any_hit = true
+                }
+            }
+            .view_groups = vg
+            var vs = []
+            for sm in .standalone {
+                var shit = true
+                if q != "" {
+                    shit = false
+                    if sm.name.to_lower().contains(q) {
+                        shit = true
+                    }
+                    if sm.description.to_lower().contains(q) {
+                        shit = true
+                    }
+                }
+                if shit {
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded"
+                    var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    if .active_id == sm.id {
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
+                        snm = "nav-name text-sm font-medium text-primary"
+                    }
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    any_hit = true
+                }
+            }
+            .view_standalone = vs
+            .has_results = any_hit
         }
 
         .ToggleGroup(gid) -> {
@@ -193,6 +345,152 @@ store Modules {
                 out.push(gid)
             }
             .expanded = out
+
+            // Plan 008 batch 1: rebuild the search-aware projection (open flag
+            // baked from .expanded; members filtered; has_results for the
+            // empty state) — vm views cannot call .includes(), and widget
+            // computed blocks with ext fns are vue-only.
+            var vg = []
+            let q = .search.to_lower()
+            var any_hit = false
+            for g in .groups {
+                var members = []
+                for m in g.members {
+                    var hit = true
+                    if q != "" {
+                        hit = false
+                        if m.name.to_lower().contains(q) {
+                            hit = true
+                        }
+                        if m.description.to_lower().contains(q) {
+                            hit = true
+                        }
+                    }
+                    if hit {
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded"
+                        var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        if .active_id == m.id {
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
+                            nmcls = "nav-name text-sm font-medium text-primary"
+                        }
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                    }
+                }
+                var open = false
+                for x in .expanded {
+                    if x == g.id {
+                        open = true
+                    }
+                }
+                if q != "" {
+                    open = true
+                }
+                if members.len() > 0 {
+                    vg.push({ id: g.id, label: g.label, open: open, members: members })
+                    any_hit = true
+                }
+            }
+            .view_groups = vg
+            var vs = []
+            for sm in .standalone {
+                var shit = true
+                if q != "" {
+                    shit = false
+                    if sm.name.to_lower().contains(q) {
+                        shit = true
+                    }
+                    if sm.description.to_lower().contains(q) {
+                        shit = true
+                    }
+                }
+                if shit {
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded"
+                    var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    if .active_id == sm.id {
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
+                        snm = "nav-name text-sm font-medium text-primary"
+                    }
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    any_hit = true
+                }
+            }
+            .view_standalone = vs
+            .has_results = any_hit
+        }
+
+        .Search(query) -> {
+            .search = query
+
+            // Plan 008 batch 1: rebuild the search-aware projection (open flag
+            // baked from .expanded; members filtered; has_results for the
+            // empty state) — vm views cannot call .includes(), and widget
+            // computed blocks with ext fns are vue-only.
+            var vg = []
+            let q = .search.to_lower()
+            var any_hit = false
+            for g in .groups {
+                var members = []
+                for m in g.members {
+                    var hit = true
+                    if q != "" {
+                        hit = false
+                        if m.name.to_lower().contains(q) {
+                            hit = true
+                        }
+                        if m.description.to_lower().contains(q) {
+                            hit = true
+                        }
+                    }
+                    if hit {
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded"
+                        var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        if .active_id == m.id {
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
+                            nmcls = "nav-name text-sm font-medium text-primary"
+                        }
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                    }
+                }
+                var open = false
+                for x in .expanded {
+                    if x == g.id {
+                        open = true
+                    }
+                }
+                if q != "" {
+                    open = true
+                }
+                if members.len() > 0 {
+                    vg.push({ id: g.id, label: g.label, open: open, members: members })
+                    any_hit = true
+                }
+            }
+            .view_groups = vg
+            var vs = []
+            for sm in .standalone {
+                var shit = true
+                if q != "" {
+                    shit = false
+                    if sm.name.to_lower().contains(q) {
+                        shit = true
+                    }
+                    if sm.description.to_lower().contains(q) {
+                        shit = true
+                    }
+                }
+                if shit {
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded"
+                    var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    if .active_id == sm.id {
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
+                        snm = "nav-name text-sm font-medium text-primary"
+                    }
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    any_hit = true
+                }
+            }
+            .view_standalone = vs
+            .has_results = any_hit
         }
     }
 }

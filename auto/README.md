@@ -59,6 +59,72 @@ AUTOUI_MCP_PORT=9320 auto run -r vm   # 自定 MCP 通道（调试用，端点 /
   表格/subform 以只读 JSON 文本展示；块增删（Plan 005 特性）未暴露
 - `json.keys` 字母序（serde_json 无 preserve_order）——字段顺序与 web 版不同
 
+## 共享样式词汇（Plan 008 Phase 2 定稿，双后端单一真源）
+
+vue（Tailwind 3.4）与 vm（auto-lang `ui/style/class.rs` → iced）消费**同一套类串**。
+定稿对照（`styles.css` 令牌 → 共享类串；旧令牌随 Phase 3 各批退役）：
+
+| styles.css 令牌 | 共享类串 | 备注 |
+|---|---|---|
+| `--accent` | `bg-primary` / `border-primary` | vm 端 primary 由 accent thread-local 动态算色，与 web `hsl(var(--primary))` 同源 |
+| `--accent-light`（10% tint） | `bg-primary/10` | alpha 修饰双端可用（P1 实证）；选中态底色 |
+| `--bg-active` | `bg-primary/10` | 同上（合并为一条） |
+| `--accent-hover` / `--bg-hover` | `hover:bg-primary/90` / `hover:bg-[#ededed]` | **hover: 仅 web 增强层**，vm 静默跳过；核心状态禁依赖 hover |
+| `--bg-app #f3f3f3` | `bg-[#f3f3f3]` | 中性色一律确定性 hex/色板（P4：不受 vm DARK_MODE 漂移） |
+| `--bg-sidebar #f9f9f9` | `bg-[#f9f9f9]` | 同上 |
+| `--bg-card #ffffff` | `bg-white` | |
+| `--bg-search #f0f0f0` | `bg-[#f0f0f0]` | |
+| `--border #e0e0e0` | `border-[#e0e0e0]` | |
+| `--text-primary #1a1a1a` | `text-[#1a1a1a]` | |
+| `--text-secondary #616161` | `text-[#616161]` | 注意：`text-gray-500`(#6b7280) ≠ 原值，勿用色板近似关键中性色 |
+| `--text-muted #8a8a8a` | `text-[#8a8a8a]` | 同上 |
+| `--danger #c42b1c` | `bg-[#c42b1c]` / `text-[#c42b1c]` | Win11 danger 精确值 |
+| `--success #107c10` | `text-[#107c10]` | |
+| `--radius 8px` / `--radius-sm 4px` | `rounded-lg` / `rounded` | 双端同值（P3 实证 vm rounded-lg≈8px） |
+| 字号 base/sm/lg/xl = 14/12/16/20px | `text-sm`/`text-xs`/`text-base`/`text-xl` | 基准 14px = text-sm |
+| 字重 500/600 | `font-medium` / `font-bold` | vm 三级递进 ✓（P3） |
+| `--ring` 焦点环 | （web-only 增强） | vm 无焦点环，登记残余差异 |
+
+**词汇硬规则（Phase 2 探针实证，违反即 vm 静默降级）**：
+
+1. **间距禁小数**：`py-1.5`/`px-2.5`/`gap-1.5`/`gap-0.5` 在 vm **被静默丢弃**
+   （class.rs 按 u16 解析尺寸）——需要 6/10px 等值用任意值 `py-[6px]`/`px-[10px]`，
+   或整数档 `py-1/2`、`gap-1/2`。web 端两者皆支持。
+2. **中性色禁模式自适应 token**：`background`/`card`/`foreground`/`secondary`
+   （vm 解析 secondary 为 indigo 品牌色）全部不进共享词汇；唯一语义 token = `primary` 族。
+3. **hover:/焦点类**只作 web 增强，写法合法（vm 容错跳过），核心状态必须有静态等价。
+4. 条件样式 = store/handler **预计算完整类串**存字段（`row_class` 型）或视图
+   `if` 双分支静态串（仅限无子元素的简单控件——见规则 6）。
+5. **类串绑定必须用 `class:` 属性**：vue codegen 对 `style:` 只有字面量才映射
+   class，绑定形态（`style: m.nav_class`）会编译成 `:style` 内联样式；
+   `class: m.nav_class` 两端皆正确（038 minesweeper 官方姿势，批 1 实证）。
+6. **if 表达式 style 禁用于带子元素/事件的按钮**：vm 会把 style/onclick 提升
+   到包装容器（按钮本体裸奔）——静态串按钮不受影响；条件类一律下沉 store。
+
+**D6 组件基线串（Phase 2 定稿，Phase 3 迁移即用）**：
+
+| 组件 | 基线类串 |
+|---|---|
+| 按钮 | `px-5 py-2 rounded text-sm border border-[#e0e0e0] bg-white text-[#1a1a1a] hover:bg-[#ededed]` |
+| 主按钮 | `px-5 py-2 rounded text-sm bg-primary border-primary text-white` |
+| 危险按钮 | `px-5 py-2 rounded text-sm bg-[#c42b1c] border-[#c42b1c] text-white` |
+| 小按钮 | `px-3 py-[6px] rounded text-xs border border-[#e0e0e0] bg-white` |
+| 输入框 | `w-full px-[10px] py-[6px] text-sm bg-white border border-[#e0e0e0] rounded` |
+| 卡片 | `bg-white border border-[#e0e0e0] rounded-lg p-4` |
+| 选中态行 | `bg-primary/10 text-primary font-medium` |
+| muted 文字 | `text-xs text-[#8a8a8a]` |
+
+双端定稿对照图：`tmp/phase2-dual-baseline.png`（左 web / 右 vm，Phase 2 归档）。
+
+**store 迁移配方（D3/008，Phase 3 各批执行）**：
+
+- 条件类串在 store handler 内拼**完整字符串**入 model（如
+  `nav_class = if active { "bg-primary/10 text-primary font-medium px-3 py-2 rounded" } else { ... }`），
+  视图 `style: x.nav_class` 字段直读（P1 实证三种形态全可用）；
+- 搜索过滤/分组展开投影从 widget `computed`（ext fn）下沉 store（`.includes()`
+  等视图不可用调用一并消除）；
+- 列表数据维持 007 的"文本 + 计数 fn + 逐项扁平 getter"形状，行类串进扁平 getter 字段。
+
 ## 特许手写清单（src/ 下唯一的手写前端文件）
 
 - `index.html`、`src/main.ts`（7 行壳：挂 AppShell + styles.css）

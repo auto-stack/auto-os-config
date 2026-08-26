@@ -10,7 +10,7 @@
 //  - stores cannot self-dispatch actions — Init/Reload inline the reload
 //    logic, Create inlines the Select body;
 //  - the fm entity object stays flattened into three str fields.
-use back.api: fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, fieldDisplayOf
+use back.api: fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, editTagField, fieldDisplayOf
 
 store Collection {
     model {
@@ -31,6 +31,9 @@ store Collection {
         var fm_description str = ""
         var fm_body str = ""
         var is_read_only bool = false
+        // Plan 008 batch 4: filter projection (view_names).
+        var name_filter str = ""
+        var view_names Array<str> = []
         var list_loading bool = false
         var loading bool = false
         var saving bool = false
@@ -48,7 +51,9 @@ store Collection {
         SetSidecar(str),
 
         MarkDirty,
-        Reload
+        Reload,
+        SetFilter(str),
+        TagField(str, str)
     }
 
     on {
@@ -73,6 +78,19 @@ store Collection {
                 }
                 .list = items
                 .names = nm
+                // Plan 008 batch 4: filter projection over names
+                var vn = []
+                let fq = .name_filter.to_lower()
+                for x in .names {
+                    var hit = true
+                    if fq != "" {
+                        hit = x.to_lower().contains(fq)
+                    }
+                    if hit {
+                        vn.push(x)
+                    }
+                }
+                .view_names = vn
             }
             if r.ok == false {
                 .error = r.error
@@ -101,6 +119,19 @@ store Collection {
                 }
                 .list = items
                 .names = nm
+                // Plan 008 batch 4: filter projection over names
+                var vn = []
+                let fq = .name_filter.to_lower()
+                for x in .names {
+                    var hit = true
+                    if fq != "" {
+                        hit = x.to_lower().contains(fq)
+                    }
+                    if hit {
+                        vn.push(x)
+                    }
+                }
+                .view_names = vn
             }
             if r.ok == false {
                 .error = r.error
@@ -216,6 +247,19 @@ store Collection {
                     }
                     .list = items
                     .names = nm
+                    // Plan 008 batch 4: filter projection over names
+                    var vn = []
+                    let fq = .name_filter.to_lower()
+                    for x in .names {
+                        var hit = true
+                        if fq != "" {
+                            hit = x.to_lower().contains(fq)
+                        }
+                        if hit {
+                            vn.push(x)
+                        }
+                    }
+                    .view_names = vn
                 }
                 .list_loading = false
                 .Pick(name)
@@ -251,6 +295,19 @@ store Collection {
                         }
                         .list = items
                         .names = nm
+                        // Plan 008 batch 4: filter projection over names
+                        var vn = []
+                        let fq = .name_filter.to_lower()
+                        for x in .names {
+                            var hit = true
+                            if fq != "" {
+                                hit = x.to_lower().contains(fq)
+                            }
+                            if hit {
+                                vn.push(x)
+                            }
+                        }
+                        .view_names = vn
                     }
                     .list_loading = false
                 }
@@ -288,6 +345,19 @@ store Collection {
                     }
                     .list = items
                     .names = nm
+                    // Plan 008 batch 4: filter projection over names
+                    var vn = []
+                    let fq = .name_filter.to_lower()
+                    for x in .names {
+                        var hit = true
+                        if fq != "" {
+                            hit = x.to_lower().contains(fq)
+                        }
+                        if hit {
+                            vn.push(x)
+                        }
+                    }
+                    .view_names = vn
                 }
                 .list_loading = false
             }
@@ -323,5 +393,43 @@ store Collection {
             .dirty = true
         }
         .MarkDirty -> { .dirty = true }
+
+        // Plan 008 batch 4: tags/multiselect append (editTagField is the
+        // proper array mutation — display-string concat would corrupt).
+        .TagField(k, add) -> {
+            .body_text = editTagField(.body_text, k, add, "")
+            var es = []
+            var ek = []
+            let n = entriesCount(.body_text)
+            var i = 0
+            loop {
+                if i >= n {
+                    break
+                }
+                let d = entryAt(.body_text, i, .module_id)
+                es.push(d)
+                ek.push(d.key)
+                i = i + 1
+            }
+            .entries = es
+            .entry_keys = ek
+            .dirty = true
+        }
+
+        .SetFilter(q) -> {
+            .name_filter = q
+            var vn = []
+            let fq = .name_filter.to_lower()
+            for x in .names {
+                var hit = true
+                if fq != "" {
+                    hit = x.to_lower().contains(fq)
+                }
+                if hit {
+                    vn.push(x)
+                }
+            }
+            .view_names = vn
+        }
     }
 }

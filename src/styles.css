@@ -50,8 +50,9 @@
   --ring: hsl(var(--primary) / 0.35);            /* focus ring shadow */
   --bg-active: hsl(var(--primary) / 0.10);
 
-  /* Typography */
-  --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Typography — Inter-first to match the vm renderer's default font
+     (Plan 008 D5: converge the biggest default-style divergence) */
+  --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-size-base: 14px;
   --font-size-sm: 12px;
   --font-size-lg: 16px;

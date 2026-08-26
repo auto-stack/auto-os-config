@@ -367,7 +367,9 @@ export async function putEntitySafe(
   sidecar: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await putEntity(moduleId, name, value, sidecar)
+    // text-first contract: the shared store keeps body_text as a JSON string
+    // (editField output); pre-unification object flows pass through as-is.
+    await putEntity(moduleId, name, typeof value === 'string' ? JSON.parse(value) : value, sidecar)
     return { ok: true }
   } catch (e: any) {
     return { ok: false, error: e.message || String(e) }
@@ -521,25 +523,27 @@ export function confirmSaveOnce(): boolean {
   return ok
 }
 
-/** Fail-soft config fetch → { ok, value, meta } | { ok:false, error }. */
+/** Fail-soft config fetch → { ok, value, meta } | { ok:false, error }.
+ * Plan 008 batch 3: the editor family speaks the vm TEXT contract — `value`
+ * is the JSON body as a string (api.at has always been text-first). */
 export async function fetchConfigSafe(
   moduleId: string,
-): Promise<{ ok: true; value: any; meta: any } | { ok: false; error: string }> {
+): Promise<{ ok: true; value: string; meta: any } | { ok: false; error: string }> {
   try {
     const data = await fetchConfig(moduleId)
-    return { ok: true, value: data.value, meta: data.meta }
+    return { ok: true, value: JSON.stringify(data.value), meta: data.meta }
   } catch (e: any) {
     return { ok: false, error: e.message || String(e) }
   }
 }
 
-/** Fail-soft whole-body save. */
+/** Fail-soft whole-body save (text contract — body is a JSON string). */
 export async function putConfigSafe(
   moduleId: string,
-  body: any,
+  body: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await putConfig(moduleId, body)
+    await putConfig(moduleId, typeof body === 'string' ? JSON.parse(body) : body)
     return { ok: true }
   } catch (e: any) {
     return { ok: false, error: e.message || String(e) }
@@ -784,38 +788,129 @@ export async function fetchEntityFlat(mid: string, name: string) {
   }
 }
 
-export function entriesCount(body: any): number {
-  return Object.keys(body ?? {}).length
+// (Plan 008 batch 3: the 007-era object-contract twins entriesCount/entryAt/
+// editField that lived here were superseded by the text-contract versions
+// below — the ext widgets consuming the EntityEntry shape are retired.)
+
+// The editor family is text-first, but pre-unification callers may still
+// hand an object through (e.g. collection_store on vue receives
+// fetchEntityFlat's object value) — accept both shapes everywhere below.
+function asBodyObj(body: any): any {
+  return typeof body === 'string' ? JSON.parse(body) : body
 }
 
-/** Vue-track entryAt: the ORIGINAL EntityEntry shape (spec included) so the
- *  hand-over widgets (ScalarFields/TableField via ext) keep working. */
-export function entryAt(body: any, i: number, moduleId: string) {
-  return bodyEntries(body, moduleId)[i]
-}
-
-/** Vue-track editField: object-in/object-out (setCfgEntry without provider ctx). */
-export function editField(body: any, path: string, value: any): any {
-  const next = { ...body }
-  const parts = path.split('.')
-  if (parts.length === 1) {
-    next[parts[0]] = value
-  } else {
-    const [head, tail] = parts
-    next[head] = { ...next[head], [tail]: value }
-  }
-  return next
-}
+// ── Plan 008 batch 3: unified editor text contract (api.at twins) ──────────
+// All of these take/return the body as a JSON STRING — the vm side has always
+// been text-first; the vue editor family now speaks the same protocol.
 
 /** vm contract twin (auto/src/back/api.at fieldDisplayOf). */
 export function fieldDisplayOf(body: any, key: string): string {
-  const v = body?.[key]
+  const v = asBodyObj(body)?.[key]
   return v == null ? '' : String(v)
 }
 
-/** vm contract twin (auto/src/back/api.at editTagField): add one tag. */
-export function editTagField(body: any, key: string, add: string, _remove: string): any {
-  const arr: string[] = Array.isArray(body?.[key]) ? [...body[key]] : []
-  if (add && !arr.includes(add)) arr.push(add)
-  return { ...body, [key]: arr }
+/** vm contract twin (auto/src/back/api.at editTagField): add/remove one tag. */
+export function editTagField(body: any, key: string, add: string, remove: string): string {
+  const obj = asBodyObj(body)
+  const arr: string[] = Array.isArray(obj?.[key]) ? [...obj[key]] : []
+  const out = add && !arr.includes(add) ? [...arr, add] : remove ? arr.filter((t) => t !== remove) : arr
+  return JSON.stringify({ ...obj, [key]: out })
+}
+
+/** vm contract twin (entriesCount): top-level key count. */
+export function entriesCount(body: any): number {
+  const obj = asBodyObj(body)
+  return obj && typeof obj === 'object' ? Object.keys(obj).length : 0
+}
+
+function displayOfValue(v: unknown): string {
+  if (v == null) return ''
+  return typeof v === 'string' ? v : JSON.stringify(v)
+}
+
+function isObjectArrayVal(v: unknown): boolean {
+  return Array.isArray(v) && v.length > 0 && v.every((x) => x != null && typeof x === 'object')
+}
+
+/** vm contract twin (entryAt): flat descriptor of the i-th top-level field. */
+export function entryAt(body: any, i: number, moduleId: string): any {
+  const obj = asBodyObj(body)
+  const key = Object.keys(obj)[i]
+  const frag = obj[key]
+  const spec = inferField(key, frag, moduleId, '')
+  return {
+    key,
+    kind: spec.kind,
+    label: spec.label,
+    value: displayOfValue(frag),
+    frag: JSON.stringify(frag),
+    is_table: isObjectArrayVal(frag),
+    url: enumUrlOf(spec.optionsFrom),
+    depth: 0,
+    is_on: displayOfValue(frag) === 'true',
+    // vue-only extras: the still-unified CollectionBrowser (batch 4) consumes
+    // the spec-bearing EntityEntry shape; `raw` keeps the original JS value.
+    spec,
+    raw: frag,
+  }
+}
+
+/** vm contract twin (subCount): field count of a subform object fragment. */
+export function subCount(frag: any): number {
+  const obj = typeof frag === 'string' ? JSON.parse(frag) : frag
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? Object.keys(obj).length : 0
+}
+
+/** vm contract twin (subAt): flat descriptor of a subform's j-th field;
+ * `head` is the subform key and doubles as the provider context. */
+export function subAt(body: any, head: string, j: number, moduleId: string): any {
+  const sub = asBodyObj(body)?.[head] ?? {}
+  const key = Object.keys(sub)[j]
+  const frag = sub[key]
+  const spec = inferField(key, frag, moduleId, head)
+  return {
+    key: `${head}.${key}`,
+    kind: spec.kind,
+    label: spec.label,
+    value: displayOfValue(frag),
+    frag: JSON.stringify(frag),
+    is_table: isObjectArrayVal(frag),
+    url: enumUrlOf(spec.optionsFrom),
+    depth: 1,
+    is_on: displayOfValue(frag) === 'true',
+  }
+}
+
+/** vm contract twin (editField): typed whole-replace at "a" or "a.b". */
+export function editField(body: any, path: string, newVal: string): string {
+  const obj = asBodyObj(body)
+  const parts = path.split('.')
+  const coerce = (old: unknown): unknown => {
+    if (typeof old === 'boolean') return newVal === 'true'
+    if (typeof old === 'number' && /^-?[0-9.]+$/.test(newVal)) return Number(newVal)
+    return newVal
+  }
+  if (parts.length === 1) {
+    obj[parts[0]] = coerce(obj[parts[0]])
+  } else {
+    obj[parts[0]] = { ...(obj[parts[0]] ?? {}), [parts[1]]: coerce(obj[parts[0]]?.[parts[1]]) }
+  }
+  return JSON.stringify(obj)
+}
+
+/** vm contract twin (addBlockText): insert an empty top-level block. */
+export function addBlockText(body: any, name: string): string {
+  const obj = asBodyObj(body)
+  return JSON.stringify({ [name]: {}, ...obj })
+}
+
+/** vm contract twin (metaFile): the config file path from a fetch meta. */
+export function metaFile(meta: any): string {
+  return meta?.file ?? ''
+}
+
+/** vm contract twin (bodyHasText): does the top level contain `name`? */
+export function bodyHasText(body: any, name: string): boolean {
+  const obj = asBodyObj(body)
+  return obj && typeof obj === 'object' ? Object.prototype.hasOwnProperty.call(obj, name) : false
 }

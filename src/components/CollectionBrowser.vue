@@ -1,22 +1,14 @@
 <!-- CollectionBrowser component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { ScalarFields } from '../../auto/src/front/utils/collection_store_ext'
-import { TableField } from '../../auto/src/front/utils/collection_store_ext'
-import { filterEntities } from '../../auto/src/front/utils/collection_store_ext'
-import { useCollectionStore } from '../../auto/src/front/utils/collection_store_ext'
+import { ref, onMounted } from 'vue'
+import { fieldDisplayOf } from '@/lib/api'
 
-const collectionStore = useCollectionStore()
-
-
-const filter = ref<string>('')
 const creating = ref<boolean>(false)
 const new_name = ref<string>('')
-const confirm_delete = ref<any>(null)
+const confirm_open = ref<boolean>(false)
+const draft = ref<string>('')
 const sidecar_draft = ref<string>('')
-
-const can_edit = computed<boolean>(() => props.read_only === false && collectionStore.is_read_only === false)
-const filtered = computed<any>(() => filterEntities(collectionStore.list, filter.value))
+const pw_show = ref<boolean>(false)
 
 const props = defineProps<{
   module_id: string
@@ -25,33 +17,47 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   Init: []
-  FilterChanged: []
+  Load: []
+  SetFilter: [string]
   ToggleCreate: []
-  NewNameChanged: []
+  NewName: [string]
   DoCreate: []
   CancelCreate: []
-  SelectEntity: [string]
+  Pick: [string]
   Reload: []
   Save: []
   AskDelete: []
-  CancelDelete: []
-  DoDelete: []
-  BackdropClose: [any]
-  FieldEdited: [any]
-  SidecarChanged: []
+  ConfirmDeleteYes: []
+  ConfirmDeleteNo: []
+  Draft: [string]
+  SidecarDraft: [string]
+  ApplyEntry: [string]
+  TagAdd: [string]
+  Toggle: [string]
+  PwToggle: []
 }>()
 
-function AskDelete(): void {
-  confirm_delete.value = collectionStore.selected_name;
+import { useCollectionStore } from '../stores/auto/useCollectionStore'
+import { reactive } from 'vue'
+const store = reactive(useCollectionStore())
 
-  emit('AskDelete')
-}
-
-function BackdropClose(e: any): void {
-  if (e.target == e.currentTarget) {confirm_delete.value = null;
+function ApplyEntry(i: any): void {
+  let k: string = '';
+  let j: number = 0;
+  for (const x of store.entry_keys) {if (j == i) {k = x;
+  }j = j + 1;
+  }
+  if (draft.value != '' && k != '') {store.FieldEdited({ path: k, value: draft.value });
+  draft.value = '';
   }
 
-  emit('BackdropClose', e)
+  emit('ApplyEntry', i)
+}
+
+function AskDelete(): void {
+  confirm_open.value = true;
+
+  emit('AskDelete')
 }
 
 function CancelCreate(): void {
@@ -61,15 +67,22 @@ function CancelCreate(): void {
   emit('CancelCreate')
 }
 
-function CancelDelete(): void {
-  confirm_delete.value = null;
+function ConfirmDeleteNo(): void {
+  confirm_open.value = false;
 
-  emit('CancelDelete')
+  emit('ConfirmDeleteNo')
+}
+
+function ConfirmDeleteYes(): void {
+  confirm_open.value = false;
+  store.DelEntity(store.selected_name);
+
+  emit('ConfirmDeleteYes')
 }
 
 function DoCreate(): void {
   let name = new_name.value.trim();
-  if (name != '') {collectionStore.NewEntity(name);
+  if (name != '') {store.NewEntity(name);
   creating.value = false;
   new_name.value = '';
   }
@@ -77,273 +90,294 @@ function DoCreate(): void {
   emit('DoCreate')
 }
 
-function DoDelete(): void {
-  if (confirm_delete.value != null) {collectionStore.DelEntity(confirm_delete.value);
-  }
-  confirm_delete.value = null;
+function Draft(v: any): void {
+  draft.value = v;
 
-  emit('DoDelete')
+  emit('Draft', v)
 }
 
-function FieldEdited(args: any): void {
-  collectionStore.FieldEdited(args);
+function Load(): void {
+  store.Open(props.module_id);
 
-  emit('FieldEdited', args)
+  emit('Load')
 }
 
-function FilterChanged(): void {
-  filter.value = filter.value;
+function NewName(v: any): void {
+  new_name.value = v;
 
-  emit('FilterChanged')
+  emit('NewName', v)
 }
 
-function NewNameChanged(): void {
-  new_name.value = new_name.value;
+function Pick(n: any): void {
+  store.Pick(n);
+  sidecar_draft.value = store.sidecar;
+  draft.value = '';
 
-  emit('NewNameChanged')
+  emit('Pick', n)
+}
+
+function PwToggle(i: any): void {
+  pw_show.value = pw_show.value == false;
+
+  emit('PwToggle')
 }
 
 function Reload(): void {
-  collectionStore.Reload();
+  store.Reload();
 
   emit('Reload')
 }
 
 function Save(): void {
-  collectionStore.SaveEntity();
+  store.SetSidecar(sidecar_draft.value);
+  store.SaveEntity();
 
   emit('Save')
 }
 
-function SelectEntity(name: any): void {
-  collectionStore.Pick(name);
-  sidecar_draft.value = collectionStore.sidecar;
+function SetFilter(q: any): void {
+  store.SetFilter(q);
 
-  emit('SelectEntity', name)
+  emit('SetFilter', q)
 }
 
-function SidecarChanged(): void {
-  collectionStore.SetSidecar(sidecar_draft.value);
+function SidecarDraft(v: any): void {
+  sidecar_draft.value = v;
 
-  emit('SidecarChanged')
+  emit('SidecarDraft', v)
+}
+
+function TagAdd(i: any): void {
+  let k: string = '';
+  let j: number = 0;
+  for (const x of store.entry_keys) {if (j == i) {k = x;
+  }j = j + 1;
+  }
+  if (draft.value != '' && k != '') {store.TagField(k, draft.value);
+  draft.value = '';
+  }
+
+  emit('TagAdd', i)
+}
+
+async function Toggle(i: any): Promise<void> {
+  let k: string = '';
+  let j: number = 0;
+  for (const x of store.entry_keys) {if (j == i) {k = x;
+  }j = j + 1;
+  }
+  let nv: string = 'false';
+  if (k != '') {let cur = await fieldDisplayOf(store.body_text, k);
+  if (cur == 'false' || cur == '') {nv = 'true';
+  }}
+  store.FieldEdited({ path: k, value: nv });
+
+  emit('Toggle', i)
 }
 
 function ToggleCreate(): void {
-  creating.value = !creating.value;
+  creating.value = creating.value == false;
 
   emit('ToggleCreate')
 }
 
 onMounted(() => {
-  collectionStore.Open(props.module_id);
+  store.Open(props.module_id);
 })
 
 
 </script>
 
 <template>
-    <div class="collection">
-      <aside class="list-pane">
-        <div class="list-head">
-          <input class="filter-input" :placeholder="'Filter…'" v-model="filter" @input="FilterChanged" @keyup="FilterChanged" />
-          <template v-if="can_edit">
-            <button class="btn icon" :title="'New'" @click="ToggleCreate">
-              <span>+</span>
-            </button>
+    <div class="flex flex-row gap-4 collection max-w-[960px]">
+      <div class="flex flex-col gap-4 list-pane w-[260px] shrink-0 border border-[#e0e0e0] rounded-lg bg-white">
+        <div class="flex flex-row gap-4 list-head gap-2 p-2 border-b border-[#e0e0e0]">
+          <input class="filter-input flex-1 px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-[#f0f0f0]" :placeholder="'Filter…'" :value="store.name_filter" @input="SetFilter(($event.target as HTMLInputElement).value)" />
+          <template v-if="read_only == false">
+            <button class="px-2 py-1 text-sm rounded border border-[#e0e0e0] bg-white" @click="ToggleCreate">＋</button>
           </template>
         </div>
         <template v-if="creating">
-          <div class="create-row">
-            <input class="name-input" :placeholder="'entity-name'" v-model="new_name" @input="NewNameChanged" @keydown.enter="DoCreate" @keyup="NewNameChanged" />
-            <button class="btn small" :disabled="collectionStore.saving || new_name.trim() == ''" @click="DoCreate">
-              <span>Add</span>
-            </button>
-            <button class="btn small" @click="CancelCreate">
-              <span>✕</span>
-            </button>
+          <div class="flex flex-row gap-4 create-row gap-2 p-2 border-b border-[#e0e0e0] bg-[#ededed]">
+            <input class="name-input flex-1 px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-white font-mono" :placeholder="'entity-name'" v-model="new_name" @input="NewName(($event.target as HTMLInputElement).value)" />
+            <button class="px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="DoCreate">Add</button>
+            <button class="px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="CancelCreate">✕</button>
           </div>
         </template>
-        <template v-if="collectionStore.list_loading">
-          <div class="list-msg">
-            <span>Loading…</span>
-          </div>
+        <template v-if="store.list_loading">
+          <span class="list-msg p-4 text-center text-xs text-[#8a8a8a]">Loading…</span>
         </template>
-        <template v-if="collectionStore.list_loading == false && filtered.length == 0">
-          <div class="list-msg empty">
-            <template v-if="collectionStore.list.length == 0">
-              <span>No entities.</span>
-            </template>
-            <template v-if="collectionStore.list.length > 0">
-              <span>No match.</span>
-            </template>
-          </div>
-        </template>
-        <template v-if="filtered.length > 0">
-          <div class="entity-list">
-            <div :class="(collectionStore.selected_name == e.name ? 'active' : '')" :key="e.name" @click="SelectEntity(e.name)" v-for="e in filtered">
-              <span class="e-name">
-                <span>{{ e.name }}</span>
-              </span>
-              <template v-if="e.description != ''">
-                <span class="e-desc">
-                  <span>{{ e.description }}</span>
-                </span>
-              </template>
-            </div>
-          </div>
-        </template>
-      </aside>
-      <section class="detail-pane">
-        <template v-if="collectionStore.error != '' && collectionStore.selected_name == null">
-          <div class="state-msg error">
-            <span>✗ {{ collectionStore.error }}</span>
-          </div>
-        </template>
-        <template v-if="collectionStore.error == '' && collectionStore.selected_name == null">
-          <div class="state-msg">
-            <span>Select an entity from the left, or create a new one.</span>
-          </div>
-        </template>
-        <template v-if="collectionStore.selected_name != null">
-          <template v-if="collectionStore.loading">
-            <div class="state-msg">
-              <span>Loading…</span>
-            </div>
+        <template v-if="store.list_loading == false">
+          <template v-if="store.view_names.length == 0">
+            <span class="list-msg p-4 text-center text-xs text-[#8a8a8a]">No entities.</span>
           </template>
-          <template v-if="collectionStore.loading == false">
-            <div class="toolbar">
-              <div class="meta">
-                <span class="mono">
-                  <span>{{ collectionStore.selected_name }}</span>
-                </span>
-                <template v-if="collectionStore.dirty">
-                  <span class="dirty">
-                    <span>● unsaved</span>
-                  </span>
-                </template>
-                <template v-if="collectionStore.is_read_only">
-                  <span class="ro-badge">
-                    <span>read-only</span>
-                  </span>
-                </template>
-              </div>
-              <div class="actions">
-                <template v-if="can_edit">
-                  <button class="btn" :disabled="collectionStore.saving" @click="Reload">
-                    <span>Reload</span>
-                  </button>
-                </template>
-                <template v-if="can_edit">
-                  <button class="btn primary" :disabled="collectionStore.saving || collectionStore.dirty == false" @click="Save">
-                    <template v-if="collectionStore.saving">
-                      <span>Saving…</span>
-                    </template>
-                    <template v-if="collectionStore.saving == false">
-                      <span>Save</span>
-                    </template>
-                  </button>
-                </template>
-                <template v-if="can_edit">
-                  <button class="btn danger" @click="AskDelete">
-                    <span>Delete</span>
-                  </button>
-                </template>
-              </div>
-            </div>
-            <template v-if="collectionStore.error != ''">
-              <div class="state-msg error">
-                <span>✗ {{ collectionStore.error }}</span>
-              </div>
-            </template>
-            <template v-if="collectionStore.entries.length > 0 && can_edit">
-              <div class="fields">
-                <div class="entry" :key="f.key" v-for="f in collectionStore.entries">
-                  <template v-if="f.is_table">
-                    <div class="field-row" :key="f.key">
-                      <label class="field-label">
-                        <span>{{ f.spec.label }}</span>
-                      </label>
-                      <TableField :modelValue="f.value" :module_id="module_id" :path="f.key" :key="'TableField-1-' + (((f as any)?.id ?? f))" @Value="FieldEdited($event)" />
-                    </div>
-                  </template>
-                  <template v-if="f.is_table == false">
-                    <div class="field-row" :key="f.key">
-                      <label class="field-label">
-                        <span>{{ f.spec.label }}</span>
-                      </label>
-                      <ScalarFields :modelValue="f.value" :path="f.key" :spec="f.spec" :key="'ScalarFields-2-' + (((f as any)?.id ?? f))" @Value="FieldEdited($event)" />
-                    </div>
-                  </template>
-                </div>
-                <div class="field-row sidecar-row">
-                  <label class="field-label">
-                    <span>Soul </span>
-                    <span class="hint">
-                      <span>(markdown sidecar)</span>
-                    </span>
-                  </label>
-                  <textarea class="sidecar" :placeholder="'# Soul\n\nThe role\'s system prompt / personality (markdown).'" v-model="sidecar_draft" @input="SidecarChanged" />
-                </div>
-              </div>
-            </template>
-            <template v-if="collectionStore.entries.length == 0 && collectionStore.is_read_only">
-              <div class="fm-view">
-                <div class="field-row">
-                  <label class="field-label">
-                    <span>Name</span>
-                  </label>
-                  <div class="readonly-val mono">
-                    <span>{{ collectionStore.fm_name }}</span>
-                  </div>
-                </div>
-                <div class="field-row">
-                  <label class="field-label">
-                    <span>Description</span>
-                  </label>
-                  <div class="readonly-val">
-                    <span>{{ collectionStore.fm_description }}</span>
-                  </div>
-                </div>
-                <div class="skill-body">
-                  <span>{{ collectionStore.fm_body }}</span>
-                </div>
-              </div>
+          <template v-if="store.names.length == 0">
+            <template v-if="read_only == false">
+              <button class="mx-2 px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Load">Load</button>
             </template>
           </template>
-        </template>
-      </section>
-      <template v-if="confirm_delete != null">
-        <div class="modal-backdrop" @click="BackdropClose($event)">
-          <div class="modal">
-            <p>
-              <span>Delete </span>
-              <span class="strong">
-                <span>{{ confirm_delete }}</span>
-              </span>
-              <span>?</span>
-            </p>
-            <p class="modal-hint">
-              <span>This removes the </span>
-              <span class="inline-code">
-                <span>.at</span>
-              </span>
-              <span> file and its sidecar. A </span>
-              <span class="inline-code">
-                <span>.bak</span>
-              </span>
-              <span> is kept.</span>
-            </p>
-            <div class="modal-actions">
-              <button class="btn" @click="CancelDelete">
-                <span>Cancel</span>
-              </button>
-              <button class="btn danger" @click="DoDelete">
-                <span>Delete</span>
-              </button>
+          <template v-if="store.names.length > 0">
+            <template v-if="store.view_names.length == 0">
+              <span class="list-msg p-2 text-center text-xs text-[#8a8a8a]">No match.</span>
+            </template>
+          </template>
+          <div class="overflow-auto max-h-[70vh] p-1">
+            <div class="flex flex-col gap-4 entity-list gap-[2px]">
+              <div class="contents" :key="n" v-for="n in store.view_names">
+                <template v-if="store.selected_name == n">
+                  <button class="e-item e-name active w-full text-left px-[10px] py-[7px] rounded font-mono text-sm bg-primary/10 text-primary font-semibold" @click="Pick(n)">{{ n }}</button>
+                </template>
+                <template v-if="store.selected_name != n">
+                  <button class="e-item e-name w-full text-left px-[10px] py-[7px] rounded font-mono text-sm text-[#1a1a1a]" @click="Pick(n)">{{ n }}</button>
+                </template>
+              </div>
             </div>
           </div>
-        </div>
-      </template>
+        </template>
+      </div>
+      <div class="flex flex-col gap-4 detail-pane flex-1">
+        <template v-if="store.selected_name == null">
+          <template v-if="store.error != ''">
+            <span class="state-msg error px-4 py-3 rounded-lg text-sm text-[#c42b1c]">{{ '✗ ' + store.error }}</span>
+          </template>
+          <template v-if="store.error == ''">
+            <span class="state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]">Select an entity from the left, or create a new one.</span>
+          </template>
+        </template>
+        <template v-if="store.selected_name != null && store.loading">
+          <span class="state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]">Loading…</span>
+        </template>
+        <template v-if="store.selected_name != null && store.loading == false">
+          <div class="flex flex-row gap-4 toolbar items-center gap-3 py-2 border-b border-[#e0e0e0]">
+            <span class="mono font-mono text-sm font-semibold text-[#1a1a1a]">{{ store.selected_name }}</span>
+            <template v-if="store.dirty">
+              <span class="dirty text-xs font-medium text-primary">● unsaved</span>
+            </template>
+            <template v-if="store.is_read_only">
+              <span class="ro-badge text-[11px] px-2 rounded-full bg-[#ededed] text-[#616161]">read-only</span>
+            </template>
+            <div class="flex-1" />
+            <template v-if="read_only == false && store.is_read_only == false">
+              <button class="px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Reload">Reload</button>
+              <button class="px-4 py-1 text-xs rounded bg-primary border-primary text-white" @click="Save">Save</button>
+              <button class="px-3 py-1 text-xs rounded border border-[#c42b1c] text-[#c42b1c] bg-white" @click="AskDelete">Delete</button>
+            </template>
+          </div>
+          <template v-if="confirm_open">
+            <div class="flex flex-row gap-4 items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]">
+              <span class="text-sm text-[#c42b1c]">Delete this entity? (.at + sidecar removed, .bak kept)</span>
+              <div class="flex-1" />
+              <button class="px-3 py-1 text-xs rounded bg-[#c42b1c] border-[#c42b1c] text-white" @click="ConfirmDeleteYes">Yes, delete</button>
+              <button class="px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ConfirmDeleteNo">Cancel</button>
+            </div>
+          </template>
+          <template v-if="store.error != ''">
+            <span class="state-msg error px-4 py-3 rounded-lg text-sm text-[#c42b1c]">{{ '✗ ' + store.error }}</span>
+          </template>
+          <template v-if="store.is_read_only">
+            <div class="flex flex-col gap-4 fm-view gap-2">
+              <span class="text-lg font-bold text-[#1a1a1a]">{{ store.fm_name }}</span>
+              <span class="text-sm text-[#616161]">{{ store.fm_description }}</span>
+              <span class="skill-body fm-body p-3 rounded-lg bg-[#ededed] font-mono text-xs text-[#616161]">{{ store.fm_body }}</span>
+            </div>
+          </template>
+          <template v-if="store.is_read_only == false">
+            <div class="overflow-auto flex-1">
+              <div class="flex flex-col gap-4 fields gap-1">
+                <div class="contents" :key="e.key" v-for="(e, i) in store.entries">
+                  <template v-if="e.is_table">
+                    <div class="flex flex-col gap-4 field-row border rounded p-2 gap-1 bg-white">
+                      <span class="field-label text-sm font-medium text-[#616161]">{{ e.label }}</span>
+                      <span class="text-xs text-[#8a8a8a] font-mono">{{ e.frag }}</span>
+                    </div>
+                  </template>
+                  <template v-if="e.kind == 'toggle'">
+                    <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
+                      <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                      <input type="checkbox" :checked="e.value" :id="e.key" @click="Toggle(i)" />
+                      <template v-if="e.value == 'true'">
+                        <span class="text-xs text-[#616161]">On</span>
+                      </template>
+                      <template v-if="e.value != 'true'">
+                        <span class="text-xs text-[#8a8a8a]">Off</span>
+                      </template>
+                    </div>
+                  </template>
+                  <template v-if="e.kind == 'number'">
+                    <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
+                      <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                      <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :type="'number'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ApplyEntry(i)">Apply</button>
+                    </div>
+                  </template>
+                  <template v-if="e.kind == 'password'">
+                    <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
+                      <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                      <template v-if="pw_show">
+                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      </template>
+                      <template v-if="pw_show == false">
+                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :type="'password'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      </template>
+                      <button class="btn px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="PwToggle(i)">👁</button>
+                      <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ApplyEntry(i)">Apply</button>
+                    </div>
+                  </template>
+                  <template v-if="e.kind == 'text'">
+                    <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
+                      <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                      <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ApplyEntry(i)">Apply</button>
+                    </div>
+                  </template>
+                  <template v-if="e.kind == 'select'">
+                    <div class="flex flex-col gap-4 field-row py-2 gap-1">
+                      <div class="flex flex-row gap-4 items-center gap-3">
+                        <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ApplyEntry(i)">Apply</button>
+                      </div>
+                      <template v-if="e.url != ''">
+                        <span class="text-xs text-[#8a8a8a]">(select — free text accepted)</span>
+                      </template>
+                    </div>
+                  </template>
+                  <template v-if="e.kind == 'tags'">
+                    <div class="flex flex-col gap-4 field-row py-2 gap-1">
+                      <div class="flex flex-row gap-4 items-center gap-3">
+                        <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="TagAdd(i)">Add</button>
+                      </div>
+                      <span class="text-xs text-[#8a8a8a] font-mono">{{ e.value }}</span>
+                    </div>
+                  </template>
+                  <template v-if="e.kind == 'multiselect'">
+                    <div class="flex flex-col gap-4 field-row py-2 gap-1">
+                      <div class="flex flex-row gap-4 items-center gap-3">
+                        <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="TagAdd(i)">Add</button>
+                      </div>
+                      <span class="text-xs text-[#8a8a8a] font-mono">{{ e.value }}</span>
+                    </div>
+                  </template>
+                  <template v-if="e.kind == 'subform'">
+                    <div class="flex flex-col gap-4 field-row border rounded p-2 gap-1 bg-white">
+                      <span class="field-label text-sm font-medium text-[#616161]">{{ e.label }}</span>
+                      <span class="text-xs text-[#8a8a8a] font-mono">{{ e.frag }}</span>
+                    </div>
+                  </template>
+                </div>
+                <div class="flex flex-col gap-4 field-row sidecar-row py-2 gap-1">
+                  <span class="field-label text-sm font-medium text-[#616161]">Soul (markdown sidecar)</span>
+                  <textarea class="sidecar w-full min-h-[160px] p-2 text-xs border border-[#e0e0e0] rounded bg-white font-mono" :placeholder="'# Soul — the role\'s system prompt / personality (markdown).'" v-model="sidecar_draft" @input="SidecarDraft(($event.target as HTMLInputElement).value)" />
+                </div>
+              </div>
+            </div>
+          </template>
+        </template>
+      </div>
     </div>
 
 </template>
@@ -352,286 +386,3 @@ onMounted(() => {
 /* Component styles */
 
 </style>
-
-<style scoped>
-
-        .collection {
-            display: grid;
-            grid-template-columns: 260px 1fr;
-            gap: 16px;
-            max-width: 960px;
-        }
-        .list-pane {
-            border: 1px solid var(--border);
-            border-radius: var(--radius, 8px);
-            background: var(--bg-card);
-            height: fit-content;
-            max-height: 70vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .list-head {
-            display: flex;
-            gap: 6px;
-            padding: 8px;
-            border-bottom: 1px solid var(--border);
-        }
-        .filter-input {
-            flex: 1;
-            padding: 5px 9px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm, 4px);
-            font-size: var(--font-size-sm);
-            background: var(--bg-input);
-            outline: none;
-        }
-        .filter-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--ring);
-        }
-        .create-row {
-            display: flex;
-            gap: 4px;
-            padding: 8px;
-            border-bottom: 1px solid var(--border);
-            background: var(--accent-lighter);
-        }
-        .name-input {
-            flex: 1;
-            padding: 4px 8px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm, 4px);
-            font-size: var(--font-size-sm);
-            background: var(--bg-input);
-            outline: none;
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        }
-        .entity-list {
-            list-style: none;
-            margin: 0;
-            padding: 4px;
-            overflow-y: auto;
-        }
-        .entity-list > div {
-            padding: 7px 10px;
-            border-radius: var(--radius-sm, 4px);
-            cursor: pointer;
-            transition: background 0.12s;
-        }
-        .entity-list > div:hover {
-            background: var(--bg-hover);
-        }
-        .entity-list > div.active {
-            background: var(--accent-light);
-        }
-        .e-name {
-            display: block;
-            font-weight: 600;
-            font-size: var(--font-size-sm);
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            color: var(--text-primary);
-        }
-        .e-desc {
-            display: block;
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 2px;
-            line-height: 1.4;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .list-msg {
-            padding: 16px;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: var(--font-size-sm);
-        }
-        .list-msg.empty {
-            font-style: italic;
-        }
-        .detail-pane {
-            min-width: 0;
-        }
-        .toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 4px 0 12px 0;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 8px;
-        }
-        .meta {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: var(--font-size-sm);
-            color: var(--text-muted);
-        }
-        .mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-        .dirty {
-            color: var(--accent);
-        }
-        .ro-badge {
-            background: var(--bg-hover);
-            color: var(--text-secondary);
-            padding: 1px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-        }
-        .actions {
-            display: flex;
-            gap: 8px;
-        }
-        .btn {
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-primary);
-            padding: 5px 14px;
-            border-radius: var(--radius-sm, 4px);
-            cursor: pointer;
-            font-size: var(--font-size-sm);
-            transition: all 0.15s;
-        }
-        .btn:hover:not(:disabled) {
-            background: var(--bg-hover);
-        }
-        .btn.primary {
-            background: var(--accent);
-            color: var(--accent-foreground);
-            border-color: var(--accent);
-        }
-        .btn.primary:hover:not(:disabled) {
-            background: var(--accent-hover);
-        }
-        .btn.danger {
-            color: var(--danger);
-            border-color: var(--border);
-        }
-        .btn.danger:hover:not(:disabled) {
-            background: rgba(196, 43, 28, 0.08);
-            border-color: var(--danger);
-        }
-        .btn.icon {
-            padding: 4px 10px;
-            font-size: 16px;
-            line-height: 1;
-        }
-        .btn.small {
-            padding: 4px 10px;
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .fields {
-            display: flex;
-            flex-direction: column;
-        }
-        .field-row {
-            display: grid;
-            grid-template-columns: 160px 1fr;
-            gap: 12px;
-            align-items: start;
-            padding: 8px 0;
-        }
-        .field-label {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-            padding-top: 6px;
-            font-weight: 500;
-        }
-        .field-label .hint {
-            font-weight: 400;
-            color: var(--text-muted);
-            font-size: 11px;
-        }
-        .sidecar {
-            width: 100%;
-            min-height: 160px;
-            padding: 8px 10px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm, 4px);
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: var(--font-size-sm);
-            background: var(--bg-input);
-            outline: none;
-            resize: vertical;
-            line-height: 1.5;
-        }
-        .sidecar:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--ring);
-        }
-        .readonly-val {
-            font-size: var(--font-size-sm);
-            color: var(--text-primary);
-            padding-top: 6px;
-        }
-        .skill-body {
-            margin-top: 12px;
-            padding: 12px 14px;
-            background: var(--bg-hover);
-            border-radius: var(--radius, 8px);
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: var(--font-size-sm);
-            line-height: 1.5;
-            white-space: pre-wrap;
-            max-height: 50vh;
-            overflow-y: auto;
-            color: var(--text-secondary);
-        }
-        .state-msg {
-            padding: 14px;
-            border-radius: var(--radius, 8px);
-            background: var(--bg-hover);
-            color: var(--text-secondary);
-            font-size: var(--font-size-base);
-        }
-        .state-msg.error {
-            background: rgba(196, 43, 28, 0.08);
-            color: var(--danger);
-        }
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-        }
-        .modal {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius, 8px);
-            padding: 20px 24px;
-            max-width: 380px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-        }
-        .modal p {
-            margin: 0 0 8px 0;
-            font-size: var(--font-size-base);
-        }
-        .modal-hint {
-            font-size: var(--font-size-sm);
-            color: var(--text-muted);
-        }
-        .modal-hint .inline-code {
-        .modal .strong { font-weight: 600; }
-            background: var(--bg-hover);
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        }
-        .modal-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 16px;
-        }
-    </style>

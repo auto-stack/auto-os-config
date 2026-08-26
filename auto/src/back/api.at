@@ -857,6 +857,8 @@ pub fn entryAt(body str, i int, module_id str) any {
         ew: spec.ew,
         ep: spec.ep,
         url: enumUrlOfEk(spec.ek, spec.ew, module_id, spec.ep),
+        depth: 0,
+        is_on: displayOf(frag) == "true",
     }
 }
 
@@ -912,6 +914,76 @@ pub fn editTagField(body str, key str, add str, remove str) str {
 }
 
 
+
+/// ── Plan 008 batch 3: unified config editor contract (text pipeline) ──────
+
+/// Field count of a subform object (one nesting level).
+pub fn subCount(frag str) int {
+    return json.len(frag)
+}
+
+/// Flat descriptor of a subform's j-th field; `head` is the subform key and
+/// doubles as the provider context (vue cfgProvider semantics). The key is
+/// the dotted path editField understands.
+pub fn subAt(body str, head str, j int, module_id str) any {
+    let sub = json.get(body, head)
+    let ks = json.keys(sub)
+    var ku = ""
+    var j2 = 0
+    for k in ks {
+        if j2 == j {
+            ku = unquote(k)
+        }
+        j2 = j2 + 1
+    }
+    let frag = json.get(sub, ku)
+    let spec = inferField(ku, frag, module_id, head)
+    return {
+        key: head + "." + ku,
+        kind: spec.kind,
+        label: spec.label,
+        value: displayOf(frag),
+        frag: frag,
+        is_table: is_object_array(frag),
+        url: enumUrlOfEk(spec.ek, spec.ew, module_id, head),
+        depth: 1,
+        is_on: displayOf(frag) == "true",
+    }
+}
+
+/// Meta file path of a fetchConfigSafe result (input is the meta fragment).
+pub fn metaFile(meta str) str {
+    return unquote(json.get(meta, "file"))
+}
+
+/// Insert an empty top-level block (Plan 005 add-block, text surgery).
+pub fn addBlockText(body str, name str) str {
+    if json.len(body) == 0 {
+        return "{" + quote_json(name) + ": {}}"
+    }
+    let inner = body.substr(1, body.len() - 2)
+    return "{" + quote_json(name) + ": {}," + inner + ")"
+}
+
+/// Does the top level already contain `name`?
+pub fn bodyHasText(body str, name str) bool {
+    let ks = json.keys(body)
+    for k in ks {
+        if unquote(k) == name {
+            return true
+        }
+    }
+    return false
+}
+
+/// DELETE /api/config/:id/blocks/:name (mirrors api.ts deleteBlockSafe).
+pub fn deleteBlockSafe(id str, name str) any {
+    let del = http.delete(daemon_base() + "/api/config/" + id + "/blocks/" + name, "")
+    if is_transport_error(del) {
+        return { ok: false, error: "Delete request failed" }
+    }
+    return { ok: true }
+}
 
 /// Display value of one top-level field (toggle flip logic in child handlers).
 pub fn fieldDisplayOf(body str, key str) str {

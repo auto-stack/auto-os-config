@@ -1,8 +1,10 @@
 // Capture the current config UI for inspection (7 modules).
 import { chromium } from 'playwright'
 import { mkdirSync } from 'fs'
+import { fileURLToPath } from 'url'
 
-const OUT = 'D:/autostack/auto-os-config/screenshots'
+// Plan 008: repo-relative (was a hardcoded main-repo path — wrong in worktrees)
+const OUT = fileURLToPath(new URL('./screenshots/', import.meta.url))
 mkdirSync(OUT, { recursive: true })
 
 const browser = await chromium.launch({ headless: true })
@@ -32,6 +34,10 @@ for (const [name, file] of modules) {
   const nav = page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('..')
   if (await nav.count()) {
     await nav.click()
+    await page.waitForTimeout(600)
+    // Plan 008 batch 3: the unified editor is Load-first — capture the LOADED state.
+    const load = page.locator('.config-editor button:has-text("Load")')
+    if (await load.count()) { await load.click() }
     await page.waitForTimeout(1200)
     await shot(file)
   } else {
