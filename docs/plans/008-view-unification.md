@@ -1,6 +1,6 @@
 # Plan 008: 视图统一——单一 widget 源双后端
 
-> **状态**：实施中（2026-08-26：Phase 0-2 ✅；批 1-3 双端绿；批 4 vue ✅ / vm 阻塞上游 auto-lang 446 J1；批 5 由批 3/4 吸收；批 6 与 Phase 4 待做）。载体：worktree `auto-os-config-008`（分支 `plan-008-view-unification`）。剩余工作框架见 [Plan 009](009-view-unification-two-stage.md) §0.1-0.2（2026-08-26 现状接管）。
+> **状态**：实施中（2026-08-26：Phase 0-2 ✅；批 1-3 双端绿；批 4 vue ✅ / vm 阻塞上游 auto-lang 446 J1；批 5 由批 3/4 吸收；批 6 与 Phase 4 待做）。载体：worktree `.worktrees/plan-008`（分支 `plan-008-view-unification`；2026-08-26 由外部 auto-os-config-008 迁入项目内）。剩余工作框架见 [Plan 009](009-view-unification-two-stage.md) §0.1-0.2（2026-08-26 现状接管）。
 > **前置**：Plan 007 已完成（逻辑层单一真源：3 store + `use back.api:` 双解析；vm 桌面版功能可用，9 断言门禁绿）。但 007 的 D2"视图分叉"决策导致 vue/vm 两套视图永久双维护，且 vm 视图层从未做设计移植，观感与 web 版断层（用户验收判定：不可接受）。
 > **本计划动因**（2026-08-25 用户质询链）：AutoUI 本身按"一套代码多后端"设计（038-minesweeper 实证单 widget 文件跑 `auto run` + `auto run --render vm`）；本仓两套视图是 Plan 006 手写工程（styles.css + 命名类，无 Tailwind）的历史包袱 + Plan 007 保 vue 零回归的风险决策，**不是框架必然**。本计划回归框架标准姿势。
 > **仓库**：auto-os-config（frontend only；`backend/` daemon 零改动）
