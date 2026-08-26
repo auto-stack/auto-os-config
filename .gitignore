@@ -23,3 +23,4 @@ auto/gen/*
 auto/.am/
 auto/vm/.am/
 auto/vm/.am/
+.worktrees/
