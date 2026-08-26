@@ -1,10 +1,20 @@
-// app.at — VM desktop root (Plan 007 Phase 4; Plan 008 batch 1: the unified
-// Sidebar replaces SidebarVm + ThemePickerVm — one view source per widget,
-// vue regen just emits an unused App.vue while the web root stays AppShell).
+// app.at — shared root for BOTH backends (Plan 008 batch 6): vue (regen →
+// App.vue, mounted by src/main.ts) and vm (auto run -r vm). Replaces the
+// vm-only root (Plan 007) and app_shell.at (Plan 006 form: named classes +
+// style block) — one view source per widget, unified style vocabulary.
 //
-// VG16: one store per widget — the root owns Modules only; the collection
-// browser and editors are separate child widgets with their own store
-// imports.
+// Conventions per sidebar.at (batch 1): bare store imports + `.store.x`
+// references, marker classes (app-layout/content-header/content-body/
+// state-msg) are INERT test hooks, neutrals are deterministic hex, accent
+// only via `primary`, no fractional spacing, row/col styles always carry
+// explicit flex + gap (the vue codegen injects `flex flex-row gap-4` on
+// row/col otherwise — source gap wins the cascade, but the injected gap
+// must never be the only gap).
+//
+// The `key:` on each content child forces a fresh instance per module on
+// vue so per-module state (editor drafts) rebinds on switch — the trick the
+// hand-written shell used (Plan 006). vm child widgets have no auto-Init,
+// so the Load button (batch 3) covers the reload path there.
 use modules_store: Modules
 use sidebar: Sidebar
 use daemon_view: DaemonView
@@ -15,30 +25,38 @@ widget App {
     msg Msg { Init }
 
     view {
-        row (style: "h-full w-full") {
+        row (style: "app-layout h-full w-full flex flex-row gap-0") {
             Sidebar { }
-            col (style: "flex-1") {
-                if .store.loading {
-                    text (text: "Loading configuration...", style: "p-4") {}
+            col (style: "flex-1 flex flex-col gap-0") {
+                row (style: "content-header h-[48px] shrink-0 flex flex-row items-center gap-0 px-6 border-b border-[#e0e0e0] bg-white") {
+                    text (text: .store.title, style: "text-xl font-semibold text-[#1a1a1a]") {}
                 }
-                if .store.error != "" {
-                    text (text: "⚠️ " + .store.error, style: "p-4 text-[#c42b1c]") {}
-                }
-                if .store.loading == false && .store.error == "" {
-                    if .store.active_kind == "" {
-                        text (text: "Select a module from the left to configure it.", style: "p-4") {}
+                col (style: "content-body flex-1 flex flex-col gap-0 overflow-auto p-6") {
+                    if .store.loading {
+                        text (text: "Loading configuration...", style: "state-msg text-base text-[#8a8a8a]") {}
                     }
-                    if .store.active_kind == "file" {
-                        if .store.active_id == "ai-daemon" {
-                            DaemonView(module_id: .store.active_id) { }
-                            ConfigEditor(module_id: .store.active_id) { }
-                        }
-                        if .store.active_id != "ai-daemon" {
-                            ConfigEditor(module_id: .store.active_id) { }
-                        }
+                    if .store.loading == false && .store.error != "" {
+                        text (text: "⚠️ " + .store.error, style: "state-msg error text-base text-[#c42b1c]") {}
                     }
-                    if .store.active_kind == "collection" {
-                        CollectionBrowser(module_id: .store.active_id, read_only: .store.read_only) { }
+                    if .store.loading == false && .store.error == "" {
+                        if .store.active_kind == "" {
+                            text (text: "Select a module from the left to configure it.", style: "state-msg text-base text-[#8a8a8a]") {}
+                        }
+                        if .store.active_kind == "file" {
+                            if .store.active_id == "ai-daemon" {
+                                DaemonView(module_id: .store.active_id, key: .store.active_id) { }
+                                ConfigEditor(module_id: .store.active_id, key: "aaid-cfg") { }
+                            }
+                            if .store.active_id != "ai-daemon" {
+                                ConfigEditor(module_id: .store.active_id, key: .store.active_id) { }
+                            }
+                        }
+                        if .store.active_kind == "collection" {
+                            CollectionBrowser(module_id: .store.active_id, read_only: .store.read_only, key: .store.active_id) { }
+                        }
+                        if .store.active_kind != "" && .store.active_kind != "file" && .store.active_kind != "collection" {
+                            text (text: "Custom remote modules were removed in Plan 006 (createComponent(Vue) protocol retired).", style: "state-msg text-base text-[#8a8a8a]") {}
+                        }
                     }
                 }
             }
@@ -46,6 +64,8 @@ widget App {
     }
 
     on {
-        .Init -> { store.Init() }
+        .Init -> {
+            store.Init()
+        }
     }
 }

@@ -40,19 +40,26 @@ done
 # the auto tree (../../ = repo root from src/components/). @/ext/src/lib/api
 # (direct api imports in components) maps to the host transport layer.
 mkdir -p ../src/components
-# Plan 007: vm-only widgets (and the vm root App) are never used by the web
-# app and import stores via a path the vue codegen emits incorrectly —
-# remove stale copies and skip them in the web deployment. They only need to
-# run on the vm track (auto run -r vm).
-VM_ONLY="App.vue ConfigEditorVm.vue DaemonViewVm.vue CollectionBrowserVm.vue"
-for vm in $VM_ONLY; do rm -f "../src/components/${vm}"; done
+# Plan 008 batch 6: the vm/web exclusions are retired — App.vue (shared root
+# from app.at) deploys like any widget; sweep stale Plan 006/007 artifacts
+# (AppShell + retired Vm widgets) that the gen tree no longer produces.
+for stale in AppShell.vue ConfigEditorVm.vue DaemonViewVm.vue CollectionBrowserVm.vue SidebarVm.vue ThemePickerVm.vue; do
+  rm -f "../src/components/${stale}"
+done
 for f in gen/front/vue/src/components/*.vue; do
   base=$(basename "$f")
-  case " $VM_ONLY " in *" $base "*) continue ;; esac
   sed -e "s|@/ext/src/front/utils/|../../auto/src/front/utils/|g" \
       -e "s|@/ext/src/lib/api|../../lib/api|g" \
       -e "s|@/stores/use|../stores/auto/use|g" \
       "$f" > "../src/components/${base}"
 done
+# Root App.vue (batch 6): the codegen emits it at the scaffold root position
+# (gen/front/vue/src/App.vue), not in components/ — deploy to src/ with the
+# root-depth import rewrites (batch 6: the shared root from app.at).
+sed -e "s|@/components/|./components/|g" \
+    -e "s|@/stores/use|./stores/auto/use|g" \
+    -e "s|@/ext/src/front/utils/|../auto/src/front/utils/|g" \
+    -e "s|@/ext/src/lib/api|./lib/api|g" \
+    "gen/front/vue/src/App.vue" > "../src/App.vue"
 
 echo "REGEN OK — components: $(find ../src/components -maxdepth 1 -name '*.vue' | wc -l), stores: $(find ../src/stores/auto -maxdepth 1 -name '*.ts' 2>/dev/null | wc -l)"
