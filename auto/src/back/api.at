@@ -1094,7 +1094,7 @@ pub fn entryAt(body str, i int, module_id str) any {
     let frag = json.get(body, ku)
     // css-era configEntries：顶层字段的 provider 上下文 = 全局 default_provider
     // （default_model 据此成为 self-models 枚举下拉/空选项回退）。
-    let prov = ""
+    var prov = ""
     let dp = json.get(body, "default_provider")
     if json.type_of(dp) == "string" {
         prov = unquote(dp)

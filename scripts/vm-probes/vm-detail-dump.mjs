@@ -7,7 +7,7 @@ const PORT = process.argv[2] || '9378';
 const MCP = `http://127.0.0.1:${PORT}/mcp`;
 
 const proc = spawn('auto', ['run', '-r', 'vm'], {
-  cwd: new URL('../auto/', import.meta.url),
+  cwd: new URL('../../auto/', import.meta.url),
   env: { ...process.env, AUTOUI_MCP_PORT: PORT },
   stdio: 'ignore',
 });

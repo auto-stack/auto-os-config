@@ -9,7 +9,7 @@ const CADENCE = Number(process.argv[3] || '500');
 const MCP = `http://127.0.0.1:${PORT}/mcp`;
 
 const proc = spawn('auto', ['run', '-r', 'vm'], {
-  cwd: new URL('../auto/', import.meta.url),
+  cwd: new URL('../../auto/', import.meta.url),
   env: { ...process.env, AUTOUI_MCP_PORT: PORT },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
