@@ -25,7 +25,7 @@
 //   - 已登记的降级残留（待后续批次还原）：select 暂为自由文本（枚举选项
 //     管线未建）、tags/multiselect 暂为加号式（chips 未还原）、table 暂为
 //     只读 JSON（可编辑表格未还原）、confirm 行内化（vm 无 window.confirm）。
-use back.api: fetchConfigSafe, putConfigSafe, deleteBlockSafe, entriesCount, entryAt, subCount, subAt, editField, editTagField, addBlockText, bodyHasText, metaFile
+use back.api: fetchConfigSafe, putConfigSafe, deleteBlockSafe, entriesCount, entryAt, subCount, subAt, editField, editTagField, addBlockText, bodyHasText, metaFile, warmEnumsText, setCellText, tableAddRowText, tableRemoveRowText
 
 widget ConfigEditor(module_id: str) {
     msg Msg {
@@ -38,7 +38,11 @@ widget ConfigEditor(module_id: str) {
         NameDraft(str),
         Apply(map, str),
         TagAdd(map),
+        TagRemove(map, str),
         Toggle(map, bool),
+        TableCell(map, int, str, str),
+        TableRowAdd(map),
+        TableRowRemove(map, int),
         PwToggle,
         ToggleAddBlock,
         AddBlock,
@@ -228,34 +232,104 @@ widget ConfigEditor(module_id: str) {
                                         }
                                     }
                                     if e.kind == "select" {
-                                        input (value: e.value, "type": "text", placeholder: "(not set)", style: "input") {
-                                            oninput: .Draft
-                                            onchange: .Apply(e, $event.target.value)
+                                        if e.options.len() > 0 {
+                                            select (value: e.value, style: "input") {
+                                                onchange: .Apply(e, $event.target.value)
+                                                for o in e.options {
+                                                    option (value: o.value, text: o.label) {}
+                                                }
+                                                if e.has_current {
+                                                    option (value: e.value, text: e.value + " (current)") {}
+                                                }
+                                            }
+                                        }
+                                        if e.options.len() == 0 {
+                                            div (style: "fallback-text gap-[0px]") {
+                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input") {
+                                                    oninput: .Draft
+                                                    onchange: .Apply(e, $event.target.value)
+                                                }
+                                                span (style: "fallback-hint", text: "no options available (e.g. builtin-only) — type freely") {}
+                                            }
                                         }
                                     }
                                     if e.kind == "tags" {
-                                        div (style: "flex items-center gap-2") {
-                                            input (value: "", "type": "text", placeholder: "add…", style: "input tag-input") {
-                                                oninput: .Draft
+                                        div (style: "tags") {
+                                            for t in e.items {
+                                                span (style: "tag") {
+                                                    text (text: t) {}
+                                                    button (text: "×", style: "tag-x") {
+                                                        onclick: .TagRemove(e, t)
+                                                    }
+                                                }
                                             }
-                                            button (style: "btn", text: "Add") {
-                                                onclick: .TagAdd(e)
+                                            input (value: "", "type": "text", placeholder: "add…", style: "tag-input") {
+                                                oninput: .Draft
+                                                onkeydown.enter: .TagAdd(e)
                                             }
                                         }
                                     }
                                     if e.kind == "multiselect" {
-                                        div (style: "flex items-center gap-2") {
-                                            input (value: "", "type": "text", placeholder: "add…", style: "input tag-input") {
-                                                oninput: .Draft
-                                            }
-                                            button (style: "btn", text: "Add") {
-                                                onclick: .TagAdd(e)
+                                        div (style: "multiselect") {
+                                            if e.options.len() == 0 {
+                                                p (style: "ms-empty", text: "No options available (directory empty or missing).") {}
                                             }
                                         }
                                     }
                                     if e.kind == "table" {
-                                        div (style: "table-readonly") {
-                                            text (text: e.frag, style: "font-mono text-xs text-[#616161] whitespace-pre-wrap break-all") {}
+                                        div (style: "table-wrap gap-[0px]") {
+                                            table (style: "tbl") {
+                                                thead {
+                                                    tr {
+                                                        for c in e.t_cols {
+                                                            th (text: c.name) {}
+                                                        }
+                                                        th (style: "row-act") {}
+                                                    }
+                                                }
+                                                tbody {
+                                                    for ri, r in e.t_rows {
+                                                        tr {
+                                                            for c in e.t_cols {
+                                                                td {
+                                                                    if c.kind == "select" {
+                                                                        select (value: r[c.name], style: "cell-select") {
+                                                                            onchange: .TableCell(e, ri, c.name, $event.target.value)
+                                                                            for o in c.options {
+                                                                                option (value: o.value, text: o.label) {}
+                                                                            }
+                                                                            option (value: r[c.name], text: r[c.name]) {}
+                                                                        }
+                                                                    }
+                                                                    if c.kind == "number" {
+                                                                        input (value: r[c.name], "type": "number", style: "cell-input") {
+                                                                            onchange: .TableCell(e, ri, c.name, $event.target.value)
+                                                                        }
+                                                                    }
+                                                                    if c.kind != "select" && c.kind != "number" {
+                                                                        input (value: r[c.name], "type": "text", style: "cell-input") {
+                                                                            onchange: .TableCell(e, ri, c.name, $event.target.value)
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            td (style: "row-act") {
+                                                                button (text: "×", style: "del-row") {
+                                                                    onclick: .TableRowRemove(e, ri)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    if e.t_rows.len() == 0 {
+                                                        tr {
+                                                            td (style: "empty", text: "(empty — click + Row)") {}
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            button (text: "+ Row", style: "add-row") {
+                                                onclick: .TableRowAdd(e)
+                                            }
                                         }
                                     }
                                 }
@@ -291,6 +365,7 @@ widget ConfigEditor(module_id: str) {
                 .dirty = false
                 .loaded_once = true
                 .status = "loaded"
+                let w = warmEnumsText(.body, .module_id)
                 var es = []
                 let n = entriesCount(.body)
                 var i = 0
@@ -331,6 +406,7 @@ widget ConfigEditor(module_id: str) {
                 .dirty = false
                 .loaded_once = true
                 .status = "loaded"
+                let w = warmEnumsText(.body, .module_id)
                 var es = []
                 let n = entriesCount(.body)
                 var i = 0
@@ -461,6 +537,118 @@ widget ConfigEditor(module_id: str) {
                 .entries = es
                 .draft = ""
             }
+        }
+
+        .TagRemove(e, t) -> {
+            .body = editTagField(.body, e.key, "", t)
+            .dirty = true
+            var es = []
+            let n = entriesCount(.body)
+            var i = 0
+            loop {
+                if i >= n {
+                    break
+                }
+                es.push(entryAt(.body, i, .module_id))
+                if entryAt(.body, i, .module_id).kind == "subform" {
+                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                    var j = 0
+                    loop {
+                        if j >= sc {
+                            break
+                        }
+                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        j = j + 1
+                    }
+                }
+                i = i + 1
+            }
+            .entries = es
+            .draft = ""
+        }
+
+        .TableCell(e, ri, col, v) -> {
+            .body = setCellText(.body, e.key, ri, col, v)
+            .dirty = true
+            var es = []
+            let n = entriesCount(.body)
+            var i = 0
+            loop {
+                if i >= n {
+                    break
+                }
+                es.push(entryAt(.body, i, .module_id))
+                if entryAt(.body, i, .module_id).kind == "subform" {
+                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                    var j = 0
+                    loop {
+                        if j >= sc {
+                            break
+                        }
+                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        j = j + 1
+                    }
+                }
+                i = i + 1
+            }
+            .entries = es
+            .draft = ""
+        }
+
+        .TableRowAdd(e) -> {
+            .body = tableAddRowText(.body, e.key)
+            .dirty = true
+            var es = []
+            let n = entriesCount(.body)
+            var i = 0
+            loop {
+                if i >= n {
+                    break
+                }
+                es.push(entryAt(.body, i, .module_id))
+                if entryAt(.body, i, .module_id).kind == "subform" {
+                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                    var j = 0
+                    loop {
+                        if j >= sc {
+                            break
+                        }
+                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        j = j + 1
+                    }
+                }
+                i = i + 1
+            }
+            .entries = es
+            .draft = ""
+        }
+
+        .TableRowRemove(e, ri) -> {
+            .body = tableRemoveRowText(.body, e.key, ri)
+            .dirty = true
+            var es = []
+            let n = entriesCount(.body)
+            var i = 0
+            loop {
+                if i >= n {
+                    break
+                }
+                es.push(entryAt(.body, i, .module_id))
+                if entryAt(.body, i, .module_id).kind == "subform" {
+                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                    var j = 0
+                    loop {
+                        if j >= sc {
+                            break
+                        }
+                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        j = j + 1
+                    }
+                }
+                i = i + 1
+            }
+            .entries = es
+            .draft = ""
         }
 
         .Save -> {

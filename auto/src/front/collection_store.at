@@ -10,7 +10,7 @@
 //  - stores cannot self-dispatch actions — Init/Reload inline the reload
 //    logic, Create inlines the Select body;
 //  - the fm entity object stays flattened into three str fields.
-use back.api: fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, editTagField, fieldDisplayOf
+use back.api: fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, editTagField, fieldDisplayOf, warmEnumsText, setCellText, tableAddRowText, tableRemoveRowText
 
 store Collection {
     model {
@@ -52,6 +52,8 @@ store Collection {
         SaveEntity,
         DelEntity(str),
         FieldEdited(map),
+        SetBodyText(str),
+        TagRemove(str, str),
         SetSidecar(str),
 
         MarkDirty,
@@ -156,7 +158,8 @@ store Collection {
                         .is_read_only = false
                         .body_text = e.value
                         .sidecar = e.sidecar
-                        var es = []
+                        let w = warmEnumsText(.body_text, .module_id)
+            var es = []
                         var ek = []
                         let n2 = entriesCount(e.value)
                         var i2 = 0
@@ -204,7 +207,8 @@ store Collection {
                     .is_read_only = false
                     .body_text = r.value
                     .sidecar = r.sidecar
-                    var es = []
+                    let w = warmEnumsText(.body_text, .module_id)
+            var es = []
                     var ek = []
                     let n = entriesCount(r.value)
                     var i = 0
@@ -389,6 +393,7 @@ store Collection {
         // authoritative body text and re-project the display entries (D5).
         .FieldEdited(args) -> {
             .body_text = editField(.body_text, args.path, args.value)
+            let w = warmEnumsText(.body_text, .module_id)
             var es = []
             var ek = []
             let n = entriesCount(.body_text)
@@ -415,8 +420,47 @@ store Collection {
 
         // Plan 008 batch 4: tags/multiselect append (editTagField is the
         // proper array mutation — display-string concat would corrupt).
+        .SetBodyText(nb) -> {
+            .body_text = nb
+            var es = []
+            var ek = []
+            let n = entriesCount(.body_text)
+            var i = 0
+            loop {
+                if i >= n {
+                    break
+                }
+                let d = entryAt(.body_text, i, .module_id)
+                es.push(d)
+                ek.push(d.key)
+                i = i + 1
+            }
+            .entries = es
+            .entry_keys = ek
+        }
+
+        .TagRemove(k, t) -> {
+            .body_text = editTagField(.body_text, k, "", t)
+            var es = []
+            var ek = []
+            let n = entriesCount(.body_text)
+            var i = 0
+            loop {
+                if i >= n {
+                    break
+                }
+                let d = entryAt(.body_text, i, .module_id)
+                es.push(d)
+                ek.push(d.key)
+                i = i + 1
+            }
+            .entries = es
+            .entry_keys = ek
+        }
+
         .TagField(k, add) -> {
             .body_text = editTagField(.body_text, k, add, "")
+            let w = warmEnumsText(.body_text, .module_id)
             var es = []
             var ek = []
             let n = entriesCount(.body_text)

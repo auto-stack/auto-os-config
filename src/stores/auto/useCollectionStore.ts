@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, editTagField, fieldDisplayOf } from '../../lib/api'
+import { fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, editTagField, fieldDisplayOf, warmEnumsText, setCellText, tableAddRowText, tableRemoveRowText } from '../../lib/api'
 
 const module_id = ref<string>('')
 const list = ref<any>([])
@@ -60,6 +60,7 @@ if (r.ok == false) {error.value = r.error;
 }
  }
     const FieldEdited = async (args: any) => { body_text.value = await editField(body_text.value, args.path, args.value);
+let w = await warmEnumsText(body_text.value, module_id.value);
 let es = [];
 let ek = [];
 let n = await entriesCount(body_text.value);
@@ -163,6 +164,7 @@ if (r.ok) {if (r.is_atom) {
 is_read_only.value = false;
 body_text.value = r.value;
 sidecar.value = r.sidecar;
+let w = await warmEnumsText(body_text.value, module_id.value);
 let es = [];
 let ek = [];
 let n = await entriesCount(r.value);
@@ -222,6 +224,7 @@ let e = await fetchEntityFlat(module_id.value, selected_name.value);
 if (e.ok) {if (e.is_atom) {is_read_only.value = false;
 body_text.value = e.value;
 sidecar.value = e.sidecar;
+let w = await warmEnumsText(body_text.value, module_id.value);
 let es = [];
 let ek = [];
 let n2 = await entriesCount(e.value);
@@ -278,6 +281,21 @@ view_names.value = vn;
 }saving.value = false;
 }
  }
+    const SetBodyText = async (nb: string) => { body_text.value = nb;
+let es = [];
+let ek = [];
+let n = await entriesCount(body_text.value);
+let i: number = 0;
+while (true) {
+if (i >= n) {break;
+}let d = await entryAt(body_text.value, i, module_id.value);
+es.push(d);
+ek.push(d.key);
+i = i + 1;
+}
+entries.value = es;
+entry_keys.value = ek;
+ }
     const SetFilter = (q: string) => { name_filter.value = q;
 let vn = [];
 let ve = [];
@@ -294,6 +312,7 @@ view_names.value = vn;
 dirty.value = true;
  }
     const TagField = async (k: string, add: string) => { body_text.value = await editTagField(body_text.value, k, add, '');
+let w = await warmEnumsText(body_text.value, module_id.value);
 let es = [];
 let ek = [];
 let n = await entriesCount(body_text.value);
@@ -308,6 +327,21 @@ i = i + 1;
 entries.value = es;
 entry_keys.value = ek;
 dirty.value = true;
+ }
+    const TagRemove = async (k: string, t: string) => { body_text.value = await editTagField(body_text.value, k, '', t);
+let es = [];
+let ek = [];
+let n = await entriesCount(body_text.value);
+let i: number = 0;
+while (true) {
+if (i >= n) {break;
+}let d = await entryAt(body_text.value, i, module_id.value);
+es.push(d);
+ek.push(d.key);
+i = i + 1;
+}
+entries.value = es;
+entry_keys.value = ek;
  }
     return {
         module_id,
@@ -338,8 +372,10 @@ dirty.value = true;
         Pick,
         Reload,
         SaveEntity,
+        SetBodyText,
         SetFilter,
         SetSidecar,
         TagField,
+        TagRemove,
     }
 }

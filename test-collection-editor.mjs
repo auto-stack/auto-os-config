@@ -69,10 +69,10 @@ const tierVal = await page.evaluate(() => {
   const tierLabel = labels.find((l) => l.textContent?.toLowerCase().includes('model tier'));
   if (!tierLabel) return null;
   const row = tierLabel.closest('.field-row');
-  return row?.querySelector('input')?.value ?? null;
+  return row?.querySelector('input, select')?.value ?? null;
 });
 console.log('  tier field value:', tierVal);
-if (tierVal) pass(`model_tier rendered as free-text input (=${tierVal})`);
+if (tierVal) pass(`model_tier rendered as a control (=${tierVal})`);
 else fail('model_tier input missing');
 
 // ── Create / edit / delete a throwaway role ───────────────────────────────
@@ -140,7 +140,7 @@ if (existsSync(soulMd)) {
 // delete via confirm modal
 await page.click('.detail-pane button:has-text("Delete")');
 await page.waitForTimeout(400);
-await page.click('button:has-text("Yes, delete")');
+await page.click('.modal-actions button:has-text("Delete")');
 await page.waitForTimeout(1200);
 const afterDelete = await page.$$eval('.entity-list .e-name', (els) => els.map((e) => e.textContent));
 if (!afterDelete.includes('_e2e_role')) pass('role deleted from list');

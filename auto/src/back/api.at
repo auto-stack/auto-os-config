@@ -230,6 +230,239 @@ pub fn loadEnum(url str) []any {
     return out
 }
 
+/// ── 2026-08-27 像素对拍二阶段：select 真下拉 / tags chips / 可编辑表格 ──
+/// 提交时机与缓存：entryAt 每次重建都会同步 loadEnum（本地 daemon，量小可接受）；
+/// vue 端由 api.ts warmEnums 在 Init 时预热 enumCache 后同步读缓存。
+
+/// select 条目的选项列表（非 select 或无枚举 → []）。
+fn selectOptionsOf(spec any, module_id str) []any {
+    var out = []
+    if spec.kind == "select" {
+        out = loadEnum(enumUrlOfEk(spec.ek, spec.ew, module_id, spec.ep))
+    }
+    return out
+}
+
+/// options 的 value 里是否已含 val（css-era has_current：不含才追加 "(current)"）。
+fn optionValuesHave(opts []any, val str) bool {
+    for o in opts {
+        if o.value == val {
+            return true
+        }
+    }
+    return false
+}
+
+/// multiselect 复选框的勾选态平行数组（视图无 contains，api 预计算）。
+fn msCheckedOf(items []str, opts []any) []bool {
+    var out = []
+    for o in opts {
+        var hit = false
+        for t in items {
+            if t == o.value {
+                hit = true
+            }
+        }
+        out.push(hit)
+    }
+    return out
+}
+
+/// tags/multiselect 的字符串元素（原生数组，视图可直接 for 循环）。
+fn stringItemsOf(frag str) []str {
+    var out = []
+    if json.type_of(frag) == "array" {
+        let n = json.len(frag)
+        var i = 0
+        loop {
+            if i >= n {
+                break
+            }
+            out.push(displayOf(json.get_at(frag, i)))
+            i = i + 1
+        }
+    }
+    return out
+}
+
+/// 表格列描述（css-era tableInfo+mergeCols 等价）：去重保序；kind 强制标量
+/// （inferColumn 语义：嵌套 object/array → text）；枚举列 options 同步取。
+pub fn tableColsOf(frag str, module_id str) []any {
+    var cols = []
+    if json.type_of(frag) != "array" {
+        return cols
+    }
+    let n = json.len(frag)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let row = json.get_at(frag, i)
+        if json.type_of(row) != "object" {
+            i = i + 1
+        } else {
+            let ks = json.keys(row)
+            for k in ks {
+                let kn = unquote(k)
+                var seen = false
+                for c in cols {
+                    if c.name == kn {
+                        seen = true
+                    }
+                }
+                if seen == false {
+                    let sample = json.get(row, kn)
+                    let spec = inferField(kn, sample, module_id, "")
+                    var kind = spec.kind
+                    if spec.kind == "table" || spec.kind == "subform" {
+                        kind = "text"
+                    }
+                    var opts = []
+                    if spec.ek != "" {
+                        opts = loadEnum(enumUrlOfEk(spec.ek, spec.ew, module_id, spec.ep))
+                    }
+                    cols.push({ name: kn, kind: kind, options: opts })
+                }
+            }
+            i = i + 1
+        }
+    }
+    return cols
+}
+
+/// Init 预热（vm 同步；vue 端孪生是 async，走 await）。
+pub fn warmEnumsText(body str, module_id str) bool {
+    let n = entriesCount(body)
+    var i = 0
+    loop {
+        if i >= n {
+            break
+        }
+        let e = entryAt(body, i, module_id)
+        if e.kind == "table" {
+            tableColsOf(e.frag, module_id)
+        }
+        if e.kind == "subform" {
+            let sc = subCount(e.frag)
+            var j = 0
+            loop {
+                if j >= sc {
+                    break
+                }
+                let sub = subAt(body, e.key, j, module_id)
+                if sub.is_table {
+                    tableColsOf(sub.frag, module_id)
+                }
+                j = j + 1
+            }
+        }
+        i = i + 1
+    }
+    return true
+}
+
+/// depth≤2 的片段取值（editField 的读半边）。
+fn fragAt(body str, path str) str {
+    let parts = path.split(".")
+    if parts.len() == 1 {
+        return json.get(body, path)
+    }
+    return json.get(json.get(body, parts[0]), parts[1])
+}
+
+/// 数组片段整体重建（保留其余元素原文）。
+fn arrayReplaced(arr str, i int, newRow str) str {
+    let n = json.len(arr)
+    var out = "["
+    var k = 0
+    loop {
+        if k >= n {
+            break
+        }
+        if k > 0 {
+            out = out + ","
+        }
+        if k == i {
+            out = out + newRow
+        } else {
+            out = out + json.get_at(arr, k)
+        }
+        k = k + 1
+    }
+    return out + "]"
+}
+
+/// 表格单元格整改（css-era setCell：按旧单元格类型重定型后整片替换）。
+pub fn setCellText(body str, path str, i int, col str, v str) str {
+    let arr = fragAt(body, path)
+    if json.type_of(arr) != "array" {
+        return body
+    }
+    if i >= json.len(arr) {
+        return body
+    }
+    let row = json.get_at(arr, i)
+    let nv = new_value_fragment(json.get(row, col), v)
+    let row2 = set_obj_field(row, col, nv)
+    return setBodyField(body, path, arrayReplaced(arr, i, row2))
+}
+
+/// 追加空行（css-era blankRow：按现有列全集补 ""；空表 → {}）。
+pub fn tableAddRowText(body str, path str) str {
+    let arr = fragAt(body, path)
+    if json.type_of(arr) != "array" {
+        return body
+    }
+    let cols = tableColsOf(arr, "add-row")
+    var row = "{"
+    var first = true
+    for c in cols {
+        if first == false {
+            row = row + ","
+        }
+        first = false
+        row = row + quote_json(c.name) + ":" + quote_json("")
+    }
+    row = row + "}"
+    var out = arr
+    if json.len(arr) > 0 {
+        out = arr.substr(0, arr.len() - 1) + "," + row + "]"
+    } else {
+        out = "[" + row + "]"
+    }
+    return setBodyField(body, path, out)
+}
+
+/// 删除第 i 行。
+pub fn tableRemoveRowText(body str, path str, i int) str {
+    let arr = fragAt(body, path)
+    if json.type_of(arr) != "array" {
+        return body
+    }
+    let n = json.len(arr)
+    if i >= n {
+        return body
+    }
+    var out = "["
+    var k = 0
+    var first = true
+    loop {
+        if k >= n {
+            break
+        }
+        if k != i {
+            if first == false {
+                out = out + ","
+            }
+            first = false
+            out = out + json.get_at(arr, k)
+        }
+        k = k + 1
+    }
+    return setBodyField(body, path, out + "]")
+}
+
 // ─── modules (modules_store surface) ────────────────────────────────────────
 
 fn module_entry(ent str) any {
@@ -859,7 +1092,15 @@ pub fn entryAt(body str, i int, module_id str) any {
         i2 = i2 + 1
     }
     let frag = json.get(body, ku)
-    let spec = inferField(ku, frag, module_id, "")
+    // css-era configEntries：顶层字段的 provider 上下文 = 全局 default_provider
+    // （default_model 据此成为 self-models 枚举下拉/空选项回退）。
+    let prov = ""
+    let dp = json.get(body, "default_provider")
+    if json.type_of(dp) == "string" {
+        prov = unquote(dp)
+    }
+    let spec = inferField(ku, frag, module_id, prov)
+    let opts = selectOptionsOf(spec, module_id)
     return {
         key: ku,
         kind: spec.kind,
@@ -875,6 +1116,12 @@ pub fn entryAt(body str, i int, module_id str) any {
         is_on: displayOf(frag) == "true",
         is_provider: spec.kind == "subform" && fragHasKey(frag, "kind"),
         box_class: "field-row",
+        options: opts,
+        has_current: optionValuesHave(opts, displayOf(frag)),
+        items: stringItemsOf(frag),
+        ms_checked: msCheckedOf(stringItemsOf(frag), selectOptionsOf(spec, module_id)),
+        t_cols: tableColsOf(frag, module_id),
+        t_rows: [],
     }
 }
 
@@ -957,6 +1204,7 @@ pub fn subAt(body str, head str, j int, module_id str) any {
     }
     let frag = json.get(sub, ku)
     let spec = inferField(ku, frag, module_id, head)
+    let opts = selectOptionsOf(spec, module_id)
     var bc = "subform-cont"
     if j == 0 {
         bc = bc + " first"
@@ -975,6 +1223,12 @@ pub fn subAt(body str, head str, j int, module_id str) any {
         depth: 1,
         is_on: displayOf(frag) == "true",
         box_class: bc,
+        options: opts,
+        has_current: optionValuesHave(opts, displayOf(frag)),
+        items: stringItemsOf(frag),
+        ms_checked: msCheckedOf(stringItemsOf(frag), selectOptionsOf(spec, module_id)),
+        t_cols: tableColsOf(frag, module_id),
+        t_rows: [],
     }
 }
 

@@ -412,6 +412,223 @@ input:focus, select:focus {
     overflow: hidden;
 }
 
+/* ── 对拍二阶段：select 回退/tags chips/multiselect/可编辑表格/modal ──────
+   css-era ScalarFields + TableField + CollectionBrowser modal 的原值拷贝，
+   编辑器与集合页两个命名空间共用。 */
+.config-editor .fallback-text, .collection .fallback-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-width: 420px;
+}
+.config-editor .fallback-hint, .collection .fallback-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+.config-editor .multiselect, .collection .multiselect {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    max-width: 560px;
+}
+.config-editor .ms-item, .collection .ms-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+.config-editor .ms-empty, .collection .ms-empty {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    font-style: italic;
+}
+.config-editor .tags, .collection .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    max-width: 560px;
+}
+.config-editor .tag, .collection .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px 2px 8px;
+    background: var(--accent-light);
+    border: 1px solid var(--accent-light);
+    border-radius: 10px;
+    font-size: var(--font-size-sm);
+    color: var(--accent);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.config-editor .tag-x, .collection .tag-x {
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+}
+.config-editor .tag-x:hover, .collection .tag-x:hover {
+    color: var(--danger);
+}
+.config-editor .tag-input, .collection .tag-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    width: 90px;
+    padding: 0;
+}
+.config-editor .table-wrap, .collection .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 6px);
+    overflow: hidden;
+    max-width: 720px;
+}
+.config-editor .tbl, .collection .tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+.config-editor .tbl th, .collection .tbl th,
+.config-editor .tbl td, .collection .tbl td {
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+.config-editor .tbl th:last-child, .collection .tbl th:last-child,
+.config-editor .tbl td:last-child, .collection .tbl td:last-child {
+    border-right: none;
+}
+.config-editor .tbl th, .collection .tbl th {
+    background: var(--bg-hover);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+.config-editor .tbl tbody tr:last-child td, .collection .tbl tbody tr:last-child td {
+    border-bottom: none;
+}
+.config-editor .cell-input, .collection .cell-input,
+.config-editor .cell-select, .collection .cell-select {
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: var(--font-size-sm);
+    padding: 3px 6px;
+    border-radius: 3px;
+    outline: none;
+    font-family: inherit;
+    cursor: pointer;
+}
+.config-editor .cell-input:focus, .collection .cell-input:focus,
+.config-editor .cell-select:focus, .collection .cell-select:focus {
+    border-color: var(--accent);
+    background: var(--bg-input);
+    box-shadow: 0 0 0 2px var(--ring);
+}
+.config-editor .row-act, .collection .row-act {
+    width: 32px;
+    text-align: center;
+}
+.config-editor .del-row, .collection .del-row {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+}
+.config-editor .del-row:hover, .collection .del-row:hover {
+    color: var(--danger);
+}
+.config-editor .empty, .collection .empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 12px;
+    font-style: italic;
+}
+.config-editor .add-row, .collection .add-row {
+    margin-top: 6px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 4px 12px;
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+}
+.config-editor .add-row:hover, .collection .add-row:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.modal-backdrop .modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 8px);
+    padding: 20px 24px;
+    max-width: 380px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.modal-backdrop .modal p {
+    margin: 0 0 8px 0;
+    font-size: var(--font-size-base);
+}
+.modal-backdrop .modal-hint {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+.modal-backdrop .modal-hint .inline-code {
+    background: var(--bg-hover);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.modal-backdrop .modal .strong {
+    font-weight: 600;
+}
+.modal-backdrop .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+.modal-backdrop .modal-actions .btn {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 5px 14px;
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+}
+.modal-backdrop .modal-actions .btn.danger {
+    color: var(--danger);
+    border-color: var(--border);
+}
+.modal-backdrop .modal-actions .btn.danger:hover {
+    background: rgba(196, 43, 28, 0.08);
+    border-color: var(--danger);
+}
+
 /* ════════════════════════════════════════════════════════════════════════
    Daemon 测试卡复刻块（2026-08-27）——css-era DaemonView scoped CSS 原值。
    ════════════════════════════════════════════════════════════════════════ */

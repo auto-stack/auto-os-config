@@ -97,14 +97,15 @@ else fail('tier routing fields not found');
 if (info.subformCount >= 1) pass(`provider subforms rendered (${info.subformCount})`);
 else fail('no subform headers');
 
-// default_provider renders as a free-text input (degraded select, D7).
+// default_provider renders as a control (2026-08-27: real select when the
+// self-providers enum yields options, free-text fallback otherwise).
 const providerField = await page.evaluate(() => {
   const rows = [...document.querySelectorAll('.field-row')];
   const r = rows.find((x) => x.querySelector('.field-label')?.textContent?.toLowerCase().includes('default provider'));
-  return r ? r.querySelector('input')?.value : undefined;
+  return r ? r.querySelector('input, select')?.value : undefined;
 });
 console.log('  default_provider value:', providerField);
-if (providerField !== undefined) pass('default_provider field present (free text)');
+if (providerField !== undefined) pass('default_provider field present');
 else fail('default_provider field missing');
 
 // ── Test connection button (aaid offline or online) ───────────────────────

@@ -1,7 +1,7 @@
 <!-- ConfigEditor component - Auto-generated from Auto language -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { addBlockText, bodyHasText, deleteBlockSafe, editField, editTagField, entriesCount, entryAt, fetchConfigSafe, metaFile, putConfigSafe, subAt, subCount } from '@/lib/api'
+import { addBlockText, bodyHasText, deleteBlockSafe, editField, editTagField, entriesCount, entryAt, fetchConfigSafe, metaFile, putConfigSafe, setCellText, subAt, subCount, tableAddRowText, tableRemoveRowText, warmEnumsText } from '@/lib/api'
 
 const body = ref<string>('')
 const entries = ref<any[]>([])
@@ -35,7 +35,11 @@ const emit = defineEmits<{
   NameDraft: [string]
   Apply: [any, string]
   TagAdd: [any]
+  TagRemove: [any, string]
   Toggle: [any, boolean]
+  TableCell: [any, number, string, string]
+  TableRowAdd: [any]
+  TableRowRemove: [any, number]
   PwToggle: []
   ToggleAddBlock: []
   AddBlock: []
@@ -190,6 +194,7 @@ async function Load(): Promise<void> {
   dirty.value = false;
   loaded_once.value = true;
   status.value = 'loaded';
+  let w = await warmEnumsText(body.value, props.module_id);
   let es = [];
   let n = await entriesCount(body.value);
   let i: number = 0;
@@ -242,6 +247,78 @@ async function Save(): Promise<void> {
   emit('Save')
 }
 
+async function TableCell(e: any, ri: any, col: any, v: any): Promise<void> {
+  body.value = await setCellText(body.value, e.key, ri, col, v);
+  dirty.value = true;
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+
+  emit('TableCell', e, ri, col, v)
+}
+
+async function TableRowAdd(e: any): Promise<void> {
+  body.value = await tableAddRowText(body.value, e.key);
+  dirty.value = true;
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+
+  emit('TableRowAdd', e)
+}
+
+async function TableRowRemove(e: any, ri: any): Promise<void> {
+  body.value = await tableRemoveRowText(body.value, e.key, ri);
+  dirty.value = true;
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+
+  emit('TableRowRemove', e, ri)
+}
+
 async function TagAdd(e: any): Promise<void> {
   if (draft.value != '') {body.value = await editTagField(body.value, e.key, draft.value, '');
   dirty.value = true;
@@ -265,6 +342,30 @@ async function TagAdd(e: any): Promise<void> {
   }
 
   emit('TagAdd', e)
+}
+
+async function TagRemove(e: any, t: any): Promise<void> {
+  body.value = await editTagField(body.value, e.key, '', t);
+  dirty.value = true;
+  let es = [];
+  let n = await entriesCount(body.value);
+  let i: number = 0;
+  while (true) {
+  if (i >= n) {break;
+  }es.push(await entryAt(body.value, i, props.module_id));
+  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  let j: number = 0;
+  while (true) {
+  if (j >= sc) {break;
+  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  j = j + 1;
+  }
+  }i = i + 1;
+  }
+  entries.value = es;
+  draft.value = '';
+
+  emit('TagRemove', e, t)
 }
 
 async function Toggle(e: any, on: any): Promise<void> {
@@ -310,6 +411,7 @@ onMounted(async () => {
   dirty.value = false;
   loaded_once.value = true;
   status.value = 'loaded';
+  let w = await warmEnumsText(body.value, props.module_id);
   let es = [];
   let n = await entriesCount(body.value);
   let i: number = 0;
@@ -454,23 +556,74 @@ onMounted(async () => {
                   <input class="input" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                 </template>
                 <template v-if="e.kind == 'select'">
-                  <input class="input" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                  <template v-if="e.options.length > 0">
+                    <select class="input" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)">
+                      <option :value="o.value" v-for="o in e.options" :key="(((o as any)?.id ?? o))">{{ o.label }}</option>
+                      <template v-if="e.has_current">
+                        <option :value="e.value">{{ e.value + ' (current)' }}</option>
+                      </template>
+                    </select>
+                  </template>
+                  <template v-if="e.options.length == 0">
+                    <div class="fallback-text gap-[0px]">
+                      <input class="input" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <span class="fallback-hint">no options available (e.g. builtin-only) — type freely</span>
+                    </div>
+                  </template>
                 </template>
                 <template v-if="e.kind == 'tags'">
-                  <div class="flex items-center gap-2">
-                    <input class="input tag-input" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" />
-                    <button class="btn" @click="TagAdd(e)">Add</button>
+                  <div class="tags">
+                    <span class="tag" v-for="t in e.items" :key="(((t as any)?.id ?? t))">
+                      <span>{{ t }}</span>
+                      <button class="tag-x" @click="TagRemove(e, t)">×</button>
+                    </span>
+                    <input class="tag-input" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" @keydown.enter="TagAdd(e)" />
                   </div>
                 </template>
                 <template v-if="e.kind == 'multiselect'">
-                  <div class="flex items-center gap-2">
-                    <input class="input tag-input" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" />
-                    <button class="btn" @click="TagAdd(e)">Add</button>
+                  <div class="multiselect">
+                    <template v-if="e.options.length == 0">
+                      <p class="ms-empty">No options available (directory empty or missing).</p>
+                    </template>
                   </div>
                 </template>
                 <template v-if="e.kind == 'table'">
-                  <div class="table-readonly">
-                    <span class="font-mono text-xs text-[#616161] whitespace-pre-wrap break-all">{{ e.frag }}</span>
+                  <div class="table-wrap gap-[0px]">
+                    <table class="tbl">
+                      <thead>
+                        <tr>
+                          <th v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">{{ c.name }}</th>
+                          <th class="row-act" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(r, ri) in e.t_rows" :key="(((r as any)?.id ?? r))">
+                          <td v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">
+                            <template v-if="c.kind == 'select'">
+                              <select class="cell-select" :value="r[c.name]" @change="TableCell(e, ri, c.name, ($event.target as HTMLInputElement).value)">
+                                <option :value="o.value" v-for="o in c.options" :key="(((o as any)?.id ?? o))">{{ o.label }}</option>
+                                <option :value="r[c.name]">{{ r[c.name] }}</option>
+                              </select>
+                            </template>
+                            <template v-if="c.kind == 'number'">
+                              <input class="cell-input" :type="'number'" v-model="r[c.name]" @change="TableCell(e, ri, c.name, ($event.target as HTMLInputElement).value)" />
+                            </template>
+                            <template v-if="c.kind != 'select' && c.kind != 'number'">
+                              <input class="cell-input" :type="'text'" v-model="r[c.name]" @change="TableCell(e, ri, c.name, ($event.target as HTMLInputElement).value)" />
+                            </template>
+                          </td>
+                          <td class="row-act">
+                            <button class="del-row" @click="TableRowRemove(e, ri)">×</button>
+                          </td>
+                        </tr>
+                        <template v-if="e.t_rows.length == 0">
+                          <tr>
+                            <td class="empty">(empty — click + Row)</td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                    <button class="add-row" @click="TableRowAdd(e)">+ Row</button>
                   </div>
                 </template>
               </div>
