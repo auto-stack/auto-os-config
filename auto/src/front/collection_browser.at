@@ -114,7 +114,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                 div (style: "contents") {
                                     key: e.name
                                     if .store.selected_name == e.name {
-                                        div (style: "e-row active") {
+                                        button (style: "e-row active") {
                                             onclick: .Pick(e.name)
                                             span (style: "e-name", text: e.name) {}
                                             if e.description != "" {
@@ -123,7 +123,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                         }
                                     }
                                     if .store.selected_name != e.name {
-                                        div (style: "e-row") {
+                                        button (style: "e-row") {
                                             onclick: .Pick(e.name)
                                             span (style: "e-name", text: e.name) {}
                                             if e.description != "" {

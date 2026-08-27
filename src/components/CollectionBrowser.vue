@@ -298,20 +298,20 @@ onMounted(() => {
             <div class="entity-list gap-[0px]">
               <div class="contents" :key="e.name" v-for="e in store.view_entities">
                 <template v-if="store.selected_name == e.name">
-                  <div class="e-row active" @click="Pick(e.name)">
+                  <button class="e-row active" @click="Pick(e.name)">
                     <span class="e-name">{{ e.name }}</span>
                     <template v-if="e.description != ''">
                       <span class="e-desc">{{ e.description }}</span>
                     </template>
-                  </div>
+                  </button>
                 </template>
                 <template v-if="store.selected_name != e.name">
-                  <div class="e-row" @click="Pick(e.name)">
+                  <button class="e-row" @click="Pick(e.name)">
                     <span class="e-name">{{ e.name }}</span>
                     <template v-if="e.description != ''">
                       <span class="e-desc">{{ e.description }}</span>
                     </template>
-                  </div>
+                  </button>
                 </template>
               </div>
             </div>

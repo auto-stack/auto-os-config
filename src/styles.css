@@ -753,6 +753,16 @@ input:focus, select:focus {
     cursor: pointer;
     transition: background 0.12s;
 }
+/* plan010: e-row 由 div 改 button（vm 轨 div 不可交互）——抵消 UA/按钮默认态 */
+.collection button.e-row {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+}
 .collection .e-row:hover {
     background: var(--bg-hover);
 }

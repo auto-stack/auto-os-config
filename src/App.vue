@@ -12,11 +12,15 @@ const emit = defineEmits<{
 }>()
 
 import { useModulesStore } from './stores/auto/useModulesStore'
+import { useThemeStore } from './stores/auto/useThemeStore'
 import { reactive } from 'vue'
 const store = reactive(useModulesStore())
 
 onMounted(() => {
   store.Init();
+
+
+  useThemeStore().Init();
 })
 
 
