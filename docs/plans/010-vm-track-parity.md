@@ -160,6 +160,7 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 - [ ] T7 (C3) 12 视图 diff 台账初稿：
   操作：跑全套 capture+diff+metrics；逐视图归因分层（L1 结构不符单列 / L2 / L3）；人工抽查 ≥3 视图互证。
   验证：台账表（本文件 §残差台账）填满 12 行且每行带初判层级标签。
+  进行中 [2026-08-27]：7/8 视图已建基线（roles 详情截图超时见 U3），初值 diff% 79→26（R3 bg-white 清偿后）；归因分解中——主导残差为 R4 导航文字丢失 + 光栅层。
 
 ### D 相 · 差异清偿迭代
 
@@ -201,8 +202,9 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 
 | U3 | roles 详情视图 | 上游P1 | 选中实体后的详情态 autoui_screenshot 必超时（"iced thread may not be responding"，20s 足否待复测）；其余 7 视图截图正常 | 疑与 U1 同域（detail 富子树 + 截图线程协作） | capture 跳过该视图；T13 实机核对 |
 | R3 | app 内容面板 | L2候选 | content-body 无背景类，iced 默认暗色主题下透明底露出近黑（右半画布全暗）→ 全视图 diff% ~79 的主导项 | css-era html 白底隐式依赖；vm 需显式 bg-white | T8 清偿候选（加 bg 类，css-era 像素应零变化） |
-| R4 | 侧栏导航项 | L2候选 | vm 渲染 nav item 文字不可见（仅图标，容器呈大紫块）——名称/描述 class 绑定或文字色失效 | 待 T7 放大归因（快照树文本节点存在） | T7/T8 清理 |
+| R4 | 侧栏导航项 | L2 | nav item 文字不可见、容器呈大紫块（按钮默认主色主题）。快照树文本节点存在=结构在、样式丢。根因假设：vm 按钮路径仅静态 `extract_string("class")`，**动态 `class:` 绑定（store 预计算串）不解析**；容器有绑定感知的 `extract_style_with` 而 button 无。注意 008 批1 结论「vue 绑定必须 class:」构成跨端挤压 | 上游 aura_view_builder 标签分派差异 | 待实验：button 改 `style:` 绑定（vue 端 inline :style 影响面评估）或上游补齐；T8 攻坚点 |
 | R5 | accent 基线 | 工具纪律 | vm 读 autoos-ui.json 而 vue 用 localStorage，历史状态互串 | 双端存储不同源 | capture 已预置双端 indigo ✅ |
+| R6 | 进程卫生 | 工具纪律 | node 崩溃遗留僵尸 auto.exe 占 MCP 端口——后续所有 boot 截图拍到旧画面（coral 事件实证） | libuv 断言退出不留清场 | capture 已加逐次 taskkill 清场 ✅ |
 
 ## 已知 GAP 汇总（e2e-vm 运行时输出，共 2 项常驻）
 
