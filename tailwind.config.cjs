@@ -30,7 +30,20 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
+        // 像素对拍基准（2026-08-27）：CSS 原版渲染字体 = Segoe UI（styles.css
+        // --font-family 原栈）。Inter 只是 vm 对齐的历史决策，vm 端字体并不取自
+        // 这里的类串，回退不影响 vm 轨。
+        sans: ['Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      // css-era 从不设 line-height（全部 normal）；preflight 的 1.5 与 text-* 的
+      // 固定行高会把每行文字撑高 1-3px，逐组件放大成节奏差。全字号回 normal。
+      fontSize: {
+        xs: ['12px', { lineHeight: 'normal' }],
+        sm: ['14px', { lineHeight: 'normal' }],
+        base: ['16px', { lineHeight: 'normal' }],
+        lg: ['18px', { lineHeight: 'normal' }],
+        xl: ['20px', { lineHeight: 'normal' }],
+        '2xl': ['24px', { lineHeight: 'normal' }],
       },
     },
   },

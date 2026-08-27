@@ -51,6 +51,10 @@ for f in gen/front/vue/src/components/*.vue; do
   sed -e "s|@/ext/src/front/utils/|../../auto/src/front/utils/|g" \
       -e "s|@/ext/src/lib/api|../../lib/api|g" \
       -e "s|@/stores/use|../stores/auto/use|g" \
+      -e "s|\$event\.target\.value|(\$event.target as HTMLInputElement).value|g" \
+      -e "s|\$event\.target\.checked|(\$event.target as HTMLInputElement).checked|g" \
+      -e "s|\$event\.target\.value|($event.target as HTMLInputElement).value|g" \
+      -e "s|\$event\.target\.checked|($event.target as HTMLInputElement).checked|g" \
       "$f" > "../src/components/${base}"
 done
 # Root App.vue (batch 6): the codegen emits it at the scaffold root position
@@ -60,6 +64,10 @@ sed -e "s|@/components/|./components/|g" \
     -e "s|@/stores/use|./stores/auto/use|g" \
     -e "s|@/ext/src/front/utils/|../auto/src/front/utils/|g" \
     -e "s|@/ext/src/lib/api|./lib/api|g" \
+    -e "s|\$event\.target\.value|(\$event.target as HTMLInputElement).value|g" \
+    -e "s|\$event\.target\.checked|(\$event.target as HTMLInputElement).checked|g" \
+    -e "s|\$event\.target\.value|($event.target as HTMLInputElement).value|g" \
+    -e "s|\$event\.target\.checked|($event.target as HTMLInputElement).checked|g" \
     "gen/front/vue/src/App.vue" > "../src/App.vue"
 
 echo "REGEN OK — components: $(find ../src/components -maxdepth 1 -name '*.vue' | wc -l), stores: $(find ../src/stores/auto -maxdepth 1 -name '*.ts' 2>/dev/null | wc -l)"

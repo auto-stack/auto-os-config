@@ -4,30 +4,50 @@
 // are hardcoded with P1-proven style forms only (literal + if-literal) — no
 // per-item class strings needed from the store. Marker class `swatch` is an
 // inert test hook (.theme-picker .swatch is asserted by test-theme-switch).
+//
+// 2026-08-27 像素对拍回归 CSS 原版形态：24px 圆形色点（文字胶囊为统一化期间
+// 的临时形态）。css-era 规格：容器 padding 12/20/16 + border-top；label 12px
+// semibold muted + mb 10px；swatches flex gap 10px；swatch 24x24 圆 + 2px 透明
+// 边；active = box-shadow 0 0 0 2px #f9f9f9 + 0 0 0 4px currentColor(#1a1a1a)
+// + 白色勾（css-era 为 12px svg，vm 无 svg → 文本 ✓ 代替）。
 use theme_store: Theme
 
 widget ThemePicker {
     msg Msg { Pick(str) }
 
     view {
-        col (style: "theme-picker shrink-0 pt-3 pb-4 px-5 gap-2") {
-            div (style: "h-px bg-[#e0e0e0] mb-1") {}
-            text (text: "Accent color", style: "theme-label text-xs font-semibold text-[#8a8a8a]") {}
-            row (style: "swatches flex items-center gap-2") {
-                button (text: "Indigo", style: if .store.current == "indigo" { "swatch active px-3 py-1 rounded-full text-xs text-white bg-[#6366f1] shadow-md border-2 border-white" } else { "swatch px-3 py-1 rounded-full text-xs text-white bg-[#6366f1]" }) {
+        col (style: "theme-picker shrink-0 pt-3 pb-4 px-5 border-t border-[#e0e0e0] gap-[0px]") {
+            text (text: "Accent color", style: "theme-label text-xs font-semibold text-[#8a8a8a] mb-[10px]") {}
+            row (style: "swatches flex flex-row items-center gap-[10px]") {
+                button (style: if .store.current == "indigo" { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#6366f1] shadow-[0_0_0_2px_#f9f9f9,0_0_0_4px_#1a1a1a] cursor-pointer" } else { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#6366f1] cursor-pointer hover:scale-[1.12]" }) {
                     onclick: .Pick("indigo")
+                    if .store.current == "indigo" {
+                        text (text: "✓", style: "text-xs font-bold text-white leading-none") {}
+                    }
                 }
-                button (text: "Coral", style: if .store.current == "coral" { "swatch active px-3 py-1 rounded-full text-xs text-white bg-[#e85d75] shadow-md border-2 border-white" } else { "swatch px-3 py-1 rounded-full text-xs text-white bg-[#e85d75]" }) {
+                button (style: if .store.current == "coral" { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#e85d75] shadow-[0_0_0_2px_#f9f9f9,0_0_0_4px_#1a1a1a] cursor-pointer" } else { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#e85d75] cursor-pointer hover:scale-[1.12]" }) {
                     onclick: .Pick("coral")
+                    if .store.current == "coral" {
+                        text (text: "✓", style: "text-xs font-bold text-white leading-none") {}
+                    }
                 }
-                button (text: "Ocean", style: if .store.current == "ocean" { "swatch active px-3 py-1 rounded-full text-xs text-white bg-[#3b82f6] shadow-md border-2 border-white" } else { "swatch px-3 py-1 rounded-full text-xs text-white bg-[#3b82f6]" }) {
+                button (style: if .store.current == "ocean" { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#3b82f6] shadow-[0_0_0_2px_#f9f9f9,0_0_0_4px_#1a1a1a] cursor-pointer" } else { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#3b82f6] cursor-pointer hover:scale-[1.12]" }) {
                     onclick: .Pick("ocean")
+                    if .store.current == "ocean" {
+                        text (text: "✓", style: "text-xs font-bold text-white leading-none") {}
+                    }
                 }
-                button (text: "Sage", style: if .store.current == "sage" { "swatch active px-3 py-1 rounded-full text-xs text-white bg-[#10b981] shadow-md border-2 border-white" } else { "swatch px-3 py-1 rounded-full text-xs text-white bg-[#10b981]" }) {
+                button (style: if .store.current == "sage" { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#10b981] shadow-[0_0_0_2px_#f9f9f9,0_0_0_4px_#1a1a1a] cursor-pointer" } else { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#10b981] cursor-pointer hover:scale-[1.12]" }) {
                     onclick: .Pick("sage")
+                    if .store.current == "sage" {
+                        text (text: "✓", style: "text-xs font-bold text-white leading-none") {}
+                    }
                 }
-                button (text: "Amber", style: if .store.current == "amber" { "swatch active px-3 py-1 rounded-full text-xs text-white bg-[#f59e0b] shadow-md border-2 border-white" } else { "swatch px-3 py-1 rounded-full text-xs text-white bg-[#f59e0b]" }) {
+                button (style: if .store.current == "amber" { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#f59e0b] shadow-[0_0_0_2px_#f9f9f9,0_0_0_4px_#1a1a1a] cursor-pointer" } else { "swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#f59e0b] cursor-pointer hover:scale-[1.12]" }) {
                     onclick: .Pick("amber")
+                    if .store.current == "amber" {
+                        text (text: "✓", style: "text-xs font-bold text-white leading-none") {}
+                    }
                 }
             }
         }

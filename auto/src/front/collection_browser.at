@@ -38,9 +38,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
         ConfirmDeleteNo,
         Draft(str),
         SidecarDraft(str),
-        ApplyEntry(str),
-        TagAdd(str),
-        Toggle(str),
+        ApplyEntry(int, str),
+        TagAdd(int),
+        Toggle(int, bool),
         PwToggle
     }
 
@@ -54,67 +54,76 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
     }
 
     view {
-        row (style: "collection gap-4 max-w-[960px]") {
-            col (style: "list-pane w-[260px] shrink-0 border border-[#e0e0e0] rounded-lg bg-white") {
-                row (style: "list-head gap-2 p-2 border-b border-[#e0e0e0]") {
-                    input (placeholder: "Filter…", value: .store.name_filter, style: "filter-input flex-1 px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-[#f0f0f0]") {
+        row (style: "collection gap-[16px] max-w-[960px]") {
+            aside (style: "list-pane gap-[0px]") {
+                div (style: "list-head gap-[6px]") {
+                    input (placeholder: "Filter…", value: .store.name_filter, style: "filter-input") {
                         oninput: .SetFilter
                     }
                     if read_only == false {
-                        button (text: "＋", style: "px-2 py-1 text-sm rounded border border-[#e0e0e0] bg-white") {
+                        button (text: "+", style: "btn icon") {
                             onclick: .ToggleCreate
                         }
                     }
                 }
                 if .creating {
-                    row (style: "create-row gap-2 p-2 border-b border-[#e0e0e0] bg-[#ededed]") {
-                        input (placeholder: "entity-name", value: .new_name, style: "name-input flex-1 px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-white font-mono") {
+                    div (style: "create-row gap-[4px]") {
+                        input (placeholder: "entity-name", value: .new_name, style: "name-input") {
                             oninput: .NewName
+                            onkeydown.enter: .DoCreate
                         }
-                        button (text: "Add", style: "px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
+                        button (text: "Add", style: "btn small", disabled: .store.saving || .new_name.trim() == "") {
                             onclick: .DoCreate
                         }
-                        button (text: "✕", style: "px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
+                        button (text: "✕", style: "btn small") {
                             onclick: .CancelCreate
                         }
                     }
                 }
                 if .store.list_loading {
-                    text (text: "Loading…", style: "list-msg p-4 text-center text-xs text-[#8a8a8a]") {}
+                    div (style: "list-msg") {
+                        text (text: "Loading…") {}
+                    }
                 }
                 if .store.list_loading == false {
-                    if .store.view_names.len() == 0 {
-                        text (text: "No entities.", style: "list-msg p-4 text-center text-xs text-[#8a8a8a]") {}
-                    }
-                    if .store.names.len() == 0 {
+                    if .store.view_entities.len() == 0 {
+                        if .store.names.len() == 0 {
+                            div (style: "list-msg empty") {
+                                text (text: "No entities.") {}
+                            }
+                        }
+                        if .store.names.len() > 0 {
+                            div (style: "list-msg empty") {
+                                text (text: "No match.") {}
+                            }
+                        }
                         if read_only == false {
-                            button (text: "Load", style: "mx-2 px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
+                            button (text: "Load", style: "btn small list-load") {
                                 onclick: .Load
                             }
                         }
                     }
-                    if .store.names.len() > 0 {
-                        if .store.view_names.len() == 0 {
-                            text (text: "No match.", style: "list-msg p-2 text-center text-xs text-[#8a8a8a]") {}
-                        }
-                    }
-                    scroll (style: "max-h-[70vh] p-1") {
-                        col (style: "entity-list gap-[2px]") {
-                            for n in .store.view_names {
-                                div (class: "contents") {
-                                    key: n
-                                    // Rule 6: NO if-expression styles on interactive
-                                    // elements (vm hoists props to a wrapper and the
-                                    // event arg goes unbound) — block-if with two
-                                    // statically-styled buttons instead.
-                                    if .store.selected_name == n {
-                                        button (text: n, style: "e-item e-name active w-full text-left px-[10px] py-[7px] rounded font-mono text-sm bg-primary/10 text-primary font-semibold") {
-                                            onclick: .Pick(n)
+                    if .store.view_entities.len() > 0 {
+                        div (style: "entity-list gap-[0px]") {
+                            for e in .store.view_entities {
+                                div (style: "contents") {
+                                    key: e.name
+                                    if .store.selected_name == e.name {
+                                        div (style: "e-row active") {
+                                            onclick: .Pick(e.name)
+                                            span (style: "e-name", text: e.name) {}
+                                            if e.description != "" {
+                                                span (style: "e-desc", text: e.description) {}
+                                            }
                                         }
                                     }
-                                    if .store.selected_name != n {
-                                        button (text: n, style: "e-item e-name w-full text-left px-[10px] py-[7px] rounded font-mono text-sm text-[#1a1a1a]") {
-                                            onclick: .Pick(n)
+                                    if .store.selected_name != e.name {
+                                        div (style: "e-row") {
+                                            onclick: .Pick(e.name)
+                                            span (style: "e-name", text: e.name) {}
+                                            if e.description != "" {
+                                                span (style: "e-desc", text: e.description) {}
+                                            }
                                         }
                                     }
                                 }
@@ -123,200 +132,241 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                     }
                 }
             }
-            col (style: "detail-pane flex-1") {
+            section (style: "detail-pane gap-[0px]") {
                 if .store.selected_name == nil {
                     if .store.error != "" {
-                        text (text: "✗ " + .store.error, style: "state-msg error px-4 py-3 rounded-lg text-sm text-[#c42b1c]") {}
+                        div (style: "state-msg error") {
+                            text (text: "✗ " + .store.error) {}
+                        }
                     }
                     if .store.error == "" {
-                        text (text: "Select an entity from the left, or create a new one.", style: "state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]") {}
+                        div (style: "state-msg") {
+                            text (text: "Select an entity from the left, or create a new one.") {}
+                        }
                     }
                 }
                 if .store.selected_name != nil && .store.loading {
-                    text (text: "Loading…", style: "state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]") {}
+                    div (style: "state-msg") {
+                        text (text: "Loading…") {}
+                    }
                 }
                 if .store.selected_name != nil && .store.loading == false {
-                        row (style: "toolbar flex items-center gap-3 py-2 border-b border-[#e0e0e0]") {
-                            text (text: .store.selected_name, style: "mono font-mono text-sm font-semibold text-[#1a1a1a]") {}
+                    div (style: "toolbar gap-[0px]") {
+                        div (style: "meta gap-[0px]") {
+                            span (style: "mono", text: .store.selected_name) {}
                             if .store.dirty {
-                                text (text: "● unsaved", style: "dirty text-xs font-medium text-primary") {}
+                                span (style: "dirty", text: "● unsaved") {}
                             }
                             if .store.is_read_only {
-                                text (text: "read-only", style: "ro-badge text-[11px] px-2 rounded-full bg-[#ededed] text-[#616161]") {}
+                                span (style: "ro-badge", text: "read-only") {}
                             }
-                            div (style: "flex-1") {}
+                        }
+                        div (style: "actions gap-[0px]") {
                             if read_only == false && .store.is_read_only == false {
-                                button (text: "Reload", style: "px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
+                                button (text: "Reload", style: "btn", disabled: .store.saving) {
                                     onclick: .Reload
                                 }
-                                button (text: "Save", style: "px-4 py-1 text-xs rounded bg-primary border-primary text-white") {
+                                button (style: "btn primary", disabled: .store.saving || .store.dirty == false) {
                                     onclick: .Save
+                                    if .store.saving {
+                                        text (text: "Saving…") {}
+                                    }
+                                    if .store.saving == false {
+                                        text (text: "Save") {}
+                                    }
                                 }
-                                button (text: "Delete", style: "px-3 py-1 text-xs rounded border border-[#c42b1c] text-[#c42b1c] bg-white") {
+                                button (text: "Delete", style: "btn danger") {
                                     onclick: .AskDelete
                                 }
                             }
                         }
-                        if .confirm_open {
-                            row (style: "flex items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]") {
-                                text (text: "Delete this entity? (.at + sidecar removed, .bak kept)", style: "text-sm text-[#c42b1c]") {}
-                                div (style: "flex-1") {}
-                                button (text: "Yes, delete", style: "px-3 py-1 text-xs rounded bg-[#c42b1c] border-[#c42b1c] text-white") {
-                                    onclick: .ConfirmDeleteYes
-                                }
-                                button (text: "Cancel", style: "px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                    onclick: .ConfirmDeleteNo
-                                }
+                    }
+                    if .confirm_open {
+                        row (style: "flex items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]") {
+                            text (text: "Delete this entity? (.at + sidecar removed, .bak kept)", style: "text-sm text-[#c42b1c]") {}
+                            div (style: "flex-1") {}
+                            button (text: "Yes, delete", style: "px-3 py-1 text-xs rounded bg-[#c42b1c] border-[#c42b1c] text-white") {
+                                onclick: .ConfirmDeleteYes
+                            }
+                            button (text: "Cancel", style: "px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
+                                onclick: .ConfirmDeleteNo
                             }
                         }
-                        if .store.error != "" {
-                            text (text: "✗ " + .store.error, style: "state-msg error px-4 py-3 rounded-lg text-sm text-[#c42b1c]") {}
+                    }
+                    if .store.error != "" {
+                        div (style: "state-msg error") {
+                            text (text: "✗ " + .store.error) {}
                         }
-                        if .store.is_read_only {
-                            col (style: "fm-view gap-2") {
-                                text (text: .store.fm_name, style: "text-lg font-bold text-[#1a1a1a]") {}
-                                text (text: .store.fm_description, style: "text-sm text-[#616161]") {}
-                                text (text: .store.fm_body, style: "skill-body fm-body p-3 rounded-lg bg-[#ededed] font-mono text-xs text-[#616161]") {}
+                    }
+                    if .store.is_read_only {
+                        col (style: "fm-view gap-[0px]") {
+                            div (style: "field-row") {
+                                label (style: "field-label") {
+                                    text (text: "Name") {}
+                                }
+                                div (style: "readonly-val mono") {
+                                    text (text: .store.fm_name) {}
+                                }
                             }
+                            div (style: "field-row") {
+                                label (style: "field-label") {
+                                    text (text: "Description") {}
+                                }
+                                div (style: "readonly-val") {
+                                    text (text: .store.fm_description) {}
+                                }
+                            }
+                            div (style: "skill-body", text: .store.fm_body) {}
                         }
-                        if .store.is_read_only == false {
-                            // vm: loops need a scrollable ancestor (iced drops
-                            // unbounded loop content in plain cols — J1 root cause)
-                            scroll (style: "flex-1") {
-                            col (style: "fields gap-1") {
-                                // PROBE removed (moved to detail-pane top)
-                                // vm: 007-proven loop form (J1/J2 workaround 2026-08-26) —
-                                // double-var loop + keyed `contents` wrapper; events carry the
-                                // INDEX i (field access on loop vars in event args kills the vm
-                                // channel); handlers resolve i → key via parallel store.entry_keys.
-                                for i, e in .store.entries {
-                                    div (class: "contents") {
-                                        key: e.key
+                    }
+                    if .store.is_read_only == false {
+                        div (style: "fields gap-[0px]") {
+                            for i, e in .store.entries {
+                                div (style: "contents") {
+                                    key: e.key
                                     if e.is_table {
-                                            col (style: "field-row border rounded p-2 gap-1 bg-white") {
-                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161]") {}
-                                                    text (text: e.frag, style: "text-xs text-[#8a8a8a] font-mono") {}
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
                                             }
+                                            div (style: "table-readonly") {
+                                                text (text: e.frag, style: "font-mono text-xs text-[#616161] whitespace-pre-wrap break-all") {}
+                                            }
+                                        }
                                     }
-                                    if e.kind == "toggle" {
-                                            row (style: "field-row flex items-center gap-3 py-2") {
-                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                                    checkbox (id: e.key, checked: e.value) {
-                                                        onclick: .Toggle(i)
-                                                    }
+                                    if e.is_table == false && e.kind == "toggle" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            label (style: "toggle gap-[0px]") {
+                                                input ("type": "checkbox", checked: e.value == "true") {
+                                                    onchange: .Toggle(i, $event.target.checked)
+                                                }
+                                                span (style: "toggle-track") {
+                                                    span (style: "toggle-thumb") {}
+                                                }
+                                                span (style: "toggle-text") {
                                                     if e.value == "true" {
-                                                        text (text: "On", style: "text-xs text-[#616161]") {}
+                                                        text (text: "On") {}
                                                     }
                                                     if e.value != "true" {
-                                                        text (text: "Off", style: "text-xs text-[#8a8a8a]") {}
+                                                        text (text: "Off") {}
                                                     }
+                                                }
                                             }
+                                        }
                                     }
-                                    if e.kind == "number" {
-                                            row (style: "field-row flex items-center gap-3 py-2") {
-                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                                    input (placeholder: e.label, "type": "number", value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
+                                    if e.is_table == false && e.kind == "number" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            input ("type": "number", value: e.value, style: "input") {
+                                                oninput: .Draft
+                                                onchange: .ApplyEntry(i, $event.target.value)
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "password" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "secret gap-[0px]") {
+                                                if .pw_show {
+                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw") {
                                                         oninput: .Draft
+                                                        onchange: .ApplyEntry(i, $event.target.value)
                                                     }
-                                                    button (text: "Apply", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                        onclick: .ApplyEntry(i)
-                                                    }
-                                            }
-                                    }
-                                    if e.kind == "password" {
-                                            row (style: "field-row flex items-center gap-3 py-2") {
-                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                                    if .pw_show {
-                                                                                                                input (placeholder: e.label, value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
-                                                            oninput: .Draft
-                                                        }
-                                                    }
-                                                    if .pw_show == false {
-                                                                                                                input (placeholder: e.label, "type": "password", value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
-                                                            oninput: .Draft
-                                                        }
-                                                    }
-                                                    button (text: "👁", style: "btn px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                        onclick: .PwToggle
-                                                    }
-                                                    button (text: "Apply", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                        onclick: .ApplyEntry(i)
-                                                    }
-                                            }
-                                    }
-                                    if e.kind == "text" {
-                                            row (style: "field-row flex items-center gap-3 py-2") {
-                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                                    input (placeholder: e.label, value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
+                                                }
+                                                if .pw_show == false {
+                                                    input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw") {
                                                         oninput: .Draft
+                                                        onchange: .ApplyEntry(i, $event.target.value)
                                                     }
-                                                    button (text: "Apply", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                        onclick: .ApplyEntry(i)
-                                                    }
+                                                }
+                                                button (style: "reveal", text: "👁") {
+                                                    onclick: .PwToggle
+                                                }
                                             }
+                                        }
                                     }
-                                    if e.kind == "select" {
-                                            col (style: "field-row py-2 gap-1") {
-                                                    row (style: "flex items-center gap-3") {
-                                                        text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                                        input (placeholder: e.label, value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
-                                                            oninput: .Draft
-                                                        }
-                                                        button (text: "Apply", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                            onclick: .ApplyEntry(i)
-                                                        }
-                                                    }
-                                                    if e.url != "" {
-                                                        text (text: "(select — free text accepted)", style: "text-xs text-[#8a8a8a]") {}
-                                                    }
+                                    if e.is_table == false && e.kind == "text" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
                                             }
-                                    }
-                                    if e.kind == "tags" {
-                                            col (style: "field-row py-2 gap-1") {
-                                                    row (style: "flex items-center gap-3") {
-                                                        text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                                        input (placeholder: "add value", value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
-                                                            oninput: .Draft
-                                                        }
-                                                        button (text: "Add", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                            onclick: .TagAdd(i)
-                                                        }
-                                                    }
-                                                    text (text: e.value, style: "text-xs text-[#8a8a8a] font-mono") {}
+                                            input (value: e.value, "type": "text", placeholder: "(empty)", style: "input") {
+                                                oninput: .Draft
+                                                onchange: .ApplyEntry(i, $event.target.value)
                                             }
+                                        }
                                     }
-                                    if e.kind == "multiselect" {
-                                            col (style: "field-row py-2 gap-1") {
-                                                    row (style: "flex items-center gap-3") {
-                                                        text (text: e.label, style: "field-label text-sm font-medium text-[#616161] w-[160px] shrink-0") {}
-                                                        input (placeholder: "add value", value: e.value, style: "input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]") {
-                                                            oninput: .Draft
-                                                        }
-                                                        button (text: "Add", style: "btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
-                                                            onclick: .TagAdd(i)
-                                                        }
-                                                    }
-                                                    text (text: e.value, style: "text-xs text-[#8a8a8a] font-mono") {}
+                                    if e.is_table == false && e.kind == "select" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
                                             }
-                                    }
-                                    if e.kind == "subform" {
-                                            col (style: "field-row border rounded p-2 gap-1 bg-white") {
-                                                    text (text: e.label, style: "field-label text-sm font-medium text-[#616161]") {}
-                                                    text (text: e.frag, style: "text-xs text-[#8a8a8a] font-mono") {}
+                                            input (value: e.value, "type": "text", placeholder: "(not set)", style: "input") {
+                                                oninput: .Draft
+                                                onchange: .ApplyEntry(i, $event.target.value)
                                             }
+                                        }
                                     }
+                                    if e.is_table == false && e.kind == "tags" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "flex items-center gap-2") {
+                                                input (value: "", "type": "text", placeholder: "add…", style: "input tag-input") {
+                                                    oninput: .Draft
+                                                }
+                                                button (text: "Add", style: "btn") {
+                                                    onclick: .TagAdd(i)
+                                                }
+                                            }
+                                        }
                                     }
-                                }
-
-                                col (style: "field-row sidecar-row py-2 gap-1") {
-                                    text (text: "Soul (markdown sidecar)", style: "field-label text-sm font-medium text-[#616161]") {}
-                                    textarea (placeholder: "# Soul — the role's system prompt / personality (markdown).", value: .sidecar_draft, style: "sidecar w-full min-h-[160px] p-2 text-xs border border-[#e0e0e0] rounded bg-white font-mono") {
-                                        oninput: .SidecarDraft
+                                    if e.is_table == false && e.kind == "multiselect" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "flex items-center gap-2") {
+                                                input (value: "", "type": "text", placeholder: "add…", style: "input tag-input") {
+                                                    oninput: .Draft
+                                                }
+                                                button (text: "Add", style: "btn") {
+                                                    onclick: .TagAdd(i)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "subform" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "table-readonly") {
+                                                text (text: e.frag, style: "font-mono text-xs text-[#616161] whitespace-pre-wrap break-all") {}
+                                            }
+                                        }
                                     }
                                 }
                             }
+                            div (style: "field-row sidecar-row") {
+                                label (style: "field-label") {
+                                    text (text: "Soul ") {}
+                                    span (style: "hint", text: "(markdown sidecar)") {}
+                                }
+                                textarea (placeholder: "# Soul — the role's system prompt / personality (markdown).", value: .sidecar_draft, style: "sidecar") {
+                                    oninput: .SidecarDraft
+                                }
                             }
                         }
+                    }
                 }
             }
         }
@@ -381,7 +431,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
         .PwToggle -> {
             .pw_show = .pw_show == false
         }
-        .ApplyEntry(i) -> {
+        .ApplyEntry(i, v) -> {
             var k = ""
             var j = 0
             for x in .store.entry_keys {
@@ -390,8 +440,8 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                 }
                 j = j + 1
             }
-            if .draft != "" && k != "" {
-                store.FieldEdited({ path: k, value: .draft })
+            if k != "" {
+                store.FieldEdited({ path: k, value: v })
                 .draft = ""
             }
         }
@@ -411,7 +461,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
             }
         }
 
-        .Toggle(i) -> {
+        .Toggle(i, on) -> {
             var k = ""
             var j = 0
             for x in .store.entry_keys {
@@ -421,13 +471,12 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                 j = j + 1
             }
             var nv = "false"
-            if k != "" {
-                let cur = fieldDisplayOf(.store.body_text, k)
-                if cur == "false" || cur == "" {
-                    nv = "true"
-                }
+            if on {
+                nv = "true"
             }
-            store.FieldEdited({ path: k, value: nv })
+            if k != "" {
+                store.FieldEdited({ path: k, value: nv })
+            }
         }
     }
 }

@@ -34,6 +34,10 @@ store Collection {
         // Plan 008 batch 4: filter projection (view_names).
         var name_filter str = ""
         var view_names Array<str> = []
+        // 2026-08-27 像素对拍：vue 侧行循环需要 {name, description} 对象
+        // （css-era 列表行带描述行）；vm 事件参数不能引用 store 列表项字段
+        // （007 实证），vm 侧继续用 view_names。
+        var view_entities Array<str> = []
         var list_loading bool = false
         var loading bool = false
         var saving bool = false
@@ -80,16 +84,19 @@ store Collection {
                 .names = nm
                 // Plan 008 batch 4: filter projection over names
                 var vn = []
+                var ve = []
                 let fq = .name_filter.to_lower()
-                for x in .names {
+                for e in .list {
                     var hit = true
                     if fq != "" {
-                        hit = x.to_lower().contains(fq)
+                        hit = e.name.to_lower().contains(fq)
                     }
                     if hit {
-                        vn.push(x)
+                        ve.push({ name: e.name, description: e.description })
+                        vn.push(e.name)
                     }
                 }
+                .view_entities = ve
                 .view_names = vn
             }
             if r.ok == false {
@@ -121,16 +128,19 @@ store Collection {
                 .names = nm
                 // Plan 008 batch 4: filter projection over names
                 var vn = []
+                var ve = []
                 let fq = .name_filter.to_lower()
-                for x in .names {
+                for e in .list {
                     var hit = true
                     if fq != "" {
-                        hit = x.to_lower().contains(fq)
+                        hit = e.name.to_lower().contains(fq)
                     }
                     if hit {
-                        vn.push(x)
+                        ve.push({ name: e.name, description: e.description })
+                        vn.push(e.name)
                     }
                 }
+                .view_entities = ve
                 .view_names = vn
             }
             if r.ok == false {
@@ -249,16 +259,19 @@ store Collection {
                     .names = nm
                     // Plan 008 batch 4: filter projection over names
                     var vn = []
+                    var ve = []
                     let fq = .name_filter.to_lower()
-                    for x in .names {
+                    for e in .list {
                         var hit = true
                         if fq != "" {
-                            hit = x.to_lower().contains(fq)
+                            hit = e.name.to_lower().contains(fq)
                         }
                         if hit {
-                            vn.push(x)
+                            ve.push({ name: e.name, description: e.description })
+                            vn.push(e.name)
                         }
                     }
+                    .view_entities = ve
                     .view_names = vn
                 }
                 .list_loading = false
@@ -297,16 +310,19 @@ store Collection {
                         .names = nm
                         // Plan 008 batch 4: filter projection over names
                         var vn = []
+                        var ve = []
                         let fq = .name_filter.to_lower()
-                        for x in .names {
+                        for e in .list {
                             var hit = true
                             if fq != "" {
-                                hit = x.to_lower().contains(fq)
+                                hit = e.name.to_lower().contains(fq)
                             }
                             if hit {
-                                vn.push(x)
+                                ve.push({ name: e.name, description: e.description })
+                                vn.push(e.name)
                             }
                         }
+                        .view_entities = ve
                         .view_names = vn
                     }
                     .list_loading = false
@@ -347,16 +363,19 @@ store Collection {
                     .names = nm
                     // Plan 008 batch 4: filter projection over names
                     var vn = []
+                    var ve = []
                     let fq = .name_filter.to_lower()
-                    for x in .names {
+                    for e in .list {
                         var hit = true
                         if fq != "" {
-                            hit = x.to_lower().contains(fq)
+                            hit = e.name.to_lower().contains(fq)
                         }
                         if hit {
-                            vn.push(x)
+                            ve.push({ name: e.name, description: e.description })
+                            vn.push(e.name)
                         }
                     }
+                    .view_entities = ve
                     .view_names = vn
                 }
                 .list_loading = false
@@ -419,16 +438,19 @@ store Collection {
         .SetFilter(q) -> {
             .name_filter = q
             var vn = []
+            var ve = []
             let fq = .name_filter.to_lower()
-            for x in .names {
+            for e in .list {
                 var hit = true
                 if fq != "" {
-                    hit = x.to_lower().contains(fq)
+                    hit = e.name.to_lower().contains(fq)
                 }
                 if hit {
-                    vn.push(x)
+                    ve.push({ name: e.name, description: e.description })
+                    vn.push(e.name)
                 }
             }
+            .view_entities = ve
             .view_names = vn
         }
     }

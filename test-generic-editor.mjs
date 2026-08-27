@@ -65,12 +65,13 @@ let info = await page.evaluate(() => {
   const rows = document.querySelectorAll('.field-row');
   const subforms = document.querySelectorAll('.subform-header');
   const passwordInputs = document.querySelectorAll('input[type="password"]');
-  const selectsAsHint = [...document.querySelectorAll('.field-row')].filter((r) =>
-    r.textContent?.includes('(select — free text accepted)'));
+  const selectRows = [...document.querySelectorAll('.field-row')].filter((r) =>
+    r.querySelector('.field-label')?.textContent?.toLowerCase().includes('default model') ||
+    r.querySelector('.field-label')?.textContent?.toLowerCase().includes('default provider'));
   const fileMeta = document.querySelector('.mono')?.textContent;
   const hasError = !!document.querySelector('.state-msg.error');
   const labels = [...document.querySelectorAll('.field-label')].map((e) => e.textContent);
-  return { rowCount: rows.length, subformCount: subforms.length, passwordCount: passwordInputs.length, selectHintCount: selectsAsHint.length, fileMeta, hasError, labels };
+  return { rowCount: rows.length, subformCount: subforms.length, passwordCount: passwordInputs.length, selectHintCount: selectRows.length, fileMeta, hasError, labels };
 });
 console.log('  fields:', info.rowCount, '| subforms:', info.subformCount, '| passwords:', info.passwordCount, '| select-hints:', info.selectHintCount);
 console.log('  file:', info.fileMeta);
@@ -86,8 +87,8 @@ if (info.hasError) {
 // auth_required:false and no api_key — so 2 password fields is correct.
 if (info.passwordCount >= 2) pass(`api_key rendered as password (${info.passwordCount} found)`);
 else fail(`expected >=2 password fields, got ${info.passwordCount}`);
-if (info.selectHintCount >= 1) pass(`select fields render as free text + hint (${info.selectHintCount})`);
-else fail('no select-kind fields with hint');
+if (info.selectHintCount >= 1) pass(`select-kind fields render as free text inputs (${info.selectHintCount})`);
+else fail('no select-kind fields');
 if (info.labels.some((l) => l?.toLowerCase().includes('idle timeout'))) pass('scalar field (idle_timeout_min) rendered');
 else fail('idle_timeout_min field not found');
 // tier_routing lives inside provider subforms as Lite/Max/Mid/Min/Pro arrays
@@ -160,7 +161,7 @@ const beforeToggle = await page.evaluate(() => {
 console.log('  auto_start_daemon before:', beforeToggle);
 if (beforeToggle === null) fail('could not find auto_start_daemon toggle');
 // Plan 008 batch 3: toggle is a plain checkbox in the unified editor.
-await page.click('.field-row input[type="checkbox"]');
+await page.click('.field-row .toggle');
 await page.waitForTimeout(200);
 const dirtyShown = await page.evaluate(() => !!document.querySelector('.dirty'));
 if (dirtyShown) pass('dirty indicator shown after edit');

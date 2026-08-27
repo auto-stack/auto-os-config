@@ -1,0 +1,46 @@
+// vm_daemon.at — DaemonViewVm: connection test + embedded config editor
+// (Plan 007 Phase 4). The one genuinely custom UX, ported from DaemonView.
+use back.api: testDaemon
+use vm_editor: ConfigEditorVm
+
+widget DaemonViewVm(module_id: str) {
+    model {
+        var status str = "idle"
+        var error str = ""
+        var checking bool = false
+    }
+
+    view {
+        col (style: "h-full") {
+            row (style: "gap-3 items-center p-3 border-b") {
+                button (text: "Test connection", style: "px-3 py-1 rounded border text-primary") {
+                    onclick: .Test
+                }
+                if .checking {
+                    text (text: "checking...", style: "text-xs") {}
+                }
+                if .status == "ok" {
+                    text (text: "✓ online", style: "text-green-600 font-medium") {}
+                }
+                if .status == "fail" {
+                    text (text: "✗ " + .error, style: "text-red-500") {}
+                }
+                if .status == "unreachable" {
+                    text (text: "unreachable", style: "text-amber-500") {}
+                }
+            }
+            ConfigEditorVm(module_id: .module_id) { }
+        }
+    }
+
+    on {
+        .Test -> {
+            .checking = true
+            .error = ""
+            var r = testDaemon()
+            .status = r.status
+            .error = r.error
+            .checking = false
+        }
+    }
+}

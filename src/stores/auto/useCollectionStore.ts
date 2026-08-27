@@ -15,6 +15,7 @@ const fm_body = ref<string>('')
 const is_read_only = ref<boolean>(false)
 const name_filter = ref<string>('')
 const view_names = ref<any>([])
+const view_entities = ref<any>([])
 const list_loading = ref<boolean>(false)
 const loading = ref<boolean>(false)
 const saving = ref<boolean>(false)
@@ -44,11 +45,14 @@ list.value = items;
 names.value = nm;
 
 let vn = [];
+let ve = [];
 let fq = name_filter.value.toLowerCase();
-for (const x of names.value) {let hit: boolean = true;
-if (fq != '') {hit = x.toLowerCase().includes(fq);
-}if (hit) {vn.push(x);
+for (const e of list.value) {let hit: boolean = true;
+if (fq != '') {hit = e.name.toLowerCase().includes(fq);
+}if (hit) {ve.push({ name: e.name, description: e.description });
+vn.push(e.name);
 }}
+view_entities.value = ve;
 view_names.value = vn;
 }list_loading.value = false;
 }
@@ -93,11 +97,14 @@ list.value = items;
 names.value = nm;
 
 let vn = [];
+let ve = [];
 let fq = name_filter.value.toLowerCase();
-for (const x of names.value) {let hit: boolean = true;
-if (fq != '') {hit = x.toLowerCase().includes(fq);
-}if (hit) {vn.push(x);
+for (const e of list.value) {let hit: boolean = true;
+if (fq != '') {hit = e.name.toLowerCase().includes(fq);
+}if (hit) {ve.push({ name: e.name, description: e.description });
+vn.push(e.name);
 }}
+view_entities.value = ve;
 view_names.value = vn;
 }list_loading.value = false;
 Pick(name);
@@ -125,11 +132,14 @@ list.value = items;
 names.value = nm;
 
 let vn = [];
+let ve = [];
 let fq = name_filter.value.toLowerCase();
-for (const x of names.value) {let hit: boolean = true;
-if (fq != '') {hit = x.toLowerCase().includes(fq);
-}if (hit) {vn.push(x);
+for (const e of list.value) {let hit: boolean = true;
+if (fq != '') {hit = e.name.toLowerCase().includes(fq);
+}if (hit) {ve.push({ name: e.name, description: e.description });
+vn.push(e.name);
 }}
+view_entities.value = ve;
 view_names.value = vn;
 }
 if (r.ok == false) {error.value = r.error;
@@ -193,11 +203,14 @@ list.value = items;
 names.value = nm;
 
 let vn = [];
+let ve = [];
 let fq = name_filter.value.toLowerCase();
-for (const x of names.value) {let hit: boolean = true;
-if (fq != '') {hit = x.toLowerCase().includes(fq);
-}if (hit) {vn.push(x);
+for (const e of list.value) {let hit: boolean = true;
+if (fq != '') {hit = e.name.toLowerCase().includes(fq);
+}if (hit) {ve.push({ name: e.name, description: e.description });
+vn.push(e.name);
 }}
+view_entities.value = ve;
 view_names.value = vn;
 }
 if (r.ok == false) {error.value = r.error;
@@ -251,11 +264,14 @@ list.value = items;
 names.value = nm;
 
 let vn = [];
+let ve = [];
 let fq = name_filter.value.toLowerCase();
-for (const x of names.value) {let hit: boolean = true;
-if (fq != '') {hit = x.toLowerCase().includes(fq);
-}if (hit) {vn.push(x);
+for (const e of list.value) {let hit: boolean = true;
+if (fq != '') {hit = e.name.toLowerCase().includes(fq);
+}if (hit) {ve.push({ name: e.name, description: e.description });
+vn.push(e.name);
 }}
+view_entities.value = ve;
 view_names.value = vn;
 }list_loading.value = false;
 }if (r.ok == false) {error.value = r.error;
@@ -264,11 +280,14 @@ view_names.value = vn;
  }
     const SetFilter = (q: string) => { name_filter.value = q;
 let vn = [];
+let ve = [];
 let fq = name_filter.value.toLowerCase();
-for (const x of names.value) {let hit: boolean = true;
-if (fq != '') {hit = x.toLowerCase().includes(fq);
-}if (hit) {vn.push(x);
+for (const e of list.value) {let hit: boolean = true;
+if (fq != '') {hit = e.name.toLowerCase().includes(fq);
+}if (hit) {ve.push({ name: e.name, description: e.description });
+vn.push(e.name);
 }}
+view_entities.value = ve;
 view_names.value = vn;
  }
     const SetSidecar = (v: string) => { sidecar.value = v;
@@ -305,6 +324,7 @@ dirty.value = true;
         is_read_only,
         name_filter,
         view_names,
+        view_entities,
         list_loading,
         loading,
         saving,

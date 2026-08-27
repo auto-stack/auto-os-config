@@ -1,0 +1,159 @@
+// daemon_view.at — DaemonView widget (Plan 006 Phase 2). Port of the
+// hand-written src/components/DaemonView.vue: the generic ConfigEditor plus
+// a Test-connection card. The fetch (with its 20s timeout) lives in
+// src/lib/api.ts (testDaemon) and is auto-awaited here.
+widget DaemonView(module_id: str) {
+    use {
+        component: ConfigEditor from "src/front/utils/daemon_view_ext.ts"
+        fn: testDaemon from "src/front/utils/daemon_view_ext.ts"
+    }
+
+    msg Msg { Test }
+
+    model {
+        var status str = "idle"
+        var latency int = 0
+        var test_error str = ""
+    }
+
+    view {
+        div {
+            class: "daemon-view"
+            div {
+                class: "test-card"
+                div {
+                    class: "test-row"
+                    span {
+                        class: "test-label"
+                        text "Daemon connection"
+                    }
+                    span {
+                        class: "test-status " + .status
+                        if .status == "idle" { text "not tested" }
+                        if .status == "checking" { text "testing…" }
+                        if .status == "ok" { text f"✓ online (${.latency}ms)" }
+                        if .status == "unreachable" { text "offline" }
+                        if .status == "fail" { text "✗ failed" }
+                    }
+                    button {
+                        class: "btn"
+                        disabled: .status == "checking"
+                        onclick: .Test
+                        text "Test"
+                    }
+                }
+                if .status == "fail" && .test_error != "" {
+                    p {
+                        class: "test-err"
+                        text .test_error
+                    }
+                }
+                if .status == "unreachable" {
+                    p {
+                        class: "test-hint"
+                        text "The AI Daemon (aaid, :17654) is offline. Start it with "
+                        span { class: "inline-code"
+                            text "cargo run -p auto-ai-daemon"
+                        }
+                        text ". Config fields below can still be edited — they're written to "
+                        span { class: "inline-code"
+                            text "ai-daemon.at"
+                        }
+                        text " directly."
+                    }
+                }
+            }
+            ConfigEditor(module_id: .module_id, key: .module_id)
+        }
+    }
+
+    on {
+        .Test -> {
+            .status = "checking"
+            .latency = 0
+            .test_error = ""
+            // ext imports don't auto-await (only back.api does) — jade's
+            // p.then idiom (StatusBar fetchBacklinkCountSafe precedent).
+            var p = testDaemon()
+            p.then((r) => {
+                .status = r.status
+                .latency = r.latency
+                .test_error = r.error
+            })
+        }
+    }
+
+    style {
+        .daemon-view {
+            max-width: 820px;
+        }
+        .test-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius, 8px);
+            padding: 14px 18px;
+            margin-bottom: 16px;
+        }
+        .test-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .test-label {
+            font-weight: 600;
+            font-size: var(--font-size-base);
+        }
+        .test-status {
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+        }
+        .test-status.ok {
+            color: var(--success);
+            font-weight: 500;
+        }
+        .test-status.fail {
+            color: var(--danger);
+            font-weight: 500;
+        }
+        .test-status.unreachable {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .btn {
+            margin-left: auto;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 4px 14px;
+            border-radius: var(--radius-sm, 4px);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+        }
+        .btn:hover:not(:disabled) {
+            background: var(--bg-hover);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .test-err {
+            margin: 8px 0 0 0;
+            font-size: var(--font-size-sm);
+            color: var(--danger);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        .test-hint {
+            margin: 8px 0 0 0;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .test-hint .inline-code {
+            background: var(--bg-hover);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+    }
+}

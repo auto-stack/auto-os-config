@@ -848,6 +848,10 @@ export function entryAt(body: any, i: number, moduleId: string): any {
     url: enumUrlOf(spec.optionsFrom),
     depth: 0,
     is_on: displayOfValue(frag) === 'true',
+    // 2026-08-27 像素对拍（与 api.at entryAt 孪生）：provider 形子表单（含
+    // kind 键）带删除钮；顶层行容器类 = css-era .field-row。
+    is_provider: spec.kind === 'subform' && frag != null && typeof frag === 'object' && !Array.isArray(frag) && 'kind' in frag,
+    box_class: 'field-row',
     // vue-only extras: the still-unified CollectionBrowser (batch 4) consumes
     // the spec-bearing EntityEntry shape; `raw` keeps the original JS value.
     spec,
@@ -868,6 +872,12 @@ export function subAt(body: any, head: string, j: number, moduleId: string): any
   const key = Object.keys(sub)[j]
   const frag = sub[key]
   const spec = inferField(key, frag, moduleId, head)
+  // 2026-08-27 像素对拍（与 api.at subAt 孪生）：平铺行拼装 subform 盒——
+  // first/last 标记决定补底边+下圆角。
+  const total = Object.keys(sub).length
+  let boxClass = 'subform-cont'
+  if (j === 0) boxClass += ' first'
+  if (j === total - 1) boxClass += ' last'
   return {
     key: `${head}.${key}`,
     kind: spec.kind,
@@ -878,6 +888,7 @@ export function subAt(body: any, head: string, j: number, moduleId: string): any
     url: enumUrlOf(spec.optionsFrom),
     depth: 1,
     is_on: displayOfValue(frag) === 'true',
+    box_class: boxClass,
   }
 }
 

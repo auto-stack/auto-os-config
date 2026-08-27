@@ -40,14 +40,14 @@ function ToggleGroup(gid: any): void {
         <span class="text-xl">⚙️</span>
         <span>AutoOS Settings</span>
       </div>
-      <div class="px-4 pb-3">
+      <div class="pt-2 px-4 pb-3">
         <input class="search-input w-full px-3 py-2 text-sm bg-[#f0f0f0] border border-[#e0e0e0] rounded" :placeholder="'Search settings'" :value="store.search" @input="SearchChanged(($event.target as HTMLInputElement).value)" />
       </div>
       <nav class="nav-list flex-1 overflow-auto px-2">
         <template v-if="store.search == ''">
           <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in store.view_standalone">
             <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-            <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-0">
+            <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
               <span :class="m.name_class">{{ m.name }}</span>
               <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
             </div>
@@ -55,12 +55,12 @@ function ToggleGroup(gid: any): void {
         </template>
         <div class="contents" :key="g.id" v-for="g in store.view_groups">
           <template v-if="store.search == ''">
-            <button class="group-header w-full text-left flex items-center gap-2 px-3 py-[10px] mt-2 rounded" :key="g.id" @click="ToggleGroup(g.id)">
+            <button class="group-header w-full text-left flex items-center gap-[6px] px-3 py-[10px] mt-2 rounded hover:bg-[#ededed] transition-colors duration-[120ms]" :key="g.id" @click="ToggleGroup(g.id)">
               <template v-if="g.open">
-                <span class="text-xs text-[#8a8a8a]">▾ </span>
+                <span class="text-[11px] text-[#8a8a8a] w-[14px] shrink-0">▾</span>
               </template>
               <template v-if="g.open == false">
-                <span class="text-xs text-[#8a8a8a]">▸ </span>
+                <span class="text-[11px] text-[#8a8a8a] w-[14px] shrink-0">▸</span>
               </template>
               <span class="text-sm font-semibold text-[#1a1a1a]">{{ g.label }}</span>
             </button>
@@ -68,7 +68,7 @@ function ToggleGroup(gid: any): void {
           <template v-if="store.search != ''">
             <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
               <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-              <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-0">
+              <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
                 <span :class="m.name_class">{{ m.name }}</span>
                 <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
               </div>
@@ -78,7 +78,7 @@ function ToggleGroup(gid: any): void {
             <template v-if="g.open">
               <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
                 <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-0">
+                <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
                   <span :class="m.name_class">{{ m.name }}</span>
                   <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
                 </div>

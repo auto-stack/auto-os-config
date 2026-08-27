@@ -1,0 +1,139 @@
+/* AutoOS Settings — Win11-inspired design system
+   ────────────────────────────────────────────────────────────────────────────
+   Theming: a single HSL base token `--primary` drives every accent/primary
+   surface (buttons, links, active states, focus rings). The user picks an
+   accent in the sidebar; useTheme.ts writes a new HSL value onto
+   documentElement and EVERY page updates instantly — including remote
+   config pages (aaid/musk), which just reference var(--accent).
+
+   Why HSL + alpha layering (shadcn-style): so a single base hue can derive a
+   whole family (solid, hover, soft tint, focus ring) without a separate
+   palette per accent.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Layout */
+  --sidebar-width: 280px;
+  --header-height: 48px;
+
+  /* ── Theme base token (shadcn-style HSL triplet, NO hsl() wrapper) ──────────
+     Default = indigo, matching AutoForge so the products feel like siblings.
+     useTheme.ts overrides this at runtime. Components use --accent / --ring,
+     NOT --primary directly. */
+  --primary: 239 84% 67%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Colors (Win11 light theme) — neutral surfaces */
+  --bg-app: #f3f3f3;
+  --bg-sidebar: #f9f9f9;
+  --bg-card: #ffffff;
+  --bg-hover: #ededed;
+  --bg-input: #ffffff;
+  --bg-search: #f0f0f0;
+
+  --border: #e0e0e0;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #616161;
+  --text-muted: #8a8a8a;
+
+  --danger: #c42b1c;
+  --success: #107c10;
+
+  /* ── Accent family — ALL derived from --primary (single source of hue) ────── */
+  --accent: hsl(var(--primary));
+  --accent-hover: hsl(var(--primary) / 0.88);
+  --accent-foreground: hsl(var(--primary-foreground));
+  --accent-light: hsl(var(--primary) / 0.10);   /* soft tint for active/hover surfaces */
+  --accent-lighter: hsl(var(--primary) / 0.06);
+  --border-focus: hsl(var(--primary));
+  --ring: hsl(var(--primary) / 0.35);            /* focus ring shadow */
+  --bg-active: hsl(var(--primary) / 0.10);
+
+  /* Typography */
+  --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-size-base: 14px;
+  --font-size-sm: 12px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+
+  /* Spacing */
+  --radius: 8px;
+  --radius-sm: 4px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background: var(--bg-app);
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  transition: background 0.15s;
+}
+.btn:hover { background: var(--bg-hover); }
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card h2 {
+  font-size: var(--font-size-lg);
+  margin-bottom: 12px;
+}
+
+/* Inputs */
+input[type="text"], input[type="password"], input[type="number"], select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }

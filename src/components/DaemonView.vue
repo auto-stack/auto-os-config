@@ -5,6 +5,7 @@ import { testDaemon } from '@/lib/api'
 
 const status = ref<string>('idle')
 const test_error = ref<string>('')
+const latency = ref<number>(0)
 
 const props = defineProps<{
   module_id: string
@@ -20,6 +21,7 @@ async function Test(): Promise<void> {
   let r = await testDaemon();
   status.value = r.status;
   test_error.value = r.error;
+  latency.value = r.latency;
 
   emit('Test')
 }
@@ -28,10 +30,10 @@ async function Test(): Promise<void> {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4 daemon-view test-card bg-white border border-[#e0e0e0] rounded-lg px-[18px] py-[14px] gap-2 max-w-[820px]">
-      <div class="flex flex-row gap-4 test-row items-center gap-[14px]">
-        <span class="test-label font-semibold text-sm text-[#1a1a1a]">Daemon connection</span>
-        <span class="test-status text-xs">
+    <div class="flex flex-col gap-4 daemon-view test-card gap-[0px] max-w-[820px]">
+      <div class="flex flex-row gap-4 test-row gap-[14px]">
+        <span class="test-label">Daemon connection</span>
+        <span class="test-status">
           <template v-if="status == 'idle'">
             <span class="text-[#8a8a8a]">not tested</span>
           </template>
@@ -39,23 +41,29 @@ async function Test(): Promise<void> {
             <span class="text-[#8a8a8a]">testing…</span>
           </template>
           <template v-if="status == 'ok'">
-            <span class="font-medium text-[#107c10]">✓ online</span>
+            <span class="font-medium text-[#107c10]">{{ '✓ online (' + latency + 'ms)' }}</span>
           </template>
           <template v-if="status == 'unreachable'">
-            <span class="text-[#8a8a8a]">offline</span>
+            <span class="italic text-[#8a8a8a]">offline</span>
           </template>
           <template v-if="status == 'fail'">
             <span class="font-medium text-[#c42b1c]">✗ failed</span>
           </template>
         </span>
         <div class="flex-1" />
-        <button class="btn px-[14px] py-1 rounded text-xs border border-[#e0e0e0] bg-white text-[#1a1a1a] hover:bg-[#ededed]" @click="Test">Test</button>
+        <button class="btn" :disabled="status == 'checking'" @click="Test">Test</button>
       </div>
       <template v-if="status == 'fail' && test_error != ''">
-        <span class="test-err text-xs font-mono text-[#c42b1c]">{{ test_error }}</span>
+        <p class="test-err">{{ test_error }}</p>
       </template>
       <template v-if="status == 'unreachable'">
-        <span class="test-hint text-xs text-[#616161]">The AI Daemon (aaid, :17654) is offline. Start it with cargo run -p auto-ai-daemon. Config fields below can still be edited — they're written to ai-daemon.at directly.</span>
+        <p class="test-hint">
+          <span>The AI Daemon (aaid, :17654) is offline. Start it with </span>
+          <span class="inline-code">cargo run -p auto-ai-daemon</span>
+          <span>. Config fields below can still be edited — they're written to </span>
+          <span class="inline-code">ai-daemon.at</span>
+          <span> directly.</span>
+        </p>
       </template>
     </div>
 

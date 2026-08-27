@@ -53,7 +53,7 @@ if (listItems.includes('assistant')) pass('roles list shows assistant');
 else fail('assistant not in roles list');
 
 // select assistant → check fields render
-await page.click('.entity-list button:has-text("assistant")');
+await page.click('.entity-list .e-row:has-text("assistant")');
 await page.waitForTimeout(1200);
 let labels = await page.$$eval('.field-label', (els) => els.map((e) => e.textContent?.replace(/\s+/g, ' ').trim()));
 console.log('  labels:', labels.join(' | '));
@@ -104,8 +104,8 @@ const descRow = page.locator('.field-row').filter({ has: page.locator('.field-la
 const descInput = descRow.locator('input').first();
 if ((await descInput.count()) > 0) {
   await descInput.fill('E2E test role');
-  // Plan 008: edits are draft + Apply — commit before checking dirty.
-  await descRow.locator('button:has-text("Apply")').click();
+  // 2026-08-27 像素对拍：编辑为 onchange（失焦/回车）提交，无 Apply 按钮。
+  await descInput.press('Tab');
   await page.waitForTimeout(400);
 }
 // set soul sidecar
@@ -168,7 +168,7 @@ if (!newBtnVisible) pass('no "New" button on read-only skills');
 else fail('New button should be hidden for read-only skills');
 
 // click one skill → read-only view
-await page.click('.entity-list button:has-text("brainstorming")');
+await page.click('.entity-list .e-row:has-text("brainstorming")');
 await page.waitForTimeout(1000);
 const roBadge = await page.evaluate(() => !!document.querySelector('.ro-badge'));
 const skillBody = await page.evaluate(() => document.querySelector('.skill-body')?.textContent?.slice(0, 40));

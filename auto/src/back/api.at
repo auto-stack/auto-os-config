@@ -833,7 +833,21 @@ pub fn entriesCount(body str) int {
     return json.len(body)
 }
 
+/// Does a JSON object fragment contain top-level key `name`?
+/// (bodyHasText 的片段版；is_provider 判定用——css-era `is_provider: 'kind' in value`)
+pub fn fragHasKey(frag str, name str) bool {
+    let ks = json.keys(frag)
+    for k in ks {
+        if unquote(k) == name {
+            return true
+        }
+    }
+    return false
+}
+
 /// entryAt with full descriptor (flat): k/ckind/label/display/frag/is_table/ek/ew/ep/url
+/// box_class (2026-08-27 像素对拍): 顶层条目的行容器类——css-era .field-row
+/// (grid 160px/1fr gap12)。子表单盒子由 subAt 的 subform-cont 系列拼装。
 pub fn entryAt(body str, i int, module_id str) any {
     let ks = json.keys(body)
     var ku = ""
@@ -859,6 +873,8 @@ pub fn entryAt(body str, i int, module_id str) any {
         url: enumUrlOfEk(spec.ek, spec.ew, module_id, spec.ep),
         depth: 0,
         is_on: displayOf(frag) == "true",
+        is_provider: spec.kind == "subform" && fragHasKey(frag, "kind"),
+        box_class: "field-row",
     }
 }
 
@@ -925,6 +941,9 @@ pub fn subCount(frag str) int {
 /// Flat descriptor of a subform's j-th field; `head` is the subform key and
 /// doubles as the provider context (vue cfgProvider semantics). The key is
 /// the dotted path editField understands.
+/// box_class (2026-08-27 像素对拍): 平铺条目拼装 css-era subform 盒——header
+/// 行自带边框，子行 subform-cont 只补左右边，末行补底边+下圆角（first/last
+/// 由 api 预计算，视图无法前瞻）。
 pub fn subAt(body str, head str, j int, module_id str) any {
     let sub = json.get(body, head)
     let ks = json.keys(sub)
@@ -938,6 +957,13 @@ pub fn subAt(body str, head str, j int, module_id str) any {
     }
     let frag = json.get(sub, ku)
     let spec = inferField(ku, frag, module_id, head)
+    var bc = "subform-cont"
+    if j == 0 {
+        bc = bc + " first"
+    }
+    if j == json.len(sub) - 1 {
+        bc = bc + " last"
+    }
     return {
         key: head + "." + ku,
         kind: spec.kind,
@@ -948,6 +974,7 @@ pub fn subAt(body str, head str, j int, module_id str) any {
         url: enumUrlOfEk(spec.ek, spec.ew, module_id, head),
         depth: 1,
         is_on: displayOf(frag) == "true",
+        box_class: bc,
     }
 }
 

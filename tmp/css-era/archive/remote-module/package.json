@@ -1,0 +1,14 @@
+{
+  "name": "autoos-example-remote-module",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Example remote config-page for auto-os-config — demonstrates the createComponent(Vue) factory protocol (Plan 003).",
+  "scripts": {
+    "build": "vite build",
+    "serve": "node serve.mjs"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

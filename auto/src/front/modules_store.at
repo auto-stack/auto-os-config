@@ -164,11 +164,11 @@ store Modules {
                         }
                     }
                     if hit {
-                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded"
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
                         if .active_id == m.id {
                             ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
-                            nmcls = "nav-name text-sm font-medium text-primary"
+                            nmcls = "nav-name text-sm font-semibold text-primary"
                         }
                         members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
                     }
@@ -201,11 +201,11 @@ store Modules {
                     }
                 }
                 if shit {
-                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
                     if .active_id == sm.id {
                         scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
-                        snm = "nav-name text-sm font-medium text-primary"
+                        snm = "nav-name text-sm font-semibold text-primary"
                     }
                     vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
                     any_hit = true
@@ -272,11 +272,11 @@ store Modules {
                         }
                     }
                     if hit {
-                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded"
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
                         if .active_id == m.id {
                             ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
-                            nmcls = "nav-name text-sm font-medium text-primary"
+                            nmcls = "nav-name text-sm font-semibold text-primary"
                         }
                         members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
                     }
@@ -309,11 +309,11 @@ store Modules {
                     }
                 }
                 if shit {
-                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
                     if .active_id == sm.id {
                         scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
-                        snm = "nav-name text-sm font-medium text-primary"
+                        snm = "nav-name text-sm font-semibold text-primary"
                     }
                     vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
                     any_hit = true
@@ -367,11 +367,11 @@ store Modules {
                         }
                     }
                     if hit {
-                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded"
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
                         if .active_id == m.id {
                             ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
-                            nmcls = "nav-name text-sm font-medium text-primary"
+                            nmcls = "nav-name text-sm font-semibold text-primary"
                         }
                         members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
                     }
@@ -404,11 +404,11 @@ store Modules {
                     }
                 }
                 if shit {
-                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
                     if .active_id == sm.id {
                         scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
-                        snm = "nav-name text-sm font-medium text-primary"
+                        snm = "nav-name text-sm font-semibold text-primary"
                     }
                     vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
                     any_hit = true
@@ -442,11 +442,11 @@ store Modules {
                         }
                     }
                     if hit {
-                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded"
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
                         if .active_id == m.id {
                             ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
-                            nmcls = "nav-name text-sm font-medium text-primary"
+                            nmcls = "nav-name text-sm font-semibold text-primary"
                         }
                         members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
                     }
@@ -479,11 +479,11 @@ store Modules {
                     }
                 }
                 if shit {
-                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
                     if .active_id == sm.id {
                         scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
-                        snm = "nav-name text-sm font-medium text-primary"
+                        snm = "nav-name text-sm font-semibold text-primary"
                     }
                     vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
                     any_hit = true

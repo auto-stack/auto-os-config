@@ -1,7 +1,6 @@
 <!-- CollectionBrowser component - Auto-generated from Auto language -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { fieldDisplayOf } from '@/lib/api'
 
 const creating = ref<boolean>(false)
 const new_name = ref<string>('')
@@ -31,9 +30,9 @@ const emit = defineEmits<{
   ConfirmDeleteNo: []
   Draft: [string]
   SidecarDraft: [string]
-  ApplyEntry: [string]
-  TagAdd: [string]
-  Toggle: [string]
+  ApplyEntry: [number, string]
+  TagAdd: [number]
+  Toggle: [number, boolean]
   PwToggle: []
 }>()
 
@@ -41,17 +40,17 @@ import { useCollectionStore } from '../stores/auto/useCollectionStore'
 import { reactive } from 'vue'
 const store = reactive(useCollectionStore())
 
-function ApplyEntry(i: any): void {
+function ApplyEntry(i: any, v: any): void {
   let k: string = '';
   let j: number = 0;
   for (const x of store.entry_keys) {if (j == i) {k = x;
   }j = j + 1;
   }
-  if (draft.value != '' && k != '') {store.FieldEdited({ path: k, value: draft.value });
+  if (k != '') {store.FieldEdited({ path: k, value: v });
   draft.value = '';
   }
 
-  emit('ApplyEntry', i)
+  emit('ApplyEntry', i, v)
 }
 
 function AskDelete(): void {
@@ -160,19 +159,19 @@ function TagAdd(i: any): void {
   emit('TagAdd', i)
 }
 
-async function Toggle(i: any): Promise<void> {
+function Toggle(i: any, on: any): void {
   let k: string = '';
   let j: number = 0;
   for (const x of store.entry_keys) {if (j == i) {k = x;
   }j = j + 1;
   }
   let nv: string = 'false';
-  if (k != '') {let cur = await fieldDisplayOf(store.body_text, k);
-  if (cur == 'false' || cur == '') {nv = 'true';
-  }}
-  store.FieldEdited({ path: k, value: nv });
+  if (on) {nv = 'true';
+  }
+  if (k != '') {store.FieldEdited({ path: k, value: nv });
+  }
 
-  emit('Toggle', i)
+  emit('Toggle', i, on)
 }
 
 function ToggleCreate(): void {
@@ -189,79 +188,109 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="flex flex-row gap-4 collection max-w-[960px]">
-      <div class="flex flex-col gap-4 list-pane w-[260px] shrink-0 border border-[#e0e0e0] rounded-lg bg-white">
-        <div class="flex flex-row gap-4 list-head gap-2 p-2 border-b border-[#e0e0e0]">
-          <input class="filter-input flex-1 px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-[#f0f0f0]" :placeholder="'Filter…'" :value="store.name_filter" @input="SetFilter(($event.target as HTMLInputElement).value)" />
+    <div class="flex flex-row gap-4 collection gap-[16px] max-w-[960px]">
+      <aside class="list-pane gap-[0px]">
+        <div class="list-head gap-[6px]">
+          <input class="filter-input" :placeholder="'Filter…'" :value="store.name_filter" @input="SetFilter(($event.target as HTMLInputElement).value)" />
           <template v-if="read_only == false">
-            <button class="px-2 py-1 text-sm rounded border border-[#e0e0e0] bg-white" @click="ToggleCreate">＋</button>
+            <button class="btn icon" @click="ToggleCreate">+</button>
           </template>
         </div>
         <template v-if="creating">
-          <div class="flex flex-row gap-4 create-row gap-2 p-2 border-b border-[#e0e0e0] bg-[#ededed]">
-            <input class="name-input flex-1 px-2 py-1 text-xs border border-[#e0e0e0] rounded bg-white font-mono" :placeholder="'entity-name'" v-model="new_name" @input="NewName(($event.target as HTMLInputElement).value)" />
-            <button class="px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="DoCreate">Add</button>
-            <button class="px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="CancelCreate">✕</button>
+          <div class="create-row gap-[4px]">
+            <input class="name-input" :placeholder="'entity-name'" v-model="new_name" @input="NewName(($event.target as HTMLInputElement).value)" @keydown.enter="DoCreate" />
+            <button class="btn small" :disabled="store.saving || new_name.trim() == ''" @click="DoCreate">Add</button>
+            <button class="btn small" @click="CancelCreate">✕</button>
           </div>
         </template>
         <template v-if="store.list_loading">
-          <span class="list-msg p-4 text-center text-xs text-[#8a8a8a]">Loading…</span>
+          <div class="list-msg">
+            <span>Loading…</span>
+          </div>
         </template>
         <template v-if="store.list_loading == false">
-          <template v-if="store.view_names.length == 0">
-            <span class="list-msg p-4 text-center text-xs text-[#8a8a8a]">No entities.</span>
-          </template>
-          <template v-if="store.names.length == 0">
+          <template v-if="store.view_entities.length == 0">
+            <template v-if="store.names.length == 0">
+              <div class="list-msg empty">
+                <span>No entities.</span>
+              </div>
+            </template>
+            <template v-if="store.names.length > 0">
+              <div class="list-msg empty">
+                <span>No match.</span>
+              </div>
+            </template>
             <template v-if="read_only == false">
-              <button class="mx-2 px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Load">Load</button>
+              <button class="btn small list-load" @click="Load">Load</button>
             </template>
           </template>
-          <template v-if="store.names.length > 0">
-            <template v-if="store.view_names.length == 0">
-              <span class="list-msg p-2 text-center text-xs text-[#8a8a8a]">No match.</span>
-            </template>
-          </template>
-          <div class="overflow-auto max-h-[70vh] p-1">
-            <div class="flex flex-col gap-4 entity-list gap-[2px]">
-              <div class="contents" :key="n" v-for="n in store.view_names">
-                <template v-if="store.selected_name == n">
-                  <button class="e-item e-name active w-full text-left px-[10px] py-[7px] rounded font-mono text-sm bg-primary/10 text-primary font-semibold" @click="Pick(n)">{{ n }}</button>
+          <template v-if="store.view_entities.length > 0">
+            <div class="entity-list gap-[0px]">
+              <div class="contents" :key="e.name" v-for="e in store.view_entities">
+                <template v-if="store.selected_name == e.name">
+                  <div class="e-row active" @click="Pick(e.name)">
+                    <span class="e-name">{{ e.name }}</span>
+                    <template v-if="e.description != ''">
+                      <span class="e-desc">{{ e.description }}</span>
+                    </template>
+                  </div>
                 </template>
-                <template v-if="store.selected_name != n">
-                  <button class="e-item e-name w-full text-left px-[10px] py-[7px] rounded font-mono text-sm text-[#1a1a1a]" @click="Pick(n)">{{ n }}</button>
+                <template v-if="store.selected_name != e.name">
+                  <div class="e-row" @click="Pick(e.name)">
+                    <span class="e-name">{{ e.name }}</span>
+                    <template v-if="e.description != ''">
+                      <span class="e-desc">{{ e.description }}</span>
+                    </template>
+                  </div>
                 </template>
               </div>
             </div>
-          </div>
+          </template>
         </template>
-      </div>
-      <div class="flex flex-col gap-4 detail-pane flex-1">
+      </aside>
+      <section class="detail-pane gap-[0px]">
         <template v-if="store.selected_name == null">
           <template v-if="store.error != ''">
-            <span class="state-msg error px-4 py-3 rounded-lg text-sm text-[#c42b1c]">{{ '✗ ' + store.error }}</span>
+            <div class="state-msg error">
+              <span>{{ '✗ ' + store.error }}</span>
+            </div>
           </template>
           <template v-if="store.error == ''">
-            <span class="state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]">Select an entity from the left, or create a new one.</span>
+            <div class="state-msg">
+              <span>Select an entity from the left, or create a new one.</span>
+            </div>
           </template>
         </template>
         <template v-if="store.selected_name != null && store.loading">
-          <span class="state-msg px-4 py-3 rounded-lg bg-[#ededed] text-sm text-[#616161]">Loading…</span>
+          <div class="state-msg">
+            <span>Loading…</span>
+          </div>
         </template>
         <template v-if="store.selected_name != null && store.loading == false">
-          <div class="flex flex-row gap-4 toolbar items-center gap-3 py-2 border-b border-[#e0e0e0]">
-            <span class="mono font-mono text-sm font-semibold text-[#1a1a1a]">{{ store.selected_name }}</span>
-            <template v-if="store.dirty">
-              <span class="dirty text-xs font-medium text-primary">● unsaved</span>
-            </template>
-            <template v-if="store.is_read_only">
-              <span class="ro-badge text-[11px] px-2 rounded-full bg-[#ededed] text-[#616161]">read-only</span>
-            </template>
-            <div class="flex-1" />
-            <template v-if="read_only == false && store.is_read_only == false">
-              <button class="px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="Reload">Reload</button>
-              <button class="px-4 py-1 text-xs rounded bg-primary border-primary text-white" @click="Save">Save</button>
-              <button class="px-3 py-1 text-xs rounded border border-[#c42b1c] text-[#c42b1c] bg-white" @click="AskDelete">Delete</button>
-            </template>
+          <div class="toolbar gap-[0px]">
+            <div class="meta gap-[0px]">
+              <span class="mono">{{ store.selected_name }}</span>
+              <template v-if="store.dirty">
+                <span class="dirty">● unsaved</span>
+              </template>
+              <template v-if="store.is_read_only">
+                <span class="ro-badge">read-only</span>
+              </template>
+            </div>
+            <div class="actions gap-[0px]">
+              <template v-if="read_only == false && store.is_read_only == false">
+                <button class="btn" :disabled="store.saving" @click="Reload">Reload</button>
+                <button class="btn primary" :disabled="store.saving || store.dirty == false" @click="Save">
+                  <template v-if="store.saving">
+                    <span>Saving…</span>
+                  </template>
+                  <template v-if="store.saving == false">
+                    <span>Save</span>
+                  </template>
+                </button>
+                <button class="btn danger" @click="AskDelete">Delete</button>
+              </template>
+            </div>
           </div>
           <template v-if="confirm_open">
             <div class="flex flex-row gap-4 items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]">
@@ -272,112 +301,149 @@ onMounted(() => {
             </div>
           </template>
           <template v-if="store.error != ''">
-            <span class="state-msg error px-4 py-3 rounded-lg text-sm text-[#c42b1c]">{{ '✗ ' + store.error }}</span>
+            <div class="state-msg error">
+              <span>{{ '✗ ' + store.error }}</span>
+            </div>
           </template>
           <template v-if="store.is_read_only">
-            <div class="flex flex-col gap-4 fm-view gap-2">
-              <span class="text-lg font-bold text-[#1a1a1a]">{{ store.fm_name }}</span>
-              <span class="text-sm text-[#616161]">{{ store.fm_description }}</span>
-              <span class="skill-body fm-body p-3 rounded-lg bg-[#ededed] font-mono text-xs text-[#616161]">{{ store.fm_body }}</span>
+            <div class="flex flex-col gap-4 fm-view gap-[0px]">
+              <div class="field-row">
+                <label class="field-label">
+                  <span>Name</span>
+                </label>
+                <div class="readonly-val mono">
+                  <span>{{ store.fm_name }}</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <label class="field-label">
+                  <span>Description</span>
+                </label>
+                <div class="readonly-val">
+                  <span>{{ store.fm_description }}</span>
+                </div>
+              </div>
+              <div class="skill-body">{{ store.fm_body }}</div>
             </div>
           </template>
           <template v-if="store.is_read_only == false">
-            <div class="overflow-auto flex-1">
-              <div class="flex flex-col gap-4 fields gap-1">
-                <div class="contents" :key="e.key" v-for="(e, i) in store.entries">
-                  <template v-if="e.is_table">
-                    <div class="flex flex-col gap-4 field-row border rounded p-2 gap-1 bg-white">
-                      <span class="field-label text-sm font-medium text-[#616161]">{{ e.label }}</span>
-                      <span class="text-xs text-[#8a8a8a] font-mono">{{ e.frag }}</span>
+            <div class="fields gap-[0px]">
+              <div class="contents" :key="e.key" v-for="(e, i) in store.entries">
+                <template v-if="e.is_table">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <div class="table-readonly">
+                      <span class="font-mono text-xs text-[#616161] whitespace-pre-wrap break-all">{{ e.frag }}</span>
                     </div>
-                  </template>
-                  <template v-if="e.kind == 'toggle'">
-                    <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
-                      <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                      <input type="checkbox" :checked="e.value" :id="e.key" @click="Toggle(i)" />
-                      <template v-if="e.value == 'true'">
-                        <span class="text-xs text-[#616161]">On</span>
-                      </template>
-                      <template v-if="e.value != 'true'">
-                        <span class="text-xs text-[#8a8a8a]">Off</span>
-                      </template>
-                    </div>
-                  </template>
-                  <template v-if="e.kind == 'number'">
-                    <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
-                      <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                      <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :type="'number'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
-                      <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ApplyEntry(i)">Apply</button>
-                    </div>
-                  </template>
-                  <template v-if="e.kind == 'password'">
-                    <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
-                      <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
+                  </div>
+                </template>
+                <template v-if="e.is_table == false && e.kind == 'toggle'">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <label class="toggle gap-[0px]">
+                      <input :checked="e.value == 'true'" :type="'checkbox'" @change="Toggle(i, ($event.target as HTMLInputElement).checked)" />
+                      <span class="toggle-track">
+                        <span class="toggle-thumb" />
+                      </span>
+                      <span class="toggle-text">
+                        <template v-if="e.value == 'true'">
+                          <span>On</span>
+                        </template>
+                        <template v-if="e.value != 'true'">
+                          <span>Off</span>
+                        </template>
+                      </span>
+                    </label>
+                  </div>
+                </template>
+                <template v-if="e.is_table == false && e.kind == 'number'">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <input class="input" :type="'number'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                  </div>
+                </template>
+                <template v-if="e.is_table == false && e.kind == 'password'">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <div class="secret gap-[0px]">
                       <template v-if="pw_show">
-                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <input class="input pw" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                       </template>
                       <template v-if="pw_show == false">
-                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :type="'password'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <input class="input pw" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                       </template>
-                      <button class="btn px-2 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="PwToggle(i)">👁</button>
-                      <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ApplyEntry(i)">Apply</button>
+                      <button class="reveal" @click="PwToggle(i)">👁</button>
                     </div>
-                  </template>
-                  <template v-if="e.kind == 'text'">
-                    <div class="flex flex-row gap-4 field-row items-center gap-3 py-2">
-                      <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                      <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
-                      <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ApplyEntry(i)">Apply</button>
+                  </div>
+                </template>
+                <template v-if="e.is_table == false && e.kind == 'text'">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <input class="input" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                  </div>
+                </template>
+                <template v-if="e.is_table == false && e.kind == 'select'">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <input class="input" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                  </div>
+                </template>
+                <template v-if="e.is_table == false && e.kind == 'tags'">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                      <input class="input tag-input" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <button class="btn" @click="TagAdd(i)">Add</button>
                     </div>
-                  </template>
-                  <template v-if="e.kind == 'select'">
-                    <div class="flex flex-col gap-4 field-row py-2 gap-1">
-                      <div class="flex flex-row gap-4 items-center gap-3">
-                        <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="e.label" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
-                        <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ApplyEntry(i)">Apply</button>
-                      </div>
-                      <template v-if="e.url != ''">
-                        <span class="text-xs text-[#8a8a8a]">(select — free text accepted)</span>
-                      </template>
+                  </div>
+                </template>
+                <template v-if="e.is_table == false && e.kind == 'multiselect'">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                      <input class="input tag-input" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <button class="btn" @click="TagAdd(i)">Add</button>
                     </div>
-                  </template>
-                  <template v-if="e.kind == 'tags'">
-                    <div class="flex flex-col gap-4 field-row py-2 gap-1">
-                      <div class="flex flex-row gap-4 items-center gap-3">
-                        <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
-                        <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="TagAdd(i)">Add</button>
-                      </div>
-                      <span class="text-xs text-[#8a8a8a] font-mono">{{ e.value }}</span>
+                  </div>
+                </template>
+                <template v-if="e.is_table == false && e.kind == 'subform'">
+                  <div class="field-row">
+                    <label class="field-label">
+                      <span>{{ e.label }}</span>
+                    </label>
+                    <div class="table-readonly">
+                      <span class="font-mono text-xs text-[#616161] whitespace-pre-wrap break-all">{{ e.frag }}</span>
                     </div>
-                  </template>
-                  <template v-if="e.kind == 'multiselect'">
-                    <div class="flex flex-col gap-4 field-row py-2 gap-1">
-                      <div class="flex flex-row gap-4 items-center gap-3">
-                        <span class="field-label text-sm font-medium text-[#616161] w-[160px] shrink-0">{{ e.label }}</span>
-                        <input class="input px-[10px] py-[6px] text-sm border border-[#e0e0e0] rounded bg-white w-[240px]" :placeholder="'add value'" :value="e.value" @input="Draft(($event.target as HTMLInputElement).value)" />
-                        <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="TagAdd(i)">Add</button>
-                      </div>
-                      <span class="text-xs text-[#8a8a8a] font-mono">{{ e.value }}</span>
-                    </div>
-                  </template>
-                  <template v-if="e.kind == 'subform'">
-                    <div class="flex flex-col gap-4 field-row border rounded p-2 gap-1 bg-white">
-                      <span class="field-label text-sm font-medium text-[#616161]">{{ e.label }}</span>
-                      <span class="text-xs text-[#8a8a8a] font-mono">{{ e.frag }}</span>
-                    </div>
-                  </template>
-                </div>
-                <div class="flex flex-col gap-4 field-row sidecar-row py-2 gap-1">
-                  <span class="field-label text-sm font-medium text-[#616161]">Soul (markdown sidecar)</span>
-                  <textarea class="sidecar w-full min-h-[160px] p-2 text-xs border border-[#e0e0e0] rounded bg-white font-mono" :placeholder="'# Soul — the role\'s system prompt / personality (markdown).'" v-model="sidecar_draft" @input="SidecarDraft(($event.target as HTMLInputElement).value)" />
-                </div>
+                  </div>
+                </template>
+              </div>
+              <div class="field-row sidecar-row">
+                <label class="field-label">
+                  <span>Soul </span>
+                  <span class="hint">(markdown sidecar)</span>
+                </label>
+                <textarea class="sidecar" :placeholder="'# Soul — the role\'s system prompt / personality (markdown).'" v-model="sidecar_draft" @input="SidecarDraft(($event.target as HTMLInputElement).value)" />
               </div>
             </div>
           </template>
         </template>
-      </div>
+      </section>
     </div>
 
 </template>

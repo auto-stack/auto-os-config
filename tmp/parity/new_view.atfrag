@@ -1,0 +1,319 @@
+    view {
+        row (style: "collection gap-[16px] max-w-[960px]") {
+            aside (style: "list-pane gap-[0px]") {
+                div (style: "list-head gap-[6px]") {
+                    input (placeholder: "Filter…", value: .store.name_filter, style: "filter-input") {
+                        oninput: .SetFilter
+                    }
+                    if read_only == false {
+                        button (text: "+", style: "btn icon") {
+                            onclick: .ToggleCreate
+                        }
+                    }
+                }
+                if .creating {
+                    div (style: "create-row gap-[4px]") {
+                        input (placeholder: "entity-name", value: .new_name, style: "name-input") {
+                            oninput: .NewName
+                            onkeydown.enter: .DoCreate
+                        }
+                        button (text: "Add", style: "btn small", disabled: .store.saving || .new_name.trim() == "") {
+                            onclick: .DoCreate
+                        }
+                        button (text: "✕", style: "btn small") {
+                            onclick: .CancelCreate
+                        }
+                    }
+                }
+                if .store.list_loading {
+                    div (style: "list-msg") {
+                        text (text: "Loading…") {}
+                    }
+                }
+                if .store.list_loading == false {
+                    if .store.view_entities.len() == 0 {
+                        if .store.names.len() == 0 {
+                            div (style: "list-msg empty") {
+                                text (text: "No entities.") {}
+                            }
+                        }
+                        if .store.names.len() > 0 {
+                            div (style: "list-msg empty") {
+                                text (text: "No match.") {}
+                            }
+                        }
+                        if read_only == false {
+                            button (text: "Load", style: "btn small list-load") {
+                                onclick: .Load
+                            }
+                        }
+                    }
+                    if .store.view_entities.len() > 0 {
+                        div (style: "entity-list gap-[0px]") {
+                            for e in .store.view_entities {
+                                div (style: "contents") {
+                                    key: e.name
+                                    if .store.selected_name == e.name {
+                                        div (style: "e-row active") {
+                                            onclick: .Pick(e.name)
+                                            span (style: "e-name", text: e.name) {}
+                                            if e.description != "" {
+                                                span (style: "e-desc", text: e.description) {}
+                                            }
+                                        }
+                                    }
+                                    if .store.selected_name != e.name {
+                                        div (style: "e-row") {
+                                            onclick: .Pick(e.name)
+                                            span (style: "e-name", text: e.name) {}
+                                            if e.description != "" {
+                                                span (style: "e-desc", text: e.description) {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            section (style: "detail-pane gap-[0px]") {
+                if .store.selected_name == nil {
+                    if .store.error != "" {
+                        div (style: "state-msg error") {
+                            text (text: "✗ " + .store.error) {}
+                        }
+                    }
+                    if .store.error == "" {
+                        div (style: "state-msg") {
+                            text (text: "Select an entity from the left, or create a new one.") {}
+                        }
+                    }
+                }
+                if .store.selected_name != nil && .store.loading {
+                    div (style: "state-msg") {
+                        text (text: "Loading…") {}
+                    }
+                }
+                if .store.selected_name != nil && .store.loading == false {
+                    div (style: "toolbar gap-[0px]") {
+                        div (style: "meta gap-[0px]") {
+                            span (style: "mono", text: .store.selected_name) {}
+                            if .store.dirty {
+                                span (style: "dirty", text: "● unsaved") {}
+                            }
+                            if .store.is_read_only {
+                                span (style: "ro-badge", text: "read-only") {}
+                            }
+                        }
+                        div (style: "actions gap-[0px]") {
+                            if read_only == false && .store.is_read_only == false {
+                                button (text: "Reload", style: "btn", disabled: .store.saving) {
+                                    onclick: .Reload
+                                }
+                                button (style: "btn primary", disabled: .store.saving || .store.dirty == false) {
+                                    onclick: .Save
+                                    if .store.saving {
+                                        text (text: "Saving…") {}
+                                    }
+                                    if .store.saving == false {
+                                        text (text: "Save") {}
+                                    }
+                                }
+                                button (text: "Delete", style: "btn danger") {
+                                    onclick: .AskDelete
+                                }
+                            }
+                        }
+                    }
+                    if .confirm_open {
+                        row (style: "flex items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]") {
+                            text (text: "Delete this entity? (.at + sidecar removed, .bak kept)", style: "text-sm text-[#c42b1c]") {}
+                            div (style: "flex-1") {}
+                            button (text: "Yes, delete", style: "px-3 py-1 text-xs rounded bg-[#c42b1c] border-[#c42b1c] text-white") {
+                                onclick: .ConfirmDeleteYes
+                            }
+                            button (text: "Cancel", style: "px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white") {
+                                onclick: .ConfirmDeleteNo
+                            }
+                        }
+                    }
+                    if .store.error != "" {
+                        div (style: "state-msg error") {
+                            text (text: "✗ " + .store.error) {}
+                        }
+                    }
+                    if .store.is_read_only {
+                        col (style: "fm-view gap-[0px]") {
+                            div (style: "field-row") {
+                                label (style: "field-label") {
+                                    text (text: "Name") {}
+                                }
+                                div (style: "readonly-val mono") {
+                                    text (text: .store.fm_name) {}
+                                }
+                            }
+                            div (style: "field-row") {
+                                label (style: "field-label") {
+                                    text (text: "Description") {}
+                                }
+                                div (style: "readonly-val") {
+                                    text (text: .store.fm_description) {}
+                                }
+                            }
+                            div (style: "skill-body", text: .store.fm_body) {}
+                        }
+                    }
+                    if .store.is_read_only == false {
+                        div (style: "fields gap-[0px]") {
+                            for i, e in .store.entries {
+                                div (style: "contents") {
+                                    key: e.key
+                                    if e.is_table {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "table-readonly") {
+                                                text (text: e.frag, style: "font-mono text-xs text-[#616161] whitespace-pre-wrap break-all") {}
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "toggle" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            label (style: "toggle gap-[0px]") {
+                                                input ("type": "checkbox", checked: e.value == "true") {
+                                                    onchange: .Toggle(i, $event.target.checked)
+                                                }
+                                                span (style: "toggle-track") {
+                                                    span (style: "toggle-thumb") {}
+                                                }
+                                                span (style: "toggle-text") {
+                                                    if e.value == "true" {
+                                                        text (text: "On") {}
+                                                    }
+                                                    if e.value != "true" {
+                                                        text (text: "Off") {}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "number" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            input ("type": "number", value: e.value, style: "input") {
+                                                oninput: .Draft
+                                                onchange: .ApplyEntry(i, $event.target.value)
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "password" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "secret gap-[0px]") {
+                                                if .pw_show {
+                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw") {
+                                                        oninput: .Draft
+                                                        onchange: .ApplyEntry(i, $event.target.value)
+                                                    }
+                                                }
+                                                if .pw_show == false {
+                                                    input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw") {
+                                                        oninput: .Draft
+                                                        onchange: .ApplyEntry(i, $event.target.value)
+                                                    }
+                                                }
+                                                button (style: "reveal", text: "👁") {
+                                                    onclick: .PwToggle
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "text" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            input (value: e.value, "type": "text", placeholder: "(empty)", style: "input") {
+                                                oninput: .Draft
+                                                onchange: .ApplyEntry(i, $event.target.value)
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "select" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            input (value: e.value, "type": "text", placeholder: "(not set)", style: "input") {
+                                                oninput: .Draft
+                                                onchange: .ApplyEntry(i, $event.target.value)
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "tags" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "flex items-center gap-2") {
+                                                input (value: "", "type": "text", placeholder: "add…", style: "input tag-input") {
+                                                    oninput: .Draft
+                                                }
+                                                button (text: "Add", style: "btn") {
+                                                    onclick: .TagAdd(i)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "multiselect" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "flex items-center gap-2") {
+                                                input (value: "", "type": "text", placeholder: "add…", style: "input tag-input") {
+                                                    oninput: .Draft
+                                                }
+                                                button (text: "Add", style: "btn") {
+                                                    onclick: .TagAdd(i)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if e.is_table == false && e.kind == "subform" {
+                                        div (style: "field-row") {
+                                            label (style: "field-label") {
+                                                text (text: e.label) {}
+                                            }
+                                            div (style: "table-readonly") {
+                                                text (text: e.frag, style: "font-mono text-xs text-[#616161] whitespace-pre-wrap break-all") {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            div (style: "field-row sidecar-row") {
+                                label (style: "field-label") {
+                                    text (text: "Soul ") {}
+                                    span (style: "hint", text: "(markdown sidecar)") {}
+                                }
+                                textarea (placeholder: "# Soul — the role's system prompt / personality (markdown).", value: .sidecar_draft, style: "sidecar") {
+                                    oninput: .SidecarDraft
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+

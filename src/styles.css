@@ -50,9 +50,9 @@
   --ring: hsl(var(--primary) / 0.35);            /* focus ring shadow */
   --bg-active: hsl(var(--primary) / 0.10);
 
-  /* Typography — Inter-first to match the vm renderer's default font
-     (Plan 008 D5: converge the biggest default-style divergence) */
-  --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Typography — Segoe-first (2026-08-27 像素对拍基准：CSS 原版即此栈；
+     Inter 曾为 vm 对齐而置前，vm 渲染器不消费此栈，回退不影响 vm 轨） */
+  --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-size-base: 14px;
   --font-size-sm: 12px;
   --font-size-lg: 16px;
@@ -67,6 +67,29 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* css-era 的行高全部是浏览器 normal（Segoe UI 14px ≈ 18.6px）；preflight 的
+   html{line-height:1.5} 会把所有未显式设 text-* 的文字撑高。回滚为 normal。
+   （text-* 的行高在 tailwind.config fontSize 覆盖里同步回 normal。） */
+html {
+  line-height: normal;
+}
+
+/* css-era 渲染真相（本机 Chrome UA sheet，2026-08-27 双端盒模型实测）：无
+   preflight 时 button/input/select/textarea 不继承 body 字体，UA 默认
+   Arial 13.3333px——原版所有表单控件及按钮内文字都在 Arial 度量下渲染
+   （14px Arial 行盒 16px；Segoe UI 是 19px，每行 +3px 逐项累积）。
+   preflight 的 font:inherit 抹平了这一点，这里恢复 UA 形态。 */
+button, input, select, textarea {
+  font: 400 13.3333px Arial;
+}
+
+/* 占位符：css-era 走 Chrome UA 默认 #757575（实测采样）；preflight 的
+   gray-400 #9ca3af 偏浅。 */
+input::placeholder, textarea::placeholder {
+  color: #757575;
+  opacity: 1;
 }
 
 body {
@@ -138,3 +161,647 @@ input:focus, select:focus {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   编辑器复刻块（2026-08-27 像素对拍）——css-era ConfigEditor/ScalarFields
+   scoped CSS 的原值拷贝，命名空间 .config-editor（等价旧 scoped 隔离）。
+   伪类选择器（.toggle input:checked + .toggle-track、:hover:not(:disabled)、
+   :focus）是 Tailwind 类串表达不了的，视图 .at 侧只挂命名类标记。
+   ════════════════════════════════════════════════════════════════════════ */
+.config-editor .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0 16px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+.config-editor .toolbar.bottom {
+    border-bottom: none;
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+    padding-top: 16px;
+}
+.config-editor .meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+.config-editor .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.config-editor .dirty {
+    color: var(--accent);
+    font-weight: 500;
+}
+.config-editor .actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+.config-editor .btn {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 6px 16px;
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    transition: all 0.15s;
+    font-family: inherit;
+}
+.config-editor .btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+.config-editor .btn.primary {
+    background: var(--accent);
+    color: var(--accent-foreground);
+    border-color: var(--accent);
+}
+.config-editor .btn.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+.config-editor .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.config-editor .btn.danger {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: transparent;
+}
+.config-editor .btn.danger:hover:not(:disabled) {
+    background: rgba(196, 43, 28, 0.08);
+}
+.config-editor .btn-sm {
+    padding: 2px 8px;
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+}
+.config-editor .block-name {
+    width: 160px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--font-size-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+.config-editor .block-error {
+    color: var(--danger);
+    font-size: var(--font-size-sm);
+}
+.config-editor .fields {
+    display: flex;
+    flex-direction: column;
+}
+.config-editor .subform-header {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-hover);
+    border-radius: var(--radius, 8px) var(--radius, 8px) 0 0;
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    background-clip: padding-box;
+}
+/* 平铺条目拼装 subform 盒（css-era .subform{border;radius 8} 的行化拆分）：
+   中间行补左右边，末行（.last）补底边+下圆角；首行贴 header 的 border-b。 */
+.config-editor .subform-cont {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 8px 14px;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+.config-editor .subform-cont.first {
+    /* css-era .subform-body padding 8 与行 padding 8 叠加 → 首行内容距 header 16px */
+    padding-top: 16px;
+}
+.config-editor .subform-cont.last {
+    border-bottom: 1px solid var(--border);
+    border-radius: 0 0 var(--radius, 8px) var(--radius, 8px);
+    margin-bottom: 12px;
+    padding-bottom: 16px;
+}
+.config-editor .field-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 8px 0;
+}
+.config-editor .field-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    padding-top: 6px;
+    font-weight: 500;
+}
+.config-editor .state-msg {
+    padding: 14px;
+    border-radius: var(--radius, 8px);
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+}
+.config-editor .state-msg.error {
+    background: rgba(196, 43, 28, 0.08);
+    color: var(--danger);
+}
+.config-editor .state-msg.error .hint {
+    display: block;
+    margin-top: 6px;
+    font-size: var(--font-size-sm);
+    opacity: 0.85;
+}
+.config-editor .input {
+    width: 100%;
+    max-width: 420px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--font-size-base);
+    background: var(--bg-input);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+}
+.config-editor .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.config-editor .secret {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    max-width: 420px;
+}
+.config-editor .secret .input {
+    flex: 1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--font-size-sm);
+}
+.config-editor .reveal {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: var(--radius-sm, 4px);
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.config-editor .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+.config-editor .toggle input {
+    display: none;
+}
+.config-editor .toggle-track {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    position: relative;
+    transition: background 0.15s;
+}
+.config-editor .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.15s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.config-editor .toggle input:checked + .toggle-track {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.config-editor .toggle input:checked + .toggle-track .toggle-thumb {
+    transform: translateX(16px);
+}
+.config-editor .toggle-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+/* 暂替形态（待阶段二还原）：tags/multiselect 的加号式输入、只读 JSON 表格 */
+.config-editor .tag-input {
+    max-width: 240px;
+}
+.config-editor .table-readonly {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--bg-card);
+    padding: 8px 10px;
+    max-width: 720px;
+    overflow: hidden;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Daemon 测试卡复刻块（2026-08-27）——css-era DaemonView scoped CSS 原值。
+   ════════════════════════════════════════════════════════════════════════ */
+.daemon-view.test-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 8px);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+}
+.daemon-view .test-row {
+    display: flex;
+    align-items: center;
+}
+.daemon-view .test-label {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+}
+.daemon-view .test-status {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+.daemon-view .btn {
+    margin-left: auto;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 4px 14px;
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+}
+.daemon-view .btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+.daemon-view .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.daemon-view .test-err {
+    margin: 8px 0 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--danger);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.daemon-view .test-hint {
+    margin: 8px 0 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+.daemon-view .test-hint .inline-code {
+    background: var(--bg-hover);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   集合浏览器复刻块（2026-08-27）——css-era CollectionBrowser scoped CSS 原值。
+   与编辑器共用的 field-row/field-label/input/toggle 系列在此并列命名空间。
+   ════════════════════════════════════════════════════════════════════════ */
+.collection {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    max-width: 960px;
+}
+.collection .list-pane {
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 8px);
+    background: var(--bg-card);
+    height: fit-content;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+}
+.collection .list-head {
+    display: flex;
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+}
+.collection .filter-input {
+    flex: 1;
+    padding: 5px 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--font-size-sm);
+    background: var(--bg-input);
+    outline: none;
+    font-family: inherit;
+    min-width: 0;
+}
+.collection .filter-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--ring);
+}
+.collection .create-row {
+    display: flex;
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--accent-lighter);
+}
+.collection .name-input {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--font-size-sm);
+    background: var(--bg-input);
+    outline: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    min-width: 0;
+}
+.collection .entity-list {
+    padding: 4px;
+    overflow-y: auto;
+}
+.collection .e-row {
+    padding: 7px 10px;
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.collection .e-row:hover {
+    background: var(--bg-hover);
+}
+.collection .e-row.active {
+    background: var(--accent-light);
+}
+.collection .e-name {
+    display: block;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text-primary);
+}
+.collection .e-desc {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.collection .list-msg {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+.collection .list-msg.empty {
+    font-style: italic;
+}
+.collection .list-load {
+    margin: 0 8px 8px;
+}
+.collection .detail-pane {
+    min-width: 0;
+}
+.collection .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 12px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+.collection .meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+.collection .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.collection .dirty {
+    color: var(--accent);
+}
+.collection .ro-badge {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+}
+.collection .actions {
+    display: flex;
+    gap: 8px;
+}
+.collection .btn {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 5px 14px;
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    transition: all 0.15s;
+    font-family: inherit;
+}
+.collection .btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+.collection .btn.primary {
+    background: var(--accent);
+    color: var(--accent-foreground);
+    border-color: var(--accent);
+}
+.collection .btn.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+.collection .btn.danger {
+    color: var(--danger);
+    border-color: var(--border);
+}
+.collection .btn.danger:hover:not(:disabled) {
+    background: rgba(196, 43, 28, 0.08);
+    border-color: var(--danger);
+}
+.collection .btn.icon {
+    padding: 4px 10px;
+    font-size: 16px;
+    line-height: 1;
+}
+.collection .btn.small {
+    padding: 4px 10px;
+}
+.collection .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.collection .fields {
+    display: flex;
+    flex-direction: column;
+}
+.collection .field-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 8px 0;
+}
+.collection .field-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    padding-top: 6px;
+    font-weight: 500;
+}
+.collection .field-label .hint {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+.collection .input {
+    width: 100%;
+    max-width: 420px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--font-size-base);
+    background: var(--bg-input);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+}
+.collection .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.collection .secret {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    max-width: 420px;
+}
+.collection .secret .input {
+    flex: 1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--font-size-sm);
+}
+.collection .reveal {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: var(--radius-sm, 4px);
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.collection .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+.collection .toggle input {
+    display: none;
+}
+.collection .toggle-track {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    position: relative;
+    transition: background 0.15s;
+}
+.collection .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.15s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.collection .toggle input:checked + .toggle-track {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.collection .toggle input:checked + .toggle-track .toggle-thumb {
+    transform: translateX(16px);
+}
+.collection .toggle-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+.collection .tag-input {
+    max-width: 240px;
+}
+.collection .sidecar {
+    width: 100%;
+    min-height: 160px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--font-size-sm);
+    background: var(--bg-input);
+    outline: none;
+    resize: vertical;
+    line-height: 1.5;
+}
+.collection .sidecar:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--ring);
+}
+.collection .readonly-val {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    padding-top: 6px;
+}
+.collection .skill-body {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--bg-hover);
+    border-radius: var(--radius, 8px);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-height: 50vh;
+    overflow-y: auto;
+    color: var(--text-secondary);
+}
+.collection .state-msg {
+    padding: 14px;
+    border-radius: var(--radius, 8px);
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+}
+.collection .state-msg.error {
+    background: rgba(196, 43, 28, 0.08);
+    color: var(--danger);
+}
+.collection .table-readonly {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 4px);
+    background: var(--bg-card);
+    padding: 8px 10px;
+    max-width: 720px;
+    overflow: hidden;
+}

@@ -29,10 +29,10 @@ await page.waitForSelector('.test-card', { timeout: 10000 });
 // load so the primary Save button (accent-asserted below) exists.
 const loadBtn = page.locator('.config-editor button:has-text("Load")');
 if (await loadBtn.count()) { await loadBtn.click(); }
-await page.waitForSelector('.config-editor .bg-primary', { timeout: 10000 });
+await page.waitForSelector('.config-editor .btn.primary', { timeout: 10000 });
 const navBefore = await navNameColor();
 const btnBefore = await page.$eval(
-  '.config-editor .bg-primary', el => getComputedStyle(el).backgroundColor);
+  '.config-editor .btn.primary', el => getComputedStyle(el).backgroundColor);
 console.log(`  nav name color   = ${navBefore}`);
 console.log(`  save button bg   = ${btnBefore}`);
 await page.screenshot({ path: 'screenshot-theme-daemon-indigo.png', fullPage: true });
@@ -42,7 +42,7 @@ await page.$$eval('.theme-picker .swatch', (els, i) => els[i].click(), 1);
 await page.waitForTimeout(400);
 const navAfter = await navNameColor();
 const btnAfter = await page.$eval(
-  '.config-editor .bg-primary', el => getComputedStyle(el).backgroundColor);
+  '.config-editor .btn.primary', el => getComputedStyle(el).backgroundColor);
 console.log(`  nav name color   = ${navAfter}`);
 console.log(`  save button bg   = ${btnAfter}`);
 await page.screenshot({ path: 'screenshot-theme-daemon-coral.png', fullPage: true });
@@ -54,7 +54,7 @@ await page.waitForSelector('.entity-list', { timeout: 10000 });
 await page.click('.entity-list .e-name');
 await page.waitForTimeout(600);
 const rowCoral = await page.$eval(
-  '.entity-list .e-name.active', el => getComputedStyle(el).backgroundColor);
+  '.entity-list .e-row.active', el => getComputedStyle(el).backgroundColor);
 console.log(`  selected row bg  = ${rowCoral}`);
 await page.screenshot({ path: 'screenshot-theme-roles-coral.png', fullPage: true });
 
@@ -62,7 +62,7 @@ console.log('\n=== switch to Ocean (3rd swatch) on Roles ===');
 await page.$$eval('.theme-picker .swatch', (els, i) => els[i].click(), 2);
 await page.waitForTimeout(400);
 const rowOcean = await page.$eval(
-  '.entity-list .e-name.active', el => getComputedStyle(el).backgroundColor);
+  '.entity-list .e-row.active', el => getComputedStyle(el).backgroundColor);
 console.log(`  selected row bg  = ${rowOcean}`);
 await page.screenshot({ path: 'screenshot-theme-roles-ocean.png', fullPage: true });
 
