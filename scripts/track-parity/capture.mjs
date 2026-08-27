@@ -12,6 +12,7 @@
 import { chromium } from 'playwright';
 import { spawn } from 'child_process';
 import { mkdirSync, copyFileSync, readFileSync, writeFileSync } from 'fs';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { setTimeout as sleep } from 'timers/promises';
 import { PNG } from 'pngjs';
@@ -89,6 +90,8 @@ if (track === 'vue') {
   const MCP = `http://127.0.0.1:${MCP_PORT}/mcp`;
 
   async function withApp(fn) {
+    // 清场：同端口僵尸实例会让后续 boot 全部落到旧画面上（U1/U3 假象放大器）
+    try { execSync('taskkill /IM auto.exe /F', { stdio: 'ignore' }); await sleep(800); } catch {}
     const proc = spawn('auto', ['run', '-r', 'vm'], {
       cwd: new URL('../../auto/', import.meta.url),
       env: { ...process.env, AUTOUI_MCP_PORT: String(MCP_PORT), AUTO_VM_WINDOW: VM_WINDOW },

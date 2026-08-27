@@ -33,7 +33,7 @@ onMounted(() => {
         <div class="flex flex-row gap-4 content-header h-[48px] shrink-0 items-center gap-[0px] px-6 border-b border-[#e0e0e0] bg-white">
           <span class="text-xl font-semibold text-[#1a1a1a]">{{ store.title }}</span>
         </div>
-        <div class="flex flex-col gap-4 content-body flex-1 gap-[0px] overflow-auto p-6">
+        <div class="flex flex-col gap-4 content-body flex-1 gap-[0px] overflow-auto p-6 bg-white">
           <template v-if="store.loading">
             <div class="flex flex-col gap-4 state-msg flex-1 items-center justify-center gap-[0px]">
               <span class="text-base text-[#8a8a8a]">Loading configuration...</span>
