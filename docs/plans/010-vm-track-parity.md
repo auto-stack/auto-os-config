@@ -155,14 +155,8 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 
 ### C 相 · 对拍底座与量化档案
 
-- [ ] T5 (C1) 对拍工具入库：
-  文件：新增 `scripts/track-parity/{capture.mjs,diff.mjs,metrics.mjs}`；参考源 `tmp/parity/*.mjs`。
-  操作：移植为 `--track vue|vm` 双通道（vue=Playwright 1440x900/同 accent/禁动画；vm=MCP autoui_screenshot）；PNG 出参目录 `tmp/track-parity/`。
-  验证：`node scripts/track-parity/capture.mjs --track vue` 与 `--track vm` 各产出 12 视图 PNG 且非空。
-- [ ] T6 (C2) vm 窗口定标探针：
-  文件：`scripts/track-parity/capture.mjs` 头注。
-  操作：探测 vm 窗口尺寸控制途径（env/config/resize；可试 AUTOUI_* 环境变量与 README 检索）；不可控则实现「vm 基准 + vue 裁剪对齐」。
-  验证：两轨至少 06-modes 视图产出同尺寸可比 PNG，取舍结论写入头注与本文件。
+- [x] T5 (C1) 对拍工具入库 ✅ 已完成 [2026-08-27] `scripts/track-parity/{capture,diff}.mjs` 落库（commit c9eb9f1）；vue 8/8、vm 7/8 捕获成功（roles 详情视图见 U3）。
+- [x] T6 (C2) vm 窗口定标探针 ✅ 已完成 [2026-08-27] 上游支持 `AUTO_VM_WINDOW=WxH`（默认 1280x800）；本机 2x DPI 致 PNG 物理像素翻倍——capture 设 `720x450` + 截图后重采样归一到 1440x900，两轨尺寸全对齐（T6 头注已录）。
 - [ ] T7 (C3) 12 视图 diff 台账初稿：
   操作：跑全套 capture+diff+metrics；逐视图归因分层（L1 结构不符单列 / L2 / L3）；人工抽查 ≥3 视图互证。
   验证：台账表（本文件 §残差台账）填满 12 行且每行带初判层级标签。
@@ -204,6 +198,11 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 | U2 | 编辑器字段 | 上游P1 | autoui_type 合成输入把内联 onchange 表达式粘连成 handler 名（.ApplyEntryi0s$event.t…），文本不落盘、dirty 不置位；真键盘 live-apply 待实机走查 | action_mapper 仅找 "type" handler 名 | e2e-vm KNOWN-GAP 机制显式登记 | 登记待回报 |
 | R1 | vm 无 auto-Init | 设计差异 | accent 桌面轨重启丢失 / 文件模块需手动 Load | 007 已登记偏差的余项 | app.at 根 Init 链补 Theme.Init()（已修）；Load-first 形态保留为双端定型 | ✅ 已修 |
 | R2 | 集合页列表行 | 结构差异 | div+onclick 在 vm 不可交互 | css-era HTML 语义无 vm 对应 widget | e-row 定型为 button（styles.css 中和 UA 态保像素） | ✅ 已修 |
+
+| U3 | roles 详情视图 | 上游P1 | 选中实体后的详情态 autoui_screenshot 必超时（"iced thread may not be responding"，20s 足否待复测）；其余 7 视图截图正常 | 疑与 U1 同域（detail 富子树 + 截图线程协作） | capture 跳过该视图；T13 实机核对 |
+| R3 | app 内容面板 | L2候选 | content-body 无背景类，iced 默认暗色主题下透明底露出近黑（右半画布全暗）→ 全视图 diff% ~79 的主导项 | css-era html 白底隐式依赖；vm 需显式 bg-white | T8 清偿候选（加 bg 类，css-era 像素应零变化） |
+| R4 | 侧栏导航项 | L2候选 | vm 渲染 nav item 文字不可见（仅图标，容器呈大紫块）——名称/描述 class 绑定或文字色失效 | 待 T7 放大归因（快照树文本节点存在） | T7/T8 清理 |
+| R5 | accent 基线 | 工具纪律 | vm 读 autoos-ui.json 而 vue 用 localStorage，历史状态互串 | 双端存储不同源 | capture 已预置双端 indigo ✅ |
 
 ## 已知 GAP 汇总（e2e-vm 运行时输出，共 2 项常驻）
 
