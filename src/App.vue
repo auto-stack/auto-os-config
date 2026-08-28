@@ -16,13 +16,15 @@ import { useThemeStore } from './stores/auto/useThemeStore'
 import { reactive } from 'vue'
 const store = reactive(useModulesStore())
 
+const themeStore = reactive(useThemeStore())
+
 onMounted(() => {
 
 
   store.Init();
 
 
-  useThemeStore().Init();
+  themeStore.Init();
 })
 
 

@@ -262,9 +262,9 @@ async function runAttempt() {
   if (!(await press('Load', 4000))) console.log('[e2e-vm] note: no Load button (already loaded?)');
   // batch 2: the unified card follows the vue design — button label is 'Test'
 if (!(await press('Test', 2000))) fail('Test button not found');
-  for (let i = 0; i < 15 && (!st.status || st.status === '"idle"' || st.status === '""'); i++) {
+  for (let i = 0; i < 15 && (!st.status || st.status === '"idle"' || st.status === '""' || st.status === '"loaded"'); i++) {
     st = await state('status');
-    if (!st.status || st.status === '"idle"' || st.status === '""') await sleep(2000);
+    if (!st.status || st.status === '"idle"' || st.status === '""' || st.status === '"loaded"') await sleep(2000);
   }
   if (st.status === '"ok"' || st.status === '"fail"') pass('Test connection roundtrip (status=' + st.status + ')');
   else fail(`test connection: ${st.status}`);
@@ -327,6 +327,28 @@ if (!(await press('Test', 2000))) fail('Test button not found');
     else fail(`swatch smoke: active_id=${st.active_id}`);
   } else fail('swatch smoke: Auto Musk nav not found');
 
+  // 3d. read_only collection preload (plan010 R10, review fix): a read_only
+  // collection renders NO Load button and vm child widgets have no auto-Init,
+  // so the ONLY load path is the Select-time Collection.Open preload.
+  if (await pressNav('Skills', 3000)) {
+    st = await state('names');
+    if (st.names && st.names.includes('brainstorming')) pass('read_only collection preload (skills names via Select)');
+    else fail(`skills preload: ${st.names}`);
+  } else fail('skills nav not found');
+  // The skills list build latches the U1 frozen-state — full reboot before
+  // the Roles section (same controlled-reboot semantics as 3b).
+  killApp();
+  channelDead = false;
+  channelEverUp = false;
+  proc = spawn('auto', ['run', '-r', 'vm'], {
+    cwd: new URL('../auto/', import.meta.url),
+    env: { ...process.env, AUTOUI_MCP_PORT: MCP_PORT },
+    stdio: 'ignore',
+    detached: false,
+  });
+  if (!(await waitUp())) fail('skills→roles reboot failed');
+  else await sleep(2500);
+
   // 4. collection page LAST (see the U1 defect note above): navigate into
   // Roles and exercise master-detail; anything requiring further sidebar
   // navigation after this point would hit the frozen-state defect.
@@ -335,11 +357,17 @@ if (!(await press('Test', 2000))) fail('Test button not found');
   if (st.active_kind === '"collection"' && st.active_id === '"roles"') pass('Roles selected (kind=collection)');
   else fail(`Roles selection: kind=${st.active_kind} id=${st.active_id}`);
 
-  // 4a. Load → names
-  if (!(await press('Load', 5000))) fail('Load button not found');
+  // 4a. Load → names (plan010 R10: the Select-time Collection.Open preload
+  // populates names before this point, so the empty-state Load button may
+  // legitimately be absent — names present means already loaded).
   st = await state('names');
-  if (st.names && st.names.includes('assistant')) pass('collection list loaded (assistant)');
-  else fail(`collection names: ${st.names}`);
+  if (st.names && st.names.includes('assistant')) {
+    pass('collection list loaded (assistant) [preloaded via Select]');
+  } else if (await press('Load', 5000)) {
+    st = await state('names');
+    if (st.names && st.names.includes('assistant')) pass('collection list loaded (assistant)');
+    else fail(`collection names: ${st.names}`);
+  } else fail('Load button not found and names empty');
 
   // 4b. pick assistant → entries
   if (!(await press('assistant', 5500))) fail('assistant button not found');

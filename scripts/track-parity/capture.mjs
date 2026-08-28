@@ -195,11 +195,13 @@ const NL = String.fromCharCode(10);
       const loadId = await pressLabel('Load');
       if (loadId) { await call('autoui_action', { element_id: loadId, action: 'press' }); await sleep(4500); }
       else console.log('no Load button:', name);
-      // 集合页选中首实体
-      if (file === '03-roles') {
-        const aid = await pressLabel('assistant');
+      // 集合页选中首实体（与 vue capture 口径一致：vue 对 .e-row 点首个；
+      // R10 预载后 vm 侧 skills 列表也有数据，详情区入画口径对齐）
+      const PICK = { '03-roles': 'assistant', '04-skills': 'brainstorming' };
+      if (PICK[file]) {
+        const aid = await pressLabel(PICK[file]);
         if (aid) { await call('autoui_action', { element_id: aid, action: 'press' }); await sleep(4500); }
-        else console.log('no assistant button');
+        else console.log('no first-entity button:', PICK[file]);
       }
       await shoot(file);
     });

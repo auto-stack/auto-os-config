@@ -12,6 +12,8 @@
 // so Select never re-fetches. The MODEL shape is unchanged — vue widgets and
 // the sidebar ext facade are untouched.
 use back.api: fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, selectInfo, groupOfModule, getHash
+// plan010 R10: Select 命中集合时预载 Collection store（见 .Select 注）
+use collection_store: Collection
 
 store Modules {
     model {
@@ -164,13 +166,11 @@ store Modules {
                         }
                     }
                     if hit {
-                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
                         if .active_id == m.id {
-                            ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
                             nmcls = "nav-name text-sm font-semibold text-primary"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls })
                     }
                 }
                 var open = false
@@ -201,13 +201,11 @@ store Modules {
                     }
                 }
                 if shit {
-                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
                     if .active_id == sm.id {
-                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
                         snm = "nav-name text-sm font-semibold text-primary"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm })
                     any_hit = true
                 }
             }
@@ -232,6 +230,13 @@ store Modules {
                 .active_kind = si.kind
                 .read_only = si.read_only
                 .title = si.name
+                // plan010 R10（复审退回项）: read_only 集合在 vm 无任何加载入口
+                // （无 Load 按钮 + 子 widget 无 auto-Init，列表永远空）。Select
+                // 命中集合时预载 Collection store——CollectionBrowser 实例重建
+                // 即有数据。vue 端幂等（mount Init 再 Open 同 id，覆盖无害）。
+                if si.kind == "collection" {
+                    Collection.Open(si.id)
+                }
                 var gid = groupOfModule(.raw, id)
                 if gid != "" {
                     var has = false
@@ -272,13 +277,11 @@ store Modules {
                         }
                     }
                     if hit {
-                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
                         if .active_id == m.id {
-                            ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
                             nmcls = "nav-name text-sm font-semibold text-primary"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls })
                     }
                 }
                 var open = false
@@ -309,13 +312,11 @@ store Modules {
                     }
                 }
                 if shit {
-                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
                     if .active_id == sm.id {
-                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
                         snm = "nav-name text-sm font-semibold text-primary"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm })
                     any_hit = true
                 }
             }
@@ -367,13 +368,11 @@ store Modules {
                         }
                     }
                     if hit {
-                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
                         if .active_id == m.id {
-                            ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
                             nmcls = "nav-name text-sm font-semibold text-primary"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls })
                     }
                 }
                 var open = false
@@ -404,13 +403,11 @@ store Modules {
                     }
                 }
                 if shit {
-                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
                     if .active_id == sm.id {
-                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
                         snm = "nav-name text-sm font-semibold text-primary"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm })
                     any_hit = true
                 }
             }
@@ -442,13 +439,11 @@ store Modules {
                         }
                     }
                     if hit {
-                        var ncls = "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
                         if .active_id == m.id {
-                            ncls = "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10"
                             nmcls = "nav-name text-sm font-semibold text-primary"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls })
                     }
                 }
                 var open = false
@@ -479,13 +474,11 @@ store Modules {
                     }
                 }
                 if shit {
-                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]"
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
                     if .active_id == sm.id {
-                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10"
                         snm = "nav-name text-sm font-semibold text-primary"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm })
                     any_hit = true
                 }
             }

@@ -36,6 +36,16 @@ for f in gen/front/vue/src/stores/use*Store.ts; do
       "$f" > "../src/stores/auto/${base}"
 done
 
+# plan010 R10: store-to-store call — codegen emits a bare `Collection.Open(...)`
+# inside useModulesStore (no import/facade for cross-store refs, same family as
+# the multi-store facade gap). Rewrite to the composable call + import; the
+# module-level refs are singletons so state is shared.
+if [ -f "../src/stores/auto/useModulesStore.ts" ] && grep -q "Collection\.Open(" "../src/stores/auto/useModulesStore.ts"; then
+  grep -q "^import { useCollectionStore }" "../src/stores/auto/useModulesStore.ts" || \
+    sed -i "1i import { useCollectionStore } from './useCollectionStore'" "../src/stores/auto/useModulesStore.ts"
+  sed -i "s|Collection\.Open(|useCollectionStore().Open(|g" "../src/stores/auto/useModulesStore.ts"
+fi
+
 # Deploy components: rewrite the codegen's @/ext/... imports to point into
 # the auto tree (../../ = repo root from src/components/). @/ext/src/lib/api
 # (direct api imports in components) maps to the host transport layer.

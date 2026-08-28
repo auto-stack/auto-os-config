@@ -1,3 +1,4 @@
+import { useCollectionStore } from './useCollectionStore'
 import { ref } from 'vue'
 import { fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, selectInfo, groupOfModule, getHash } from '../../lib/api'
 
@@ -102,11 +103,9 @@ for (const m of g.members) {let hit: boolean = true;
 if (q != '') {hit = false;
 if (m.name.toLowerCase().includes(q)) {hit = true;
 }if (m.description.toLowerCase().includes(q)) {hit = true;
-}}if (hit) {let ncls: string = 'nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]';
-let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
-if (active_id.value == m.id) {ncls = 'nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10';
-nmcls = 'nav-name text-sm font-semibold text-primary';
-}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls });
+}}if (hit) {let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == m.id) {nmcls = 'nav-name text-sm font-semibold text-primary';
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls });
 }}
 let open: boolean = false;
 for (const x of expanded.value) {if (x == g.id) {open = true;
@@ -121,11 +120,9 @@ for (const sm of standalone.value) {let shit: boolean = true;
 if (q != '') {shit = false;
 if (sm.name.toLowerCase().includes(q)) {shit = true;
 }if (sm.description.toLowerCase().includes(q)) {shit = true;
-}}if (shit) {let scls: string = 'nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]';
-let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
-if (active_id.value == sm.id) {scls = 'nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10';
-snm = 'nav-name text-sm font-semibold text-primary';
-}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm });
+}}if (shit) {let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == sm.id) {snm = 'nav-name text-sm font-semibold text-primary';
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm });
 any_hit = true;
 }}
 view_standalone.value = vs;
@@ -154,11 +151,9 @@ for (const m of g.members) {let hit: boolean = true;
 if (q != '') {hit = false;
 if (m.name.toLowerCase().includes(q)) {hit = true;
 }if (m.description.toLowerCase().includes(q)) {hit = true;
-}}if (hit) {let ncls: string = 'nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]';
-let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
-if (active_id.value == m.id) {ncls = 'nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10';
-nmcls = 'nav-name text-sm font-semibold text-primary';
-}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls });
+}}if (hit) {let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == m.id) {nmcls = 'nav-name text-sm font-semibold text-primary';
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls });
 }}
 let open: boolean = false;
 for (const x of expanded.value) {if (x == g.id) {open = true;
@@ -173,11 +168,9 @@ for (const sm of standalone.value) {let shit: boolean = true;
 if (q != '') {shit = false;
 if (sm.name.toLowerCase().includes(q)) {shit = true;
 }if (sm.description.toLowerCase().includes(q)) {shit = true;
-}}if (shit) {let scls: string = 'nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]';
-let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
-if (active_id.value == sm.id) {scls = 'nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10';
-snm = 'nav-name text-sm font-semibold text-primary';
-}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm });
+}}if (shit) {let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == sm.id) {snm = 'nav-name text-sm font-semibold text-primary';
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm });
 any_hit = true;
 }}
 view_standalone.value = vs;
@@ -188,7 +181,12 @@ if (si.found) {active_id.value = si.id;
 active_kind.value = si.kind;
 read_only.value = si.read_only;
 title.value = si.name;
-let gid = await groupOfModule(raw.value, id);
+
+
+
+
+if (si.kind == 'collection') {useCollectionStore().Open(si.id);
+}let gid = await groupOfModule(raw.value, id);
 if (gid != '') {let has: boolean = false;
 for (const x of expanded.value) {if (x == gid) {has = true;
 }}
@@ -211,11 +209,9 @@ for (const m of g.members) {let hit: boolean = true;
 if (q != '') {hit = false;
 if (m.name.toLowerCase().includes(q)) {hit = true;
 }if (m.description.toLowerCase().includes(q)) {hit = true;
-}}if (hit) {let ncls: string = 'nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]';
-let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
-if (active_id.value == m.id) {ncls = 'nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10';
-nmcls = 'nav-name text-sm font-semibold text-primary';
-}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls });
+}}if (hit) {let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == m.id) {nmcls = 'nav-name text-sm font-semibold text-primary';
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls });
 }}
 let open: boolean = false;
 for (const x of expanded.value) {if (x == g.id) {open = true;
@@ -230,11 +226,9 @@ for (const sm of standalone.value) {let shit: boolean = true;
 if (q != '') {shit = false;
 if (sm.name.toLowerCase().includes(q)) {shit = true;
 }if (sm.description.toLowerCase().includes(q)) {shit = true;
-}}if (shit) {let scls: string = 'nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]';
-let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
-if (active_id.value == sm.id) {scls = 'nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10';
-snm = 'nav-name text-sm font-semibold text-primary';
-}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm });
+}}if (shit) {let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == sm.id) {snm = 'nav-name text-sm font-semibold text-primary';
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm });
 any_hit = true;
 }}
 view_standalone.value = vs;
@@ -265,11 +259,9 @@ for (const m of g.members) {let hit: boolean = true;
 if (q != '') {hit = false;
 if (m.name.toLowerCase().includes(q)) {hit = true;
 }if (m.description.toLowerCase().includes(q)) {hit = true;
-}}if (hit) {let ncls: string = 'nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]';
-let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
-if (active_id.value == m.id) {ncls = 'nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10';
-nmcls = 'nav-name text-sm font-semibold text-primary';
-}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls });
+}}if (hit) {let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == m.id) {nmcls = 'nav-name text-sm font-semibold text-primary';
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls });
 }}
 let open: boolean = false;
 for (const x of expanded.value) {if (x == g.id) {open = true;
@@ -284,11 +276,9 @@ for (const sm of standalone.value) {let shit: boolean = true;
 if (q != '') {shit = false;
 if (sm.name.toLowerCase().includes(q)) {shit = true;
 }if (sm.description.toLowerCase().includes(q)) {shit = true;
-}}if (shit) {let scls: string = 'nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded hover:bg-[#ededed] transition-colors duration-[120ms]';
-let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
-if (active_id.value == sm.id) {scls = 'nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10';
-snm = 'nav-name text-sm font-semibold text-primary';
-}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm });
+}}if (shit) {let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
+if (active_id.value == sm.id) {snm = 'nav-name text-sm font-semibold text-primary';
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm });
 any_hit = true;
 }}
 view_standalone.value = vs;
