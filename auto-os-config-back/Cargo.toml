@@ -1,0 +1,26 @@
+[package]
+name = "auto-os-config-back"
+version = "0.1.0"
+edition = "2021"
+description = "AutoOS os-config external back (Plan 011) — #[api] contract (api.at) + Plan 061 cdylib bridge + axum server"
+
+# Plan 061: lib 编译为 cdylib,宿主(auto run -r vm merged)经
+# backend_abi::load_backend_cdylib 装载;库名 = pac.at `name` 规整
+# ('-'→'_') = auto_os_config_back.dll。
+[lib]
+name = "auto_os_config_back"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+# 形态 b 的 vue 模式 HTTP 服务面(axum,等价旧 backend/ daemon 形态)。
+[[bin]]
+name = "auto-os-config-back-server"
+path = "src/main.rs"
+
+[dependencies]
+# Plan 061 ABI(backend_abi)出自 auto-lang;同源同工具链(extern "Rust" 约束)。
+auto-lang = { path = "../../auto-lang/crates/auto-lang" }
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors"] }
+serde_json = "1"

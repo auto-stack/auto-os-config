@@ -1,0 +1,43 @@
+// api.at — auto-os-config-back 契约层(Plan 011 T1 POC)。
+//
+// 外部 back 根(Plan 061):前端 pac.at `back: { project: "../auto-os-config-back" }`
+// 把 `back.*` 模块解析映射到本目录(`back.api` → 本文件),前端项目无需本地
+// back/ —— 契约与桩由后端项目拥有,链接式引用。
+//
+// T1 POC 最小端点对:
+//   hello         纯返回(管线/路由/编组探针)
+//   config_probe  读 ~/.config/autoos 下一文件名(文件 IO 探针)
+//
+// 双形态共用本契约(裁决实验设计):
+//   形态 a(#[api] 自动路由,015-notes 式):函数体即实现 —— merged 模式下
+//     VM 直接解释本文件(零 HTTP);AUTOOS_BACK_BRIDGE=0 时 cdylib 空注册,
+//     #[api] 裸调用走解释路径。
+//   形态 b(axum main + 桥,auto-ai-daemon/musk 式):cdylib 把同名端点注册进
+//     宿主桥(AUTOOS_BACK_BRIDGE≠0,默认),#[api] 裸调用改写 auto.host.call
+//     → Rust 实现;HTTP 面由本 crate 的 axum bin 提供(vue 模式服务)。
+//
+// 语法基线:Env.get / File.read_text 为前端 auto/src/back/api.at 生产在用
+// 形态(vm 解释器实证);不留未实证词汇。
+
+/// GET /api/hello — POC 最小端点(纯返回管线探针)。
+#[api(method = "GET", path = "/api/hello")]
+pub fn hello() str {
+    return "poc-hello"
+}
+
+/// GET /api/config-probe — 文件 IO 探针:可读 ~/.config/autoos/ai-daemon.at
+/// 则返回 "<文件名>:ok",否则 "<文件名>:missing"(文件缺失/不可读同值,
+/// POC 不区分错误粒度)。
+#[api(method = "GET", path = "/api/config-probe")]
+pub fn config_probe() str {
+    var home = Env.get("USERPROFILE")
+    if home == "" {
+        home = Env.get("HOME")
+    }
+    let path = home + "/.config/autoos/ai-daemon.at"
+    let t = File.read_text(path)
+    if t != "" {
+        return "ai-daemon.at:ok"
+    }
+    return "ai-daemon.at:missing"
+}

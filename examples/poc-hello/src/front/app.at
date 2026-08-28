@@ -1,0 +1,39 @@
+// app.at — T1 POC probe(Plan 011):外部 back 三路径验证的最小前端。
+//
+// back.api 解析:本工程 pac.at `back: { project: "../../auto-os-config-back" }`
+// → vm merged 模式下 `back.api` 链接到外部 back 根的 api.at(Plan 061)。
+// 端点:hello(纯返回)+ config_probe(文件 IO)——值直接显示在窗口文本上,
+// 由 scripts 层经 MCP autoui_state 读取作 POC 证据(015-notes 直接调用形态)。
+use back.api: hello, config_probe
+
+widget App {
+    msg { Init, Refresh }
+
+    model {
+        var hello_val str = "(pending)"
+        var probe_val str = "(pending)"
+    }
+
+    view {
+        col {
+            style: "w-full h-screen flex flex-col bg-white p-6 gap-3"
+            text (text: "hello: " + .hello_val, style: "text-base text-[#1a1a1a]") {}
+            text (text: "probe: " + .probe_val, style: "text-base text-[#1a1a1a]") {}
+            button "Refresh" {
+                onclick: .Refresh
+                style: "px-5 py-2 rounded text-sm bg-primary text-white w-fit" 
+            }
+        }
+    }
+
+    on {
+        .Init -> {
+            .hello_val = hello()
+            .probe_val = config_probe()
+        }
+        .Refresh -> {
+            .hello_val = hello()
+            .probe_val = config_probe()
+        }
+    }
+}
