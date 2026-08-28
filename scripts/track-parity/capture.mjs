@@ -20,8 +20,11 @@ import { PNG } from 'pngjs';
 const args = process.argv.slice(2);
 const track = (args.includes('--track') && args[args.indexOf('--track') + 1]) || 'vue';
 const base = (args.includes('--base') && args[args.indexOf('--base') + 1]) || 'http://localhost:17700';
-// vm 桌面窗口逻辑尺寸：目标对齐 vue 视口；实测屏随后按显示倍率重采样回 1440x900
-const VM_WINDOW = '720x450'; // x2 scale → 1440x900 物理像素
+// vm 桌面窗口逻辑尺寸：须与 vue 视口「逻辑几何」一致（T7 修正——T6 的 720x450
+// 只对齐了 PNG 物理尺寸，逻辑几何却是 vue 半幅：侧栏 w-72 占宽 40% vs vue 20%，
+// 全部布局比例失配）。1440x900 逻辑 @2x DPI → PNG 物理 2880x1800，
+// 由 normalizeSize 重采样回 1440x900（内容坐标系即与 vue 对齐）。
+const VM_WINDOW = '1440x900';
 const TARGET_W = 1440, TARGET_H = 900;
 const OUT = fileURLToPath(new URL(`../../tmp/track-parity/${track}/`, import.meta.url));
 mkdirSync(OUT, { recursive: true });
@@ -44,13 +47,14 @@ function normalizeSize(file) {
 }
 
 const VIEWS = [
-  ['AI Daemon', '01-ai-daemon'],
-  ['Auto Musk', '02-auto-musk'],
-  ['Roles', '03-roles'],
-  ['Skills', '04-skills'],
-  ['AI Client', '05-ai-client'],
-  ['Modes', '06-modes'],
-  ['Harness Roles', '07-harness-roles'],
+  // [侧栏显示名, 产物文件名, 模块 id（backend/src/registry.rs 注册表）]
+  ['AI Daemon', '01-ai-daemon', 'ai-daemon'],
+  ['Auto Musk', '02-auto-musk', 'auto-musk'],
+  ['Roles', '03-roles', 'roles'],
+  ['Skills', '04-skills', 'skills'],
+  ['AI Client', '05-ai-client', 'ai-client'],
+  ['Modes', '06-modes', 'modes'],
+  ['Harness Roles', '07-harness-roles', 'musk-harness-roles'],
 ];
 
 if (track === 'vue') {
@@ -87,6 +91,7 @@ if (track === 'vue') {
     try { writeFileSync(stFile, '{"accent":"indigo"}'); } catch {}
   }
   const MCP_PORT = process.env.E2E_VM_PORT || '9450';
+const NL = String.fromCharCode(10);
   const MCP = `http://127.0.0.1:${MCP_PORT}/mcp`;
 
   async function withApp(fn) {
@@ -128,53 +133,73 @@ if (track === 'vue') {
     copyFileSync(fileURLToPath(new URL(`../../auto/src/front/tmp/${base2}`, import.meta.url)), `${OUT}${file}.png`);
     console.log('saved', `${track}/${file}.png`, `(${normalizeSize(file)})`);
   }
-  async function pressNav(target, fields) {
-    // 祖先链逐个试按，active_id 到位即止（walk2.mjs 同款）
-    const ls = (await call('autoui_snapshot', { include_state: false }) ?? '').split('\n');
-    const tx = ls.findIndex((l) => { const m = l.trim().match(/^text [^"]*"(.*?)"$/); return m && m[1] === target; });
-    if (tx < 0) return false;
-    const cand = [];
-    for (let j = tx - 1; j >= 0 && cand.length < 16; j--) {
-      const m = ls[j].trim().match(/^(button|container|col|row) #(vnode_\d+)/);
-      if (m) cand.push(m[2]);
-    }
-    for (const id of cand) {
-      await call('autoui_action', { element_id: id, action: 'press' });
-      await sleep(2500);
-      if (!fields) return true;
-      const stv = await call('autoui_state', { fields: ['active_id'] });
-      if (String(stv).includes(`"${fields}"`)) return true;
+  async function pressNav(target, modId) {
+    // nav button 在 vm 快照里是 icon+name+desc 的多行合并标签（e2e-vm 同款
+    // 解析，009 Phase 4 教训：walk-back 祖先链会被 "Harness Roles" 遮蔽）。
+    // 按 button 自身 id 精确试按，active_id 到位才算导航成功——
+    // 不验证 active_id 的导航是假阳性（T7 实证：walk-back 版 6 视图全拍成
+    // 裸侧栏默认画面）。快照空壳重试：上游快照通道竞态（446 批一 J1 家族）。
+    const snapshot = async () => {
+      for (let i = 0; i < 10; i++) {
+        const s = (await call('autoui_snapshot', { include_state: false })) ?? '';
+        if (s.length > 500) return s;
+        await sleep(1200);
+      }
+      return '';
+    };
+    for (let a = 0; a < 4; a++) {
+      const hit = navButtons(await snapshot()).find((b) => b.lines.includes(target));
+      if (hit) {
+        await call('autoui_action', { element_id: hit.id, action: 'press' });
+        await sleep(2500);
+        const st = await call('autoui_state', { fields: ['active_id'] });
+        if (String(st).includes(`"${modId}"`)) return true;
+      }
+      await sleep(1200);
     }
     return false;
   }
   async function pressLabel(label) {
-    const ls = ((await call('autoui_snapshot', { include_state: false })) ?? '').split('\n');
-    for (let i = 0; i < ls.length; i++) {
-      const t = ls[i].trim();
-      if (!t.startsWith('button')) continue;
-      if (t.includes(`"${label}"`)) return t.match(/#(vnode_\d+)/)[1];
-      const em = t.match(/^button #(vnode_\d+) ""\s*\{$/);
-      if (em) for (let j = i + 1; j < Math.min(i + 8, ls.length); j++) {
-        const tm = ls[j].match(/text [^"]*"(.*?)"/);
-        if (tm && tm[1] === label) return em[1];
-        if (/\}\s*$/.test(ls[j])) break;
+    // e2e-vm pressGet 同款：直接头内标签或空 label 头 + 子 text 节点，重试 4 轮
+    for (let a = 0; a < 4; a++) {
+      const ls = ((await call('autoui_snapshot', { include_state: false })) ?? '').split('\n');
+      for (let i = 0; i < ls.length; i++) {
+        const t = ls[i].trim();
+        if (!t.startsWith('button')) continue;
+        if (t.includes(`"${label}"`)) return t.match(/#(vnode_\d+)/)[1];
+        const em = t.match(/^button #(vnode_\d+) ""\s*\{$/);
+        if (em) for (let j = i + 1; j < Math.min(i + 8, ls.length); j++) {
+          const tm = ls[j].match(/text [^"]*"(.*?)"/);
+          if (tm && tm[1] === label) return em[1];
+          if (/\}\s*$/.test(ls[j])) break;
+        }
       }
+      await sleep(1200);
     }
     return null;
+  }
+  function navButtons(snap) {
+    const out = [];
+    const re = /button #(vnode_\d+) "([^"]*)"/g;
+    let m;
+    while ((m = re.exec(snap))) out.push({ id: m[1], lines: m[2].split(NL).map((s) => s.trim()) });
+    return out;
   }
 
   // 00: 裸侧栏
   await withApp(async () => { await sleep(1000); await shoot('00-sidebar-default'); });
 
-  for (const [name, file] of VIEWS) {
+  for (const [name, file, modId] of VIEWS) {
     await withApp(async () => {
-      if (!(await pressNav(name, file === '03-roles' ? 'roles' : null))) { console.log('NAV FAIL:', name); return; }
+      if (!(await pressNav(name, modId))) { console.log('NAV FAIL:', name); return; }
       const loadId = await pressLabel('Load');
       if (loadId) { await call('autoui_action', { element_id: loadId, action: 'press' }); await sleep(4500); }
+      else console.log('no Load button:', name);
       // 集合页选中首实体
       if (file === '03-roles') {
         const aid = await pressLabel('assistant');
         if (aid) { await call('autoui_action', { element_id: aid, action: 'press' }); await sleep(4500); }
+        else console.log('no assistant button');
       }
       await shoot(file);
     });
