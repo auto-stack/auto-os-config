@@ -36,7 +36,7 @@ function ToggleGroup(gid: any): void {
 
 <template>
     <aside class="sidebar flex flex-col w-[280px] shrink-0 bg-[#f9f9f9] border-r border-[#e0e0e0]">
-      <div class="flex items-center gap-2 px-5 py-4 text-base font-semibold text-[#1a1a1a]">
+      <div class="flex items-center gap-2 px-5 py-4 text-base font-semibold text-[#1a1a1a] h-[50px]">
         <span class="text-xl">⚙️</span>
         <span>AutoOS Settings</span>
       </div>
@@ -47,10 +47,10 @@ function ToggleGroup(gid: any): void {
         <template v-if="store.search == ''">
           <div v-for="m in store.view_standalone" :key="m.id">
             <template v-if="store.active_id == m.id">
-              <button class="nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto" :key="m.id" @click="SelectModule(m.id)">
-                <div class="flex flex-row gap-3 w-full">
+              <button class="nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]" :key="m.id" @click="SelectModule(m.id)">
+                <div class="flex flex-row items-start gap-3 w-full">
                   <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                  <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                  <div class="flex flex-col nav-text gap-[0px]">
                     <span :class="m.name_class">{{ m.name }}</span>
                     <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
                   </div>
@@ -58,10 +58,10 @@ function ToggleGroup(gid: any): void {
               </button>
             </template>
             <template v-if="store.active_id != m.id">
-              <button class="nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto" :key="m.id" @click="SelectModule(m.id)">
-                <div class="flex flex-row gap-3 w-full">
+              <button class="nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]" :key="m.id" @click="SelectModule(m.id)">
+                <div class="flex flex-row items-start gap-3 w-full">
                   <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                  <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                  <div class="flex flex-col nav-text gap-[0px]">
                     <span :class="m.name_class">{{ m.name }}</span>
                     <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
                   </div>
@@ -72,7 +72,7 @@ function ToggleGroup(gid: any): void {
         </template>
         <div v-for="g in store.view_groups" :key="g.id">
           <template v-if="store.search == ''">
-            <button class="group-header w-full text-left flex items-center gap-[6px] px-3 py-[10px] mt-2 rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto" :key="g.id" @click="ToggleGroup(g.id)">
+            <button class="group-header w-full text-left flex items-center gap-[6px] px-3 py-3 mt-2 rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]" :key="g.id" @click="ToggleGroup(g.id)">
               <div class="flex flex-row items-center gap-[6px] w-full gap-[0px]">
                 <template v-if="g.open">
                   <span class="text-[11px] text-[#8a8a8a] w-[14px] shrink-0">▾</span>
@@ -80,17 +80,17 @@ function ToggleGroup(gid: any): void {
                 <template v-if="g.open == false">
                   <span class="text-[11px] text-[#8a8a8a] w-[14px] shrink-0">▸</span>
                 </template>
-                <span class="text-sm font-semibold text-[#1a1a1a]">{{ g.label }}</span>
+                <span class="text-sm font-semibold text-[#1a1a1a] h-[50px]">{{ g.label }}</span>
               </div>
             </button>
           </template>
           <template v-if="store.search != ''">
             <div v-for="m in g.members" :key="m.id">
               <template v-if="store.active_id == m.id">
-                <button class="nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)">
-                  <div class="flex flex-row gap-3 w-full">
+                <button class="nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]" :key="m.id" @click="SelectModule(m.id)">
+                  <div class="flex flex-row items-start gap-3 w-full">
                     <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                    <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                    <div class="flex flex-col nav-text gap-[0px]">
                       <span :class="m.name_class">{{ m.name }}</span>
                       <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
                     </div>
@@ -98,10 +98,10 @@ function ToggleGroup(gid: any): void {
                 </button>
               </template>
               <template v-if="store.active_id != m.id">
-                <button class="nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)">
-                  <div class="flex flex-row gap-3 w-full">
+                <button class="nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]" :key="m.id" @click="SelectModule(m.id)">
+                  <div class="flex flex-row items-start gap-3 w-full">
                     <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                    <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                    <div class="flex flex-col nav-text gap-[0px]">
                       <span :class="m.name_class">{{ m.name }}</span>
                       <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
                     </div>
@@ -114,10 +114,10 @@ function ToggleGroup(gid: any): void {
             <template v-if="g.open">
               <div v-for="m in g.members" :key="m.id">
                 <template v-if="store.active_id == m.id">
-                  <button class="nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)">
-                    <div class="flex flex-row gap-3 w-full">
+                  <button class="nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]" :key="m.id" @click="SelectModule(m.id)">
+                    <div class="flex flex-row items-start gap-3 w-full">
                       <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                      <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                      <div class="flex flex-col nav-text gap-[0px]">
                         <span :class="m.name_class">{{ m.name }}</span>
                         <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
                       </div>
@@ -125,10 +125,10 @@ function ToggleGroup(gid: any): void {
                   </button>
                 </template>
                 <template v-if="store.active_id != m.id">
-                  <button class="nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)">
-                    <div class="flex flex-row gap-3 w-full">
+                  <button class="nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]" :key="m.id" @click="SelectModule(m.id)">
+                    <div class="flex flex-row items-start gap-3 w-full">
                       <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                      <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                      <div class="flex flex-col nav-text gap-[0px]">
                         <span :class="m.name_class">{{ m.name }}</span>
                         <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
                       </div>

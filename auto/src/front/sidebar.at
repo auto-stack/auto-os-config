@@ -28,7 +28,7 @@ widget Sidebar {
 
     view {
         aside (style: "sidebar flex flex-col w-[280px] shrink-0 bg-[#f9f9f9] border-r border-[#e0e0e0]") {
-            div (style: "flex items-center gap-2 px-5 py-4 text-base font-semibold text-[#1a1a1a]") {
+            div (style: "flex items-center gap-2 px-5 py-4 text-base font-semibold text-[#1a1a1a] h-[50px]") {
                 span (text: "⚙️", style: "text-xl") {}
                 text (text: "AutoOS Settings") {}
             }
@@ -45,11 +45,11 @@ widget Sidebar {
                         // 串尾 text-[#1a1a1a]/h-auto、idle 态 bg-[#f9f9f9] 为 vm
                         // 中和类——vue 端 CSS 效果等价（侧栏纯色底/子元素自带文字色）。
                         if .store.active_id == m.id {
-                            button (class: "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto", key: m.id) {
+                            button (class: "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]", key: m.id) {
                                 onclick: .SelectModule(m.id)
-                                row (style: "flex flex-row gap-3 w-full") {
+                                row (style: "flex flex-row items-start gap-3 w-full") {
                                 span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                col (style: "nav-text flex flex-col gap-[0px]") {
                                     text (text: m.name, class: m.name_class) {}
                                     text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                 }
@@ -57,11 +57,11 @@ widget Sidebar {
                             }
                         }
                         if .store.active_id != m.id {
-                            button (class: "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto", key: m.id) {
+                            button (class: "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]", key: m.id) {
                                 onclick: .SelectModule(m.id)
-                                row (style: "flex flex-row gap-3 w-full") {
+                                row (style: "flex flex-row items-start gap-3 w-full") {
                                 span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                col (style: "nav-text flex flex-col gap-[0px]") {
                                     text (text: m.name, class: m.name_class) {}
                                     text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                 }
@@ -73,7 +73,7 @@ widget Sidebar {
 
                 for g in .store.view_groups {
                         if .store.search == "" {
-                            button (style: "group-header w-full text-left flex items-center gap-[6px] px-3 py-[10px] mt-2 rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto") {
+                            button (style: "group-header w-full text-left flex items-center gap-[6px] px-3 py-3 mt-2 rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]") {
                                 key: g.id
                                 onclick: .ToggleGroup(g.id)
                                 // T14b: vm button 子树按结构竖排渲染（上游 05b9362af
@@ -85,18 +85,18 @@ widget Sidebar {
                                     if g.open == false {
                                         text (text: "▸", style: "text-[11px] text-[#8a8a8a] w-[14px] shrink-0") {}
                                     }
-                                    text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                    text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a] h-[50px]") {}
                                 }
                             }
                         }
                         if .store.search != "" {
                             for m in g.members {
                                 if .store.active_id == m.id {
-                                    button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a]", key: m.id) {
+                                    button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]", key: m.id) {
                                         onclick: .SelectModule(m.id)
-                                        row (style: "flex flex-row gap-3 w-full") {
+                                        row (style: "flex flex-row items-start gap-3 w-full") {
                                         span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                        col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                        col (style: "nav-text flex flex-col gap-[0px]") {
                                             text (text: m.name, class: m.name_class) {}
                                             text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                         }
@@ -104,11 +104,11 @@ widget Sidebar {
                                     }
                                 }
                                 if .store.active_id != m.id {
-                                    button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a]", key: m.id) {
+                                    button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]", key: m.id) {
                                         onclick: .SelectModule(m.id)
-                                        row (style: "flex flex-row gap-3 w-full") {
+                                        row (style: "flex flex-row items-start gap-3 w-full") {
                                         span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                        col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                        col (style: "nav-text flex flex-col gap-[0px]") {
                                             text (text: m.name, class: m.name_class) {}
                                             text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                         }
@@ -121,11 +121,11 @@ widget Sidebar {
                             if g.open {
                                 for m in g.members {
                                     if .store.active_id == m.id {
-                                        button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a]", key: m.id) {
+                                        button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]", key: m.id) {
                                             onclick: .SelectModule(m.id)
-                                            row (style: "flex flex-row gap-3 w-full") {
+                                            row (style: "flex flex-row items-start gap-3 w-full") {
                                             span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                            col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                            col (style: "nav-text flex flex-col gap-[0px]") {
                                                 text (text: m.name, class: m.name_class) {}
                                                 text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                             }
@@ -133,11 +133,11 @@ widget Sidebar {
                                         }
                                     }
                                     if .store.active_id != m.id {
-                                        button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a]", key: m.id) {
+                                        button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]", key: m.id) {
                                             onclick: .SelectModule(m.id)
-                                            row (style: "flex flex-row gap-3 w-full") {
+                                            row (style: "flex flex-row items-start gap-3 w-full") {
                                             span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                            col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                            col (style: "nav-text flex flex-col gap-[0px]") {
                                                 text (text: m.name, class: m.name_class) {}
                                                 text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                             }
