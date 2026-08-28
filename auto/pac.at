@@ -4,3 +4,9 @@ scene: "ui"
 render: "vue"
 shadcn: off
 default_classes: off
+# Plan 011 T2:外部 back(Plan 061 链接式契约)。vm merged 模式把 `back.api`
+# 解析到 ../auto-os-config-back/api.at,并装载其 cdylib(需先
+# `cargo build` 于 auto-os-config-back/)。vue 轨不受影响(resolve_back_api
+# 本地 src/back/api.at 优先,regen 行为不变)。
+back: { project: "../auto-os-config-back" }
+
