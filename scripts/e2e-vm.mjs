@@ -262,12 +262,12 @@ async function runAttempt() {
   if (!(await press('Load', 4000))) console.log('[e2e-vm] note: no Load button (already loaded?)');
   // batch 2: the unified card follows the vue design — button label is 'Test'
 if (!(await press('Test', 2000))) fail('Test button not found');
-  for (let i = 0; i < 15 && (!st.status || st.status === '"idle"' || st.status === '""' || st.status === '"loaded"'); i++) {
-    st = await state('status');
-    if (!st.status || st.status === '"idle"' || st.status === '""' || st.status === '"loaded"') await sleep(2000);
+  for (let i = 0; i < 15 && (!st.conn_state || st.conn_state === '"idle"' || st.conn_state === '""' || st.conn_state === '"loaded"'); i++) {
+    st = await state('conn_state');
+    if (!st.conn_state || st.conn_state === '"idle"' || st.conn_state === '""' || st.conn_state === '"loaded"') await sleep(2000);
   }
-  if (st.status === '"ok"' || st.status === '"fail"') pass('Test connection roundtrip (status=' + st.status + ')');
-  else fail(`test connection: ${st.status}`);
+  if (st.conn_state === '"ok"' || st.conn_state === '"fail"') pass('Test connection roundtrip (status=' + st.conn_state + ')');
+  else fail(`test connection: ${st.conn_state}`);
 
   // 3. theme — stage-1 pixel parity removed text labels from the 5 swatch
   // buttons (empty-label buttons in snapshot). Locate them structurally: the
