@@ -127,6 +127,17 @@ pub extern "Rust" fn auto_backend_register(reg: Arc<dyn BackendRegistry>) -> Res
     });
     reg.host_call("deleteEntitySafe", ent_delete);
 
+    // T7:enums + test-daemon action。
+    let load_enum: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let url = a["url"].as_str().unwrap_or_default().to_string();
+        Ok(load_enum_payload(&url).to_string())
+    });
+    reg.host_call("loadEnum", load_enum);
+
+    let test_daemon: BackendHostCallFn = Arc::new(|_args: &str| Ok(test_daemon_payload().to_string()));
+    reg.host_call("testDaemon", test_daemon);
+
     Ok(())
 }
 
@@ -448,6 +459,58 @@ pub fn delete_entity_safe_payload(mid: &str, name: &str) -> serde_json::Value {
     }
 }
 
+// ── T7:enums + testDaemon 的前端契约载荷 ────────────────────────────────────
+
+/// loadEnum 的桥载荷:url 按路径语义分派(/api/enums/tiers | /api/enums/dir/:kind
+/// | /api/enums/self/:mid/providers | /api/enums/self/:mid/models/:provider);
+/// 返回选项数组 JSON 文本(旧配方返回原始响应文本;数组即数组)。
+pub fn load_enum_payload(url: &str) -> serde_json::Value {
+    let path = url
+        .split("://")
+        .nth(1)
+        .and_then(|rest| rest.split_once('/'))
+        .map(|(_, p)| format!("/{}", p))
+        .unwrap_or_else(|| url.to_string());
+    let segs: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+    // segs 形如 ["api","enums",...] 或未知(→ 空数组,fail-soft)
+    let value = if segs.len() >= 3 && segs[0] == "api" && segs[1] == "enums" {
+        match (segs[2], segs.len()) {
+            ("tiers", 3) => core::enum_tiers_json(),
+            ("dir", 4) => core::enum_dir_json(segs[3]),
+            ("self", 5) if segs[4] == "providers" => core::enum_self_providers_json(segs[3])
+                .unwrap_or_else(|_| serde_json::json!([])),
+            ("self", 7) if segs[4] == "models" => {
+                core::enum_self_models_json(segs[3], segs[5]).unwrap_or_else(|_| serde_json::json!([]))
+            }
+            _ => serde_json::json!([]),
+        }
+    } else {
+        serde_json::json!([])
+    };
+    value
+}
+
+/// testDaemon 的前端契约载荷:{status, latency, error}(unreachable/ok/fail,
+/// 形状与语义同旧 http 配方)。
+pub fn test_daemon_payload() -> serde_json::Value {
+    match core::test_daemon_proxy() {
+        Err(_) => serde_json::json!({ "status": "unreachable", "latency": 0, "error": "" }),
+        Ok((status, body)) => {
+            if status == 503 {
+                // aaid 离线(旧配方:单键 error 对象 = 传输错误 → unreachable)
+                return serde_json::json!({ "status": "unreachable", "latency": 0, "error": "" });
+            }
+            let success = body["success"].as_bool().unwrap_or(false);
+            if success {
+                serde_json::json!({ "status": "ok", "latency": 0, "error": "" })
+            } else {
+                let err = body["error"].as_str().unwrap_or("bad response").to_string();
+                serde_json::json!({ "status": "fail", "latency": 0, "error": err })
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -499,5 +562,18 @@ mod tests {
         let text = payload["text"].as_str().expect("text carries the array");
         let arr: serde_json::Value = serde_json::from_str(text).expect("text is JSON array");
         assert_eq!(arr.as_array().unwrap().len(), 7);
+    }
+
+    /// T7:loadEnum 桥载荷按 url 路径语义分派。
+    #[test]
+    fn load_enum_routes_by_url() {
+        let tiers = load_enum_payload("http://127.0.0.1:17701/api/enums/tiers");
+        let arr = tiers.as_array().unwrap();
+        assert_eq!(arr.len(), 5);
+        assert_eq!(arr[0]["value"], "min");
+        let modes = load_enum_payload("http://127.0.0.1:17701/api/enums/dir/modes");
+        assert!(modes.is_array(), "dir enum returns array (possibly empty)");
+        let unknown = load_enum_payload("http://127.0.0.1:17701/api/enums/bogus/x");
+        assert_eq!(unknown.as_array().unwrap().len(), 0, "unknown → fail-soft []");
     }
 }

@@ -204,7 +204,9 @@ pub fn enumUrlOfEk(ek str, ew str, module_id str, provider str) str {
     return ""
 }
 
-/// Options list [{value,label}] from an enum URL (fail-soft → []).
+/// GET /api/enums/* —— 选项清单(tiers/dir/self;url 路径语义分派)。
+/// [M4 已移植] 实现:core::enum_*;merged 模式经宿主桥直调(零 HTTP)。
+#[api(method = "GET", path = "/api/enums/...")]
 pub fn loadEnum(url str) []any {
     var out = []
     if url == "" {
@@ -693,35 +695,35 @@ fn infer_column(key str, frag str, module_id str) any {
 
 // ─── collection (collection_store surface) ──────────────────────────────────
 
-/api/collection/:mid GET(list)。
+/// /api/collection/:mid GET(list)。
 /// [M3 已移植] 实现:collection::list_collection_json。
 #[api(method = "GET", path = "/api/collection/:mid")]
 pub fn fetchCollectionListSafe(mid str) any {
     return { ok: false, error: "not-migrated" }
 }
 
-/api/collection/:mid/:name GET(atom → {ok, atom},fm-md → {ok, fm})。
+/// /api/collection/:mid/:name GET(atom → {ok, atom},fm-md → {ok, fm})。
 /// [M3 已移植] 实现:collection::get_entity_json。
 #[api(method = "GET", path = "/api/collection/:mid/:name")]
 pub fn fetchEntitySafe(mid str, name str) any {
     return { ok: false, error: "not-migrated" }
 }
 
-/api/collection/:mid POST(从模板写最小实体)。
+/// /api/collection/:mid POST(从模板写最小实体)。
 /// [M3 已移植] 实现:collection::create_entity_json。
 #[api(method = "POST", path = "/api/collection/:mid")]
 pub fn createEntitySafe(mid str, name str) any {
     return { ok: false, error: "not-migrated" }
 }
 
-/api/collection/:mid/:name PUT(value merge + sidecar 写清)。
+/// /api/collection/:mid/:name PUT(value merge + sidecar 写清)。
 /// [M3 已移植] 实现:collection::put_entity_json。
 #[api(method = "PUT", path = "/api/collection/:mid/:name")]
 pub fn putEntitySafe(mid str, name str, body str, sidecar str) any {
     return { ok: false, error: "not-migrated" }
 }
 
-/api/collection/:mid/:name DELETE(实体 + 配对 sidecar)。
+/// /api/collection/:mid/:name DELETE(实体 + 配对 sidecar)。
 /// [M3 已移植] 实现:collection::delete_entity_json。
 #[api(method = "DELETE", path = "/api/collection/:mid/:name")]
 pub fn deleteEntitySafe(mid str, name str) any {
@@ -775,8 +777,9 @@ pub fn applyAccent(name str) {
 
 // ─── daemon connection test (DaemonView surface) ────────────────────────────
 
-/// [M4] stub — /api/action/test-daemon POST(形状正确的 fail-soft:视图渲染
-/// unreachable 分支,不误报 "fail")
+/// POST /api/action/test-daemon —— aaid 连接测试({status, latency, error})。
+/// [M4 已移植] 实现:core::test_daemon_proxy(aaid 代理)。
+#[api(method = "POST", path = "/api/action/test-daemon")]
 pub fn testDaemon() any {
     return { status: "unreachable", latency: 0, error: "" }
 }
@@ -984,7 +987,7 @@ pub fn selectInfo(text str, id str) any {
 
 // ─── collection flat surface ────────────────────────────────────────────────
 
-/api/collection/:mid GET(flat list surface)。
+/// /api/collection/:mid GET(flat list surface)。
 /// [M3 已移植] 实现:collection::list_collection_json。
 #[api(method = "GET", path = "/api/collection/:mid")]
 pub fn fetchCollectionListRaw(mid str) any {
@@ -1000,7 +1003,7 @@ pub fn collectionAt(text str, i int) any {
     return { name: unquote(json.get(ent, "name")), description: unquote(json.get(ent, "description")) }
 }
 
-/api/collection/:mid/:name GET(flat,VG12/13)。
+/// /api/collection/:mid/:name GET(flat,VG12/13)。
 /// [M3 已移植] 实现:collection::get_entity_json。
 #[api(method = "GET", path = "/api/collection/:mid/:name")]
 pub fn fetchEntityFlat(mid str, name str) any {

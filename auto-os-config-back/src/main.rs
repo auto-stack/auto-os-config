@@ -62,6 +62,57 @@ async fn delete_block(
         .map_err(|e| config_error(&e))
 }
 
+// ── T7:enums + action + health ──────────────────────────────────────────────
+
+/// GET /api/enums/tiers。
+async fn enum_tiers() -> Json<serde_json::Value> {
+    Json(core::enum_tiers_json())
+}
+
+/// GET /api/enums/dir/:kind。
+async fn enum_dir(
+    Path(kind): Path<String>,
+) -> Json<serde_json::Value> {
+    Json(core::enum_dir_json(&kind))
+}
+
+/// GET /api/enums/self/:module_id/providers。
+async fn enum_self_providers(
+    Path(module_id): Path<String>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    core::enum_self_providers_json(&module_id)
+        .map(Json)
+        .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e }))))
+}
+
+/// GET /api/enums/self/:module_id/models/:provider。
+async fn enum_self_models(
+    Path((module_id, provider)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    core::enum_self_models_json(&module_id, &provider)
+        .map(Json)
+        .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e }))))
+}
+
+/// POST /api/action/test-daemon(aaid 代理;离线 → 503)。
+async fn action_test_daemon() -> (axum::http::StatusCode, Json<serde_json::Value>) {
+    match core::test_daemon_proxy() {
+        Ok((status, body)) => (
+            axum::http::StatusCode::from_u16(status).unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR),
+            Json(body),
+        ),
+        Err(e) => (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": e })),
+        ),
+    }
+}
+
+/// GET /api/health。
+async fn health() -> Json<serde_json::Value> {
+    Json(core::health_json())
+}
+
 // ── T6:collection CRUD(Shape B)─────────────────────────────────────────────
 
 /// CollectionError → 旧 daemon 同款 HTTP 映射(体 {error})。
@@ -166,6 +217,12 @@ async fn main() {
             "/api/collection/:module_id/:name",
             get(get_entity).put(put_entity).delete(delete_entity),
         )
+        .route("/api/enums/tiers", get(enum_tiers))
+        .route("/api/enums/dir/:kind", get(enum_dir))
+        .route("/api/enums/self/:module_id/providers", get(enum_self_providers))
+        .route("/api/enums/self/:module_id/models/:provider", get(enum_self_models))
+        .route("/api/action/test-daemon", post(action_test_daemon))
+        .route("/api/health", get(health))
         .layer(cors);
 
     println!("auto-os-config-back-server on http://{addr}");
