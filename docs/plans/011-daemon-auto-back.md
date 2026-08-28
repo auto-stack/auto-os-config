@@ -219,8 +219,8 @@ vm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 �
   后端上连续两遍全绿;known 残差清单复核（U1/U8 等在新后端下的表现）。
   验证:两遍全绿输出存档本文件。
   [✅ 已完成,带登记偏差] vue 双门禁:连续两遍 ALL PASS(32 断言,新 back 为
-  :17701 服务源)。e2e-vm:连续两遍一致 15/17——数据面断言全绿(modules 7/
-  collection/field edit/save);2 FAIL(group collapse、test connection)=
+  :17701 服务源)。e2e-vm:16/17(待澄清#5 ②修复后)——数据面断言全绿(modules 7/
+  collection/field edit/save/test connection);仅 1 FAIL(group collapse)=
   待澄清#5 上游 press 派发间歇 + MCP 字段名冲突,先于本计划存在(pristine
   main 复现)。严格 e2e-vm 双遍全绿待用户裁决(见待澄清#5);残差复核:
   U1/U3 表现与 plan010 台账一致,新后端未引入新残差。
@@ -303,6 +303,21 @@ Cargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路
    - 环境噪声(已清理)::17701 曾被 plan-010-dev worktree 残留 daemon 占用
      (AddrInUse),首遍 e2e 打到 stale daemon;taskkill 后换新 build 复跑失败
      依旧,排除该混杂因素。
+   - 上游处置进展(2026-08-29,用户指示上游 worktree 修复):
+     ① char boundary panic —— 已修:auto-lang worktree auto-os-config-dev
+     (7d5be91d2,span offset 回退 is_char_boundary;已折叠 auto-lang master
+     82a6664b4)。该修复解除「真实语法错误被 panic 掩盖」的诊断阻塞。
+     ② test connection 断言 —— 已修(本仓):字段冲突根因是统一 state 对象
+     (Plan 320 单一 GenericInstanceData,裸名天然互覆),daemon_view 模型字段
+     status → conn_state 改名 + e2e-vm 断言同步,断言恢复有效(16/17)。
+     ③ group collapse —— 已定位未修:press 派发与 store 写入均正确
+     (dbg 探针实证 expanded 更新、投影重建 open=false),但 iced 视图不随
+     view_groups 整体重渲染(Renderer 失效;Search 同型写入正常,仅
+     ToggleGroup 路径复现,新旧二进制 + 摘除 T9 Init 均复现)。需上游专门
+     调试会话(renderer 失效链路),已登记 ④。
+     ④ __json_object 浮点字段 Dot 读编码缺陷(f64→i32 误读,54.16→
+     -1073741824)—— 未修,本仓已用展示串绕开;待上游。
+   - 上游 worktree:auto-lang/.worktrees/auto-os-config-dev(保留;含①提交)。
    - 处置(2026-08-28 修订):本计划代码(POC 为纯新增目录)不触前端/旧
      backend,失败可于 pristine main 复现——登记为上游漂移问题。原定 Phase 0
      不折叠、改按 T8/T10 汇合点重试;现按用户指示于 T5 后提前合并入 main
