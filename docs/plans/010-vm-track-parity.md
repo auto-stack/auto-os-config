@@ -11,8 +11,8 @@ supersedes_spec_components: []
 new_spec_components: []
 touched_goals: []
 
-current_step: 13
-total_steps: 13
+current_step: 14
+total_steps: 14
 ---
 
 # [PLAN-010] VM 轨一致性——Auto/VM 版 (`auto run -r vm`) 对齐 Auto/Vue 版 (`auto run`)
@@ -180,6 +180,11 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
   验证：`ls scripts/vm-probes/` 与 KNOWN-DEBT 相关行一一对应。
 - [x] T13 (E4) 终验与验收包 ✅ 已完成 [2026-08-28] ①走查清单 W：vue 轨=e2e 28 断言全覆盖（ALL PASS）；vm 轨=e2e-vm 14 断言（搜索/折叠/accent 切换+持久化重启/Test connection/集合列表/实体选择/detail 常驻）+ 专项 MCP 走查（auto-musk 增块 ✓[删块按钮快照定位失败,vue e2e 已覆盖同链路]、roles 详情字段 ✓、harness-roles 详情/子表单 ✓ inputs=4、skills 只读 ✓[T4+04 视图]、ai-client 双 select=U4 已登记）；**实机新发现 U8**（modal 删除确认:AskDelete 不执行,U1 冻结面扩展）。②双端并排 sheet：tmp/track-parity/sheet.png（2916x7308,8 视图,不入库）。③G1-G6：G1 ✓（vue 门禁 ALL PASS + css-era 00=0.00% 零回归,多轮）/ G2 ✓（14 断言连续多遍全绿）/ G3 ✓（台账全归因无未归因行;03-roles L1 实机走查由 U3 约定覆盖——列表/选择链路 e2e-vm 断言在案,详情态肉眼核对留用户验收）/ G4 ✓ / G5 ✓ / G6 ▶ **走查完成,用户验收确认待办**（确认后在计划头追加验收记录行）。
 
+### 复审修复轮（2026-08-28,「/auto-plan:review 退回 → /auto-plan:work 接续」）
+
+- [x] T14 (复审修复) 修复清单 5 项 ✅ 已完成 [2026-08-28]（c4df24b + 354b6a9）：
+  ① **[P1] read_only 集合 vm 实体加载**——方案①落地:`Modules.Select` 命中集合时 `Collection.Open(si.id)` 预载（store→store 调用;vm synthesis+运行时实测通,skills `names` 7 实体+Pick 详情链路全通;vue 端幂等——mount Init 同 id 再 Open）。vue 产物跨 store 裸引用由 regen.sh 后处理改写 `useCollectionStore().Open()`+import（又一例多store facade 上游缺口,446 §P 同族）。e2e-vm 固化第 **15 断言**（skills 预载,断言后受控重启避开 U1 污染）;Roles 段 Load 改条件式（预载后空态按钮自然消失=设计行为）;Test 轮询条件补 `"loaded"` 中间态;capture 04-skills 补首实体选中口径（diff 11.48→3.52%）。② U8 补进附录 §P 表。③ metrics.mjs 入库 scripts/track-parity/（路径适配+头注）。④ nav_class 死代码清理（4 处声明/重赋值/push 字段,产物零引用）。⑤ 重验:vue ALL E2E PASS + e2e-vm **15/15 两连绿** + css-era 00=0.00%（零回归）。**待办**:G6 用户验收（/auto-plan:review 复审通过后、merge 前签字）。
+
 ## 残差台账（T9 终稿 [2026-08-28]；全行带归因，无未归因项）
 
 | # | 视图 | 层级 | 现象 | 归因 | 处置 | 状态 |
@@ -263,6 +268,7 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 3. [小] `scripts/track-parity/metrics.mjs` 入库（tmp 版固化）。
 4. [小] modules_store.at nav_class 死代码清理。
 5. [流程] 完成后重验 G1/G2/G6（用户验收）,再行复审。
+   → **T14 已完成上述 1-5**（2026-08-28,c4df24b/354b6a9;重验 vue PASS + e2e-vm 15/15 两连绿 + css-era 零回归;U8 已入附录表）。计划交还 `/auto-plan:review` 复审;G6 用户验收在复审通过后、merge 前进行。
 
 ## 待澄清事项
 
@@ -288,6 +294,7 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 | U5 | table 样式 | P2 | thead 内置暗色底白字；th 的 style 属性被忽略（表格特化节点非 text 元素） |
 | U6 | 快照通道 | P2 | autoui_snapshot 偶发空壳树（105B），实测空壳期可 >8s；boot 后轮询窗口内概率出现 |
 | U7 | 表达式求值 | P1 | **loop 字段 Dot 表达式在元素 prop 求值失败**（`class: m.nav_class` 静默落 preset、`label` children 折叠链整列缺位）——同表达子在**条件位**（`if g.open`）与 **text prop 直取链**（`input value: e.value`）均可求值，仅「children 折叠」与「button class: prop」两链失败。vue 端（运行时 JS）全部正常 |
+| U8 | 事件路由（U1 家族） | P1 | 集合页详情区 Delete press 被接受但 AskDelete handler 不执行（confirm_open 恒 false，modal 不弹、实体不删不报错）——U1 冻结面从侧栏扩展到页面内 widget 局部 msg。与 U1 同根，同一修复 |
 
 **U7 细节**（本计划最大清偿项的根因，修复后可删仓内全部条件展开 workaround）：
 - 复现 A（button）：`for m in .store.view_standalone { button (class: m.nav_class) … }`
