@@ -2,11 +2,13 @@
 //!
 //! auto-ai-daemon / 旧 backend/ daemon 同款形态:axum main 起服务,端点在
 //! Rust 侧实现(vue 模式 = 前端 api.ts → HTTP;POC 端点族 /api/hello、
-//! /api/config-probe)。CORS 全开(与旧 daemon 一致,本机开发面)。
+//! /api/config-probe,T3 加 /api/system-info)。CORS 全开(与旧 daemon 一致,
+//! 本机开发面)。
 //!
 //! 端口:POC 用 AUTOOS_BACK_PORT(默认 17901,scratch 段,不撞旧 daemon
 //! :17701);端口策略沿用/定案在 T8。
 
+use auto_os_config_back::system_info_json;
 use axum::routing::get;
 use axum::{Json, Router};
 use tower_http::cors::CorsLayer;
@@ -16,22 +18,12 @@ async fn hello() -> Json<serde_json::Value> {
 }
 
 async fn config_probe() -> Json<serde_json::Value> {
-    let home = std::env::var("USERPROFILE")
-        .or_else(|_| std::env::var("HOME"))
-        .unwrap_or_default();
-    let value = if home.is_empty() {
-        "ai-daemon.at:missing".to_string()
-    } else {
-        let path = std::path::Path::new(&home)
-            .join(".config")
-            .join("autoos")
-            .join("ai-daemon.at");
-        match std::fs::read_to_string(&path) {
-            Ok(s) if !s.is_empty() => "ai-daemon.at:ok".to_string(),
-            _ => "ai-daemon.at:missing".to_string(),
-        }
-    };
-    Json(serde_json::json!(value))
+    Json(serde_json::json!(auto_os_config_back::config_probe_public()))
+}
+
+/// T3:GET /api/system-info — 与 cdylib 桥共享同一实现(单实现双传输)。
+async fn system_info() -> Json<serde_json::Value> {
+    Json(system_info_json())
 }
 
 #[tokio::main]
@@ -50,6 +42,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/hello", get(hello))
         .route("/api/config-probe", get(config_probe))
+        .route("/api/system-info", get(system_info))
         .layer(cors);
 
     println!("auto-os-config-back-server on http://{addr}");

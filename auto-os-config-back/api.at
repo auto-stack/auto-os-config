@@ -1189,3 +1189,14 @@ pub fn deleteBlockSafe(id str, name str) any {
 pub fn fieldDisplayOf(body str, key str) str {
     return displayOf(json.get(body, key))
 }
+
+// ─── T3:system_info(plan010 T18 概要页数据源)──────────────────────────────
+
+/// GET /api/system-info — 系统信息(OS 版本/主机名/CPU/内存/存储,扁平对象)。
+/// 实现:Rust 侧唯一实现(lib.rs system_info_json),经桥(vm merged)与
+/// axum bin(vue HTTP)双传输共享;缺失能力字段登记 "n/a"。
+/// 函数体在 merged 模式被桥旁路(Plan 060 M3 语义);返回扁平 JSON 对象。
+#[api(method = "GET", path = "/api/system-info")]
+pub fn system_info() any {
+    return {}
+}
