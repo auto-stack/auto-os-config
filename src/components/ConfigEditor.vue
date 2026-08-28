@@ -465,17 +465,17 @@ onMounted(async () => {
             <span class="block-error">{{ block_error }}</span>
           </template>
           <template v-if="adding_block">
-            <input class="block-name" :placeholder="'block name'" v-model="new_block_name" @input="NameDraft(($event.target as HTMLInputElement).value)" @keydown.enter="AddBlock" />
-            <button class="btn" @click="AddBlock">Add</button>
-            <button class="btn" @click="CancelAddBlock">Cancel</button>
+            <input class="block-name text-[#1a1a1a] h-auto" :placeholder="'block name'" v-model="new_block_name" @input="NameDraft(($event.target as HTMLInputElement).value)" @keydown.enter="AddBlock" />
+            <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" @click="AddBlock">Add</button>
+            <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" @click="CancelAddBlock">Cancel</button>
           </template>
           <template v-if="adding_block == false">
             <template v-if="loaded_once">
-              <button class="btn" @click="ToggleAddBlock">＋ Add block</button>
+              <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" @click="ToggleAddBlock">＋ Add block</button>
             </template>
           </template>
           <template v-if="loaded_once">
-            <button class="btn" :disabled="saving" @click="Load">Reload</button>
+            <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" :disabled="saving" @click="Load">Reload</button>
             <button class="btn primary" :disabled="saving || dirty == false" @click="Save">
               <template v-if="saving">
                 <span>Saving…</span>
@@ -486,7 +486,7 @@ onMounted(async () => {
             </button>
           </template>
           <template v-if="loaded_once == false">
-            <button class="btn" @click="Load">Load</button>
+            <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" @click="Load">Load</button>
           </template>
         </div>
       </div>
@@ -513,15 +513,13 @@ onMounted(async () => {
               <div class="subform-header gap-[0px]">
                 <span class="subform-title">{{ e.label }}</span>
                 <template v-if="e.is_provider">
-                  <button class="btn danger btn-sm" @click="AskDelete(e.key)">🗑</button>
+                  <button class="btn danger btn-sm bg-[#c42b1c] text-white border-[#c42b1c] px-2 py-0.5 text-xs h-auto" @click="AskDelete(e.key)">🗑</button>
                 </template>
               </div>
             </template>
             <template v-if="e.kind != 'subform'">
               <div :class="e.box_class">
-                <label class="field-label">
-                  <span>{{ e.label }}</span>
-                </label>
+                <label class="field-label text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
                 <template v-if="e.kind == 'toggle'">
                   <label class="toggle gap-[0px]">
                     <input :checked="e.is_on" :type="'checkbox'" @change="Toggle(e, ($event.target as HTMLInputElement).checked)" />
@@ -539,21 +537,21 @@ onMounted(async () => {
                   </label>
                 </template>
                 <template v-if="e.kind == 'number'">
-                  <input class="input" :type="'number'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                  <input class="input text-[#1a1a1a] h-auto" :type="'number'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                 </template>
                 <template v-if="e.kind == 'password'">
                   <div class="secret gap-[0px]">
                     <template v-if="pw_show">
-                      <input class="input pw" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                     </template>
                     <template v-if="pw_show == false">
-                      <input class="input pw" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                     </template>
-                    <button class="reveal" @click="PwToggle(e)">👁</button>
+                    <button class="reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto" @click="PwToggle(e)">👁</button>
                   </div>
                 </template>
                 <template v-if="e.kind == 'text'">
-                  <input class="input" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                  <input class="input text-[#1a1a1a] h-auto" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                 </template>
                 <template v-if="e.kind == 'select'">
                   <template v-if="e.options.length > 0">
@@ -566,7 +564,7 @@ onMounted(async () => {
                   </template>
                   <template v-if="e.options.length == 0">
                     <div class="fallback-text gap-[0px]">
-                      <input class="input" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <input class="input text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                       <span class="fallback-hint">no options available (e.g. builtin-only) — type freely</span>
                     </div>
                   </template>
@@ -577,7 +575,7 @@ onMounted(async () => {
                       <span>{{ t }}</span>
                       <button class="tag-x" @click="TagRemove(e, t)">×</button>
                     </span>
-                    <input class="tag-input" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" @keydown.enter="TagAdd(e)" />
+                    <input class="tag-input text-[#1a1a1a] h-auto" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" @keydown.enter="TagAdd(e)" />
                   </div>
                 </template>
                 <template v-if="e.kind == 'multiselect'">
@@ -592,7 +590,7 @@ onMounted(async () => {
                     <table class="tbl">
                       <thead>
                         <tr>
-                          <th v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">{{ c.name }}</th>
+                          <th class="bg-[#ededed] text-[#616161] text-xs font-semibold h-auto" v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">{{ c.name }}</th>
                           <th class="row-act" />
                         </tr>
                       </thead>

@@ -28,3 +28,4 @@ auto/.am/
 auto/vm/.am/
 auto/vm/.am/
 .worktrees/
+auto/src/front/tmp/

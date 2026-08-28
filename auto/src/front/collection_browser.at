@@ -66,7 +66,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                         oninput: .SetFilter
                     }
                     if read_only == false {
-                        button (text: "+", style: "btn icon") {
+                        button (text: "+", style: "btn icon bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-base text-[#1a1a1a] h-auto") {
                             onclick: .ToggleCreate
                         }
                     }
@@ -77,10 +77,10 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                             oninput: .NewName
                             onkeydown.enter: .DoCreate
                         }
-                        button (text: "Add", style: "btn small", disabled: .store.saving || .new_name.trim() == "") {
+                        button (text: "Add", style: "btn small bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-xs text-[#1a1a1a] h-auto", disabled: .store.saving || .new_name.trim() == "") {
                             onclick: .DoCreate
                         }
-                        button (text: "✕", style: "btn small") {
+                        button (text: "✕", style: "btn small bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-xs text-[#1a1a1a] h-auto") {
                             onclick: .CancelCreate
                         }
                     }
@@ -168,7 +168,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                         }
                         div (style: "actions gap-[0px]") {
                             if read_only == false && .store.is_read_only == false {
-                                button (text: "Reload", style: "btn", disabled: .store.saving) {
+                                button (text: "Reload", style: "btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto", disabled: .store.saving) {
                                     onclick: .Reload
                                 }
                                 button (style: "btn primary", disabled: .store.saving || .store.dirty == false) {
@@ -180,7 +180,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                         text (text: "Save") {}
                                     }
                                 }
-                                button (text: "Delete", style: "btn danger") {
+                                button (text: "Delete", style: "btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto") {
                                     onclick: .AskDelete
                                 }
                             }
@@ -202,10 +202,10 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     text (text: " is kept.") {}
                                 }
                                 div (style: "modal-actions gap-[8px]") {
-                                    button (text: "Cancel", style: "btn") {
+                                    button (text: "Cancel", style: "btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto") {
                                         onclick: .ConfirmDeleteNo
                                     }
-                                    button (text: "Delete", style: "btn danger") {
+                                    button (text: "Delete", style: "btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto") {
                                         onclick: .ConfirmDeleteYes
                                     }
                                 }
@@ -220,17 +220,13 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                     if .store.is_read_only {
                         col (style: "fm-view gap-[0px]") {
                             div (style: "field-row") {
-                                label (style: "field-label") {
-                                    text (text: "Name") {}
-                                }
+                                label (text: "Name", style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                 div (style: "readonly-val mono") {
                                     text (text: .store.fm_name) {}
                                 }
                             }
                             div (style: "field-row") {
-                                label (style: "field-label") {
-                                    text (text: "Description") {}
-                                }
+                                label (text: "Description", style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                 div (style: "readonly-val") {
                                     text (text: .store.fm_description) {}
                                 }
@@ -245,15 +241,13 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     key: e.key
                                     if e.is_table {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             div (style: "table-wrap gap-[0px]") {
                                                 table (style: "tbl") {
                                                     thead {
                                                         tr {
                                                             for c in e.t_cols {
-                                                                th (text: c.name) {}
+                                                                th (text: c.name, style: "bg-[#ededed] text-[#616161] text-xs font-semibold h-auto") {}
                                                             }
                                                             th (style: "row-act") {}
                                                         }
@@ -306,9 +300,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "toggle" {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             label (style: "toggle gap-[0px]") {
                                                 input ("type": "checkbox", checked: e.value == "true") {
                                                     onchange: .Toggle(i, $event.target.checked)
@@ -329,9 +321,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "number" {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             input ("type": "number", value: e.value, style: "input") {
                                                 oninput: .Draft
                                                 onchange: .ApplyEntry(i, $event.target.value)
@@ -340,23 +330,21 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "password" {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             div (style: "secret gap-[0px]") {
                                                 if .pw_show {
-                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw") {
+                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
                                                         oninput: .Draft
                                                         onchange: .ApplyEntry(i, $event.target.value)
                                                     }
                                                 }
                                                 if .pw_show == false {
-                                                    input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw") {
+                                                    input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
                                                         oninput: .Draft
                                                         onchange: .ApplyEntry(i, $event.target.value)
                                                     }
                                                 }
-                                                button (style: "reveal", text: "👁") {
+                                                button (style: "reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto", text: "👁") {
                                                     onclick: .PwToggle
                                                 }
                                             }
@@ -364,10 +352,8 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "text" {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
-                                            input (value: e.value, "type": "text", placeholder: "(empty)", style: "input") {
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            input (value: e.value, "type": "text", placeholder: "(empty)", style: "input text-[#1a1a1a] h-auto") {
                                                 oninput: .Draft
                                                 onchange: .ApplyEntry(i, $event.target.value)
                                             }
@@ -375,9 +361,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "select" {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             if e.options.len() > 0 {
                                                 select (value: e.value, style: "input") {
                                                     onchange: .ApplyEntry(i, $event.target.value)
@@ -391,7 +375,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                             }
                                             if e.options.len() == 0 {
                                                 div (style: "fallback-text gap-[0px]") {
-                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input") {
+                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input text-[#1a1a1a] h-auto") {
                                                         oninput: .Draft
                                                         onchange: .ApplyEntry(i, $event.target.value)
                                                     }
@@ -402,9 +386,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "tags" {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             div (style: "tags") {
                                                 for t in e.items {
                                                     span (style: "tag") {
@@ -423,9 +405,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "multiselect" {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             div (style: "multiselect") {
                                                 for oi, o in e.options {
                                                     label (style: "ms-item") {
@@ -443,9 +423,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "subform" {
                                         div (style: "field-row") {
-                                            label (style: "field-label") {
-                                                text (text: e.label) {}
-                                            }
+                                            label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             div (style: "table-readonly") {
                                                 text (text: e.frag, style: "font-mono text-xs text-[#616161] whitespace-pre-wrap break-all") {}
                                             }
@@ -454,7 +432,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                 }
                             }
                             div (style: "field-row sidecar-row") {
-                                label (style: "field-label") {
+                                label (style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {
                                     text (text: "Soul ") {}
                                     span (style: "hint", text: "(markdown sidecar)") {}
                                 }

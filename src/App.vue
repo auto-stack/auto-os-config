@@ -32,7 +32,7 @@ onMounted(() => {
     <div class="flex flex-row app-layout h-full w-full gap-[0px]">
       <Sidebar :key="'Sidebar-1'" />
       <div class="flex flex-col flex-1 gap-[0px]">
-        <div class="flex flex-row content-header h-[48px] shrink-0 items-center gap-[0px] px-6 border-b border-[#e0e0e0] bg-white">
+        <div class="flex flex-row content-header h-[48px] w-full shrink-0 items-center gap-[0px] px-6 border-b border-[#e0e0e0] bg-white">
           <span class="text-xl font-semibold text-[#1a1a1a]">{{ store.title }}</span>
         </div>
         <div class="flex flex-col content-body flex-1 gap-[0px] overflow-auto p-6 bg-white">

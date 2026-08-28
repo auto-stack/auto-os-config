@@ -51,7 +51,7 @@ async function Test(): Promise<void> {
           </template>
         </span>
         <div class="flex-1" />
-        <button class="btn" :disabled="status == 'checking'" @click="Test">Test</button>
+        <button class="btn bg-white border border-[#e0e0e0] rounded px-5 py-2 text-sm text-[#1a1a1a] h-auto" :disabled="status == 'checking'" @click="Test">Test</button>
       </div>
       <template v-if="status == 'fail' && test_error != ''">
         <p class="test-err">{{ test_error }}</p>

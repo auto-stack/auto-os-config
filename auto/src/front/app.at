@@ -32,7 +32,7 @@ widget App {
         row (style: "app-layout h-full w-full flex flex-row gap-[0px]") {
             Sidebar { }
             col (style: "flex-1 flex flex-col gap-[0px]") {
-                row (style: "content-header h-[48px] shrink-0 flex flex-row items-center gap-[0px] px-6 border-b border-[#e0e0e0] bg-white") {
+                row (style: "content-header h-[48px] w-full shrink-0 flex flex-row items-center gap-[0px] px-6 border-b border-[#e0e0e0] bg-white") {
                     text (text: .store.title, style: "text-xl font-semibold text-[#1a1a1a]") {}
                 }
                 col (style: "content-body flex-1 flex flex-col gap-[0px] overflow-auto p-6 bg-white") {
