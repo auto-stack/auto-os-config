@@ -1115,7 +1115,7 @@ pub fn entryAt(body str, i int, module_id str) any {
         depth: 0,
         is_on: displayOf(frag) == "true",
         is_provider: spec.kind == "subform" && fragHasKey(frag, "kind"),
-        box_class: "field-row",
+        box_class: "field-row flex flex-row items-start gap-[12px] py-2",
         options: opts,
         has_current: optionValuesHave(opts, displayOf(frag)),
         items: stringItemsOf(frag),
@@ -1205,7 +1205,7 @@ pub fn subAt(body str, head str, j int, module_id str) any {
     let frag = json.get(sub, ku)
     let spec = inferField(ku, frag, module_id, head)
     let opts = selectOptionsOf(spec, module_id)
-    var bc = "subform-cont"
+    var bc = "subform-cont flex flex-row items-start gap-[12px] px-[14px] py-2"
     if j == 0 {
         bc = bc + " first"
     }

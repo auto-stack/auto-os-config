@@ -853,7 +853,7 @@ export function entryAt(body: any, i: number, moduleId: string): any {
     // 2026-08-27 像素对拍（与 api.at entryAt 孪生）：provider 形子表单（含
     // kind 键）带删除钮；顶层行容器类 = css-era .field-row。
     is_provider: spec.kind === 'subform' && frag != null && typeof frag === 'object' && !Array.isArray(frag) && 'kind' in frag,
-    box_class: 'field-row',
+    box_class: 'field-row flex flex-row items-start gap-[12px] py-2',
     // 2026-08-27 像素对拍二阶段（与 api.at 孪生）：select 真下拉 / tags chips /
     // 可编辑表格。options 读 warmEnums 预热的 enumCache（未预热 → []）。
     options: spec.kind === 'select' ? enumCache.get(enumUrlOf(spec.optionsFrom)) ?? [] : [],
@@ -885,7 +885,7 @@ export function subAt(body: any, head: string, j: number, moduleId: string): any
   // 2026-08-27 像素对拍（与 api.at subAt 孪生）：平铺行拼装 subform 盒——
   // first/last 标记决定补底边+下圆角。
   const total = Object.keys(sub).length
-  let boxClass = 'subform-cont'
+  let boxClass = 'subform-cont flex flex-row items-start gap-[12px] px-[14px] py-2'
   if (j === 0) boxClass += ' first'
   if (j === total - 1) boxClass += ' last'
   return {

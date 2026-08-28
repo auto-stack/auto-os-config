@@ -519,7 +519,7 @@ onMounted(async () => {
             </template>
             <template v-if="e.kind != 'subform'">
               <div :class="e.box_class">
-                <label class="field-label text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
+                <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
                 <template v-if="e.kind == 'toggle'">
                   <label class="toggle gap-[0px]">
                     <input :checked="e.is_on" :type="'checkbox'" @change="Toggle(e, ($event.target as HTMLInputElement).checked)" />

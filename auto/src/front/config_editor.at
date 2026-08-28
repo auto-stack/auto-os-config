@@ -179,7 +179,7 @@ widget ConfigEditor(module_id: str) {
                             }
                             if e.kind != "subform" {
                                 div (class: e.box_class) {
-                                    label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                    label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                     if e.kind == "toggle" {
                                         label (style: "toggle gap-[0px]") {
                                             input ("type": "checkbox", checked: e.is_on) {
