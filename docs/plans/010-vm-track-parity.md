@@ -1,10 +1,10 @@
 ---
 plan_id: PLAN-010
-status: execution_done
+status: executing
 feature_name: VM 轨一致性——Auto/VM 版对齐 Auto/Vue 版
 author: [zcode]
 created_at: 2026-08-27T12:00:00+08:00
-updated_at: 2026-08-28T16:00:00+08:00
+updated_at: 2026-08-28T17:30:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
@@ -194,7 +194,7 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 | U8 | 集合页 modal | 上游P1（U1家族） | **T13 实机新增**：详情区 Delete press 被接受但 AskDelete handler 不执行（confirm_open 恒 false，modal 不弹、实体不删不报错）——集合页列表构建后 widget 局部 msg 也被冻结，U1 冻结面从侧栏扩展到页面内按钮 | U1 同域：dynamic_view 事件路由在列表循环构建后冻结 handler 分发 | 与 U1 同一回报；modal 渲染本身未验（前置 handler 死） | 登记待回报 |
 | R11 | 编辑器字段 | L2 | field 双列布局（label 左/input 右）在 vm 纵向堆叠（label 上/input 下占全宽）——单字段行高约 2 倍，页面纵向溢出 | .field-row/.subform-cont 是 grid 布局，vm 无 grid；box_class 孪生数据（api.at + src/lib/api.ts）只有类名无布局类 | box_class 双端补 flex 等值类（styles.css 后加载，vue 端 grid 压制 display 像素零变）+ field-label 定宽 w-[160px] | ✅ 已修（8074c87，01 content-body 9.0→7.7%）|
 | R9 | 工具链 | 上游P2 | autoui_snapshot 偶发空壳树（105B，实测空壳期可 >8s）——446 批一 J1 竞态家族余震 | styled_vtree 落盘时机竞态 | capture/pressNav 已加非空重试 ✅；上游同渠道知悉 | 工具已缓冲 |
-| R10 | 04-skills vm | 工具残差 | vm 轨 skills 页 "no Load button"——实体列表未加载，content-body 残差含未加载成分 | pressLabel 未匹配该页 Load 形态 | T13 实机走查核实加载态；capture 后续复用 e2e-vm 通道 | 登记 |
+| R10 | 04-skills vm | **功能缺口(P1)** | **review 实锤：read_only 集合在 vm 端实体列表永远空**（skills `names: []`,vue 端 7 实体自动加载+自动选中）——`if read_only == false` 才渲染 Load 按钮,vm 无 auto-Init → 只读集合无任何加载入口;用户在 vm 桌面版无法浏览 skills | R1"Load-first 双端定型"裁定的盲区:read_only 集合没有 Load 入口可"first" | 修复决策待 work:①store.Select 预载集合数据(视图源零改动)②视图源 read_only 分支加载入口(触 N4)③上游 auto-Init;修前 skills vm 不可用 | **review 退回项** |
 | R1 | vm 无 auto-Init | 设计差异 | accent 桌面轨重启丢失 / 文件模块需手动 Load | 007 已登记偏差的余项 | app.at 根 Init 链补 Theme.Init()（已修）；Load-first 形态保留为双端定型 | ✅ 已修 |
 | R2 | 集合页列表行 | 结构差异 | div+onclick 在 vm 不可交互 | css-era HTML 语义无 vm 对应 widget | e-row 定型为 button（styles.css 中和 UA 态保像素） | ✅ 已修 |
 | R3 | app 内容面板 | L2 | content-body 无背景类，iced 默认暗色主题下透明底露出近黑 → 全视图 diff% 79 的主导项（已清偿） | css-era html 白底隐式依赖 | app.at content-body 显式 bg-white（cc3094b，vue 门禁零回归） | ✅ 已修 |
@@ -225,6 +225,44 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 | 2026-08-28 | `1487b5c5d`（446 批二 A1/E1/E2：多store消歧显式报错、codegen arity 分流、类串清理） | 锚定更新：regen 类串清理漂移采认（ffce0cb）；A1 歧义报错适配——app.at 裸 store.Init()→Modules.Init() + regen.sh sed 回写（b870260，vm 恢复启动） |
 
 （/auto-plan:review 回填）
+
+### 复审（2026-08-28，reviewer: zcode）——**判定：退回 /auto-plan:work**
+
+**验收标准重验**（全部在 worktree 实测，不采信勾选）：
+
+| 项 | 判定 | 证据 |
+|---|---|---|
+| G1 vue 门禁 + css-era 零回归 | ✅ PASS | 重跑 `./scripts/e2e.sh` ALL E2E PASS;重拍 vue 轨对 css-era：00=0.00%（零回归），最高 05=2.13%（L3 量级） |
+| G2 e2e-vm 14 断言两连绿 | ✅ PASS | `node scripts/e2e-vm.mjs` 连续两遍 PASSED（14/14;含自愈加固 68ec374） |
+| G3 台账归因 | ✅ PASS | 台账全行带归因,无「未归因」字样;L1 核对=快照/走查证据在案 |
+| G4 README 章 + 台账终稿 | ✅ PASS | auto/README.md:224「双端一致性」章;台账终稿在案 |
+| G5 三件套 + probe 去留 | ✅ PASS | 三件交叉引用一致（446 §P e06fb31e0/断言数 14/残差指引）;`scripts/vm-probes/` 已空 |
+| G6 走查 + 用户验收 | ⚠️ PARTIAL | 走查完成（T13 记录+U8 新发现）;**用户验收签字未发生**;且走查复查发现 R10 实质缺口（见下） |
+
+**遗漏/延后/workaround 猎查**（Step 3）：
+
+- **猎出实质遗漏（退回主因）**：R10 复核实锤 **read_only 集合在 vm 端实体列表
+  永远空**（skills `names: []` vs vue 7 实体）——`if read_only == false` 才有
+  Load 按钮 + vm 无 auto-Init = 只读集合无任何加载入口。这是功能缺口（L1）,
+  非像素残差;R1「Load-first 双端定型」裁定存在盲区。用户从未签核此项延后
+  → 按 skill 规则 plan 不算实际完成。
+- 延后一项：U8 未写入 446 附录表（T9 附录为 U1-U7;U8 为 T13 新发现）——
+  work 阶段补。
+- workaround 全部显式在案（条件展开/text-prop/中和类/U1 段序/regen sed×2,
+  446 §P 有案），无静默。
+- 债务候选（不阻塞，work 顺手）：tmp/metrics.mjs 未入库（C 相设计含它）;
+  modules_store.at 的 nav_class 死代码（条件展开后无引用）。
+
+**修复清单（hand back to /auto-plan:work）**：
+
+1. **[P1] read_only 集合 vm 端实体加载**——方案候选：①store.Select handler
+   预载集合数据（视图源零改动,优先评估）②视图源 read_only 加载入口（触
+   N4 全门禁）③上游 auto-Init 支持。修复后：skills vm 列表有数据 + 双门禁
+   + css-era 零回归。
+2. [小] U8 补进本文件附录 §P 表格。
+3. [小] `scripts/track-parity/metrics.mjs` 入库（tmp 版固化）。
+4. [小] modules_store.at nav_class 死代码清理。
+5. [流程] 完成后重验 G1/G2/G6（用户验收）,再行复审。
 
 ## 待澄清事项
 
