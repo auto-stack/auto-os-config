@@ -13,6 +13,7 @@
 use auto_lang::vm::backend_abi::{BackendHostCallFn, BackendRegistry, BACKEND_ABI_VERSION};
 use std::sync::Arc;
 
+pub mod collection;
 pub mod config_root;
 pub mod core;
 pub mod project;
@@ -73,6 +74,58 @@ pub extern "Rust" fn auto_backend_register(reg: Arc<dyn BackendRegistry>) -> Res
         Ok(delete_block_safe_payload(&id, &name).to_string())
     });
     reg.host_call("deleteBlockSafe", del_block);
+
+    // T6:collection CRUD(Shape B)。
+    let col_raw: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let mid = a["mid"].as_str().unwrap_or_default().to_string();
+        Ok(fetch_collection_list_raw_payload(&mid).to_string())
+    });
+    reg.host_call("fetchCollectionListRaw", col_raw);
+
+    let col_safe: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let mid = a["mid"].as_str().unwrap_or_default().to_string();
+        Ok(fetch_collection_list_safe_payload(&mid).to_string())
+    });
+    reg.host_call("fetchCollectionListSafe", col_safe);
+
+    let ent_safe: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let (mid, name) = (s(&a, "mid"), s(&a, "name"));
+        Ok(fetch_entity_safe_payload(&mid, &name).to_string())
+    });
+    reg.host_call("fetchEntitySafe", ent_safe);
+
+    let ent_flat: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let (mid, name) = (s(&a, "mid"), s(&a, "name"));
+        Ok(fetch_entity_flat_payload(&mid, &name).to_string())
+    });
+    reg.host_call("fetchEntityFlat", ent_flat);
+
+    let ent_create: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let (mid, name) = (s(&a, "mid"), s(&a, "name"));
+        Ok(create_entity_safe_payload(&mid, &name).to_string())
+    });
+    reg.host_call("createEntitySafe", ent_create);
+
+    let ent_put: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let (mid, name) = (s(&a, "mid"), s(&a, "name"));
+        let body = a["body"].as_str().unwrap_or_default().to_string();
+        let sidecar = a["sidecar"].as_str().unwrap_or_default().to_string();
+        Ok(put_entity_safe_payload(&mid, &name, &body, &sidecar).to_string())
+    });
+    reg.host_call("putEntitySafe", ent_put);
+
+    let ent_delete: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let (mid, name) = (s(&a, "mid"), s(&a, "name"));
+        Ok(delete_entity_safe_payload(&mid, &name).to_string())
+    });
+    reg.host_call("deleteEntitySafe", ent_delete);
 
     Ok(())
 }
@@ -231,6 +284,11 @@ pub fn config_probe_public() -> String {
     config_probe_rs()
 }
 
+/// 桥参数取串的小助手(缺省空串)。
+fn s(a: &serde_json::Value, key: &str) -> String {
+    a[key].as_str().unwrap_or_default().to_string()
+}
+
 /// fetchModulesRaw 的前端契约载荷:{ok, error, text}(text = /api/modules
 /// 数组 JSON 文本)。core 恐慌(如 config root 缺失)fail-soft 为传输错误形状
 /// ——桥 Err 会让 VM handler 崩(VG7 回滚),这里必须 Ok 包装。
@@ -267,6 +325,126 @@ pub fn delete_block_safe_payload(id: &str, name: &str) -> serde_json::Value {
     match core::delete_block_json(id, name) {
         Ok(_) => serde_json::json!({ "ok": true }),
         Err(_) => serde_json::json!({ "ok": false, "error": "Delete request failed" }),
+    }
+}
+
+// ── T6:collection CRUD 的前端契约载荷(形状循旧 http 配方,fail-soft)────────
+
+/// fetchCollectionListRaw:{ok, error, text}(text = 实体数组 JSON 文本)。
+pub fn fetch_collection_list_raw_payload(mid: &str) -> serde_json::Value {
+    match collection::list_collection_json(mid) {
+        Ok(arr) => serde_json::json!({ "ok": true, "error": "", "text": arr.to_string() }),
+        Err(_) => serde_json::json!({ "ok": false, "error": "Failed to load collection", "text": "" }),
+    }
+}
+
+/// fetchCollectionListSafe:{ok, list} | {ok:false, error}(list 逐项扁平)。
+pub fn fetch_collection_list_safe_payload(mid: &str) -> serde_json::Value {
+    match collection::list_collection_json(mid) {
+        Ok(arr) => {
+            let list: Vec<serde_json::Value> = arr
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .map(|e| {
+                            serde_json::json!({
+                                "name": e["name"].as_str().unwrap_or_default(),
+                                "description": e["description"].as_str().unwrap_or_default(),
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            serde_json::json!({ "ok": true, "list": list })
+        }
+        Err(_) => serde_json::json!({ "ok": false, "error": "Failed to load collection" }),
+    }
+}
+
+/// fetchEntitySafe:atom → {ok, atom:{value, sidecar}, fm:null};
+/// frontmatter-md → {ok, atom:null, fm:{name, description, body}}。
+pub fn fetch_entity_safe_payload(mid: &str, name: &str) -> serde_json::Value {
+    match collection::get_entity_json(mid, name) {
+        Ok(ent) => {
+            if ent.get("value").is_some() {
+                serde_json::json!({
+                    "ok": true,
+                    "atom": { "value": ent["value"].to_string(), "sidecar": ent["sidecar"] },
+                    "fm": null,
+                })
+            } else {
+                serde_json::json!({
+                    "ok": true,
+                    "atom": null,
+                    "fm": {
+                        "name": ent["name"],
+                        "description": ent["description"],
+                        "body": ent["body"],
+                    },
+                })
+            }
+        }
+        Err(_) => serde_json::json!({ "ok": false, "error": "Failed to load entity" }),
+    }
+}
+
+/// fetchEntityFlat:VG12/13 扁平形状(is_atom/value/sidecar/fm_*)。
+pub fn fetch_entity_flat_payload(mid: &str, name: &str) -> serde_json::Value {
+    match collection::get_entity_json(mid, name) {
+        Ok(ent) => {
+            if ent.get("value").is_some() {
+                serde_json::json!({
+                    "ok": true, "error": "", "is_atom": true,
+                    "value": ent["value"].to_string(),
+                    "sidecar": ent["sidecar"],
+                    "fm_name": "", "fm_description": "", "fm_body": "",
+                })
+            } else {
+                serde_json::json!({
+                    "ok": true, "error": "", "is_atom": false,
+                    "value": "", "sidecar": "",
+                    "fm_name": ent["name"],
+                    "fm_description": ent["description"],
+                    "fm_body": ent["body"],
+                })
+            }
+        }
+        Err(_) => serde_json::json!({
+            "ok": false, "error": "Failed to load entity", "is_atom": false,
+            "value": "", "sidecar": "", "fm_name": "", "fm_description": "", "fm_body": "",
+        }),
+    }
+}
+
+/// createEntitySafe:{ok} | {ok:false, error:"Create failed"}。
+pub fn create_entity_safe_payload(mid: &str, name: &str) -> serde_json::Value {
+    match collection::create_entity_json(mid, name) {
+        Ok(_) => serde_json::json!({ "ok": true }),
+        Err(_) => serde_json::json!({ "ok": false, "error": "Create failed" }),
+    }
+}
+
+/// putEntitySafe:{ok} | {ok:false, error:"Save failed"}(body 为对象 JSON 文本)。
+pub fn put_entity_safe_payload(mid: &str, name: &str, body: &str, sidecar: &str) -> serde_json::Value {
+    let parsed: serde_json::Result<serde_json::Value> = serde_json::from_str(body);
+    let sidecar_opt = if sidecar.is_empty() { None } else { Some(sidecar) };
+    match serde_json::from_str::<serde_json::Value>(body)
+        .map_err(|e| e.to_string())
+        .and_then(|value| {
+            collection::put_entity_json(mid, name, &value, sidecar_opt)
+                .map_err(|e| e.to_string())
+        })
+    {
+        Ok(_) => serde_json::json!({ "ok": true }),
+        Err(_) => serde_json::json!({ "ok": false, "error": "Save failed" }),
+    }
+}
+
+/// deleteEntitySafe:{ok} | {ok:false, error:"Delete failed"}。
+pub fn delete_entity_safe_payload(mid: &str, name: &str) -> serde_json::Value {
+    match collection::delete_entity_json(mid, name) {
+        Ok(_) => serde_json::json!({ "ok": true }),
+        Err(_) => serde_json::json!({ "ok": false, "error": "Delete failed" }),
     }
 }
 

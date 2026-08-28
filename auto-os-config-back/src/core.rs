@@ -6,13 +6,19 @@ use crate::config_root::config_root;
 use crate::project;
 use crate::registry::{Module, Registry, DEFAULT_REGISTRY_ATOM};
 
+/// config root 的 unwrap 形态(collection.rs 等模块共用;root 无法解析即 panic
+/// ——与旧 daemon 的 `expect("config root must resolve")` 同语义)。
+pub fn config_root_unwrap() -> std::path::PathBuf {
+    config_root().unwrap_or_else(|e| panic!("config root must resolve: {e}"))
+}
+
 /// baseline(内嵌 DEFAULT_REGISTRY_ATOM)+ modules.d 热注册,每次重算
 /// (与旧 daemon 的 per-request merged 同语义:drop-in 运行期加入即生效)。
 pub fn merged_registry() -> Registry {
     let baseline = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM)
         .expect("default registry must parse")
         .modules;
-    let root = config_root().unwrap_or_else(|e| panic!("config root must resolve: {e}"));
+    let root = config_root_unwrap();
     Registry::merged_with_dropins(&baseline, &root.join("modules.d"))
 }
 

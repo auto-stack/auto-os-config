@@ -8,9 +8,9 @@
 //! 端口:POC 用 AUTOOS_BACK_PORT(默认 17901,scratch 段,不撞旧 daemon
 //! :17701);端口策略沿用/定案在 T8。
 
-use auto_os_config_back::{system_info_json, core};
+use auto_os_config_back::{collection, core, system_info_json};
 use axum::extract::{Path, Json as ExtractJson};
-use axum::routing::{get, put, delete};
+use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
 use tower_http::cors::CorsLayer;
 
@@ -62,6 +62,66 @@ async fn delete_block(
         .map_err(|e| config_error(&e))
 }
 
+// ── T6:collection CRUD(Shape B)─────────────────────────────────────────────
+
+/// CollectionError → 旧 daemon 同款 HTTP 映射(体 {error})。
+fn collection_error(e: &collection::CollectionError) -> (axum::http::StatusCode, Json<serde_json::Value>) {
+    (
+        axum::http::StatusCode::from_u16(e.status()).unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR),
+        Json(serde_json::json!({ "error": e.to_string() })),
+    )
+}
+
+/// GET /api/collection/:module_id → [{name, description}]。
+async fn list_collection(
+    Path(module_id): Path<String>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    collection::list_collection_json(&module_id)
+        .map(Json)
+        .map_err(|e| collection_error(&e))
+}
+
+/// GET /api/collection/:module_id/:name。
+async fn get_entity(
+    Path((module_id, name)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    collection::get_entity_json(&module_id, &name)
+        .map(Json)
+        .map_err(|e| collection_error(&e))
+}
+
+/// POST /api/collection/:module_id(body {name})。
+async fn create_entity(
+    Path(module_id): Path<String>,
+    ExtractJson(body): ExtractJson<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let name = body["name"].as_str().unwrap_or_default().to_string();
+    collection::create_entity_json(&module_id, &name)
+        .map(Json)
+        .map_err(|e| collection_error(&e))
+}
+
+/// PUT /api/collection/:module_id/:name(body {value, sidecar?})。
+async fn put_entity(
+    Path((module_id, name)): Path<(String, String)>,
+    ExtractJson(body): ExtractJson<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let value = body.get("value").cloned().unwrap_or(serde_json::Value::Null);
+    let sidecar = body["sidecar"].as_str().map(|s| s.to_string());
+    collection::put_entity_json(&module_id, &name, &value, sidecar.as_deref())
+        .map(Json)
+        .map_err(|e| collection_error(&e))
+}
+
+/// DELETE /api/collection/:module_id/:name。
+async fn delete_entity(
+    Path((module_id, name)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    collection::delete_entity_json(&module_id, &name)
+        .map(Json)
+        .map_err(|e| collection_error(&e))
+}
+
 /// 旧 daemon 错误映射:not found → 404,其余 → 400(响应体 {error})。
 fn config_error(msg: &str) -> (axum::http::StatusCode, Json<serde_json::Value>) {
     let status = if msg.contains("not registered")
@@ -97,6 +157,14 @@ async fn main() {
         .route(
             "/api/config/:module_id/blocks/:name",
             delete(delete_block),
+        )
+        .route(
+            "/api/collection/:module_id",
+            get(list_collection).post(create_entity),
+        )
+        .route(
+            "/api/collection/:module_id/:name",
+            get(get_entity).put(put_entity).delete(delete_entity),
         )
         .layer(cors);
 
