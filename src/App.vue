@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar.vue'
 
 const emit = defineEmits<{
   Init: []
+  SelectModule: [string]
 }>()
 
 import { useModulesStore } from './stores/auto/useModulesStore'
@@ -17,6 +18,12 @@ import { reactive } from 'vue'
 const store = reactive(useModulesStore())
 
 const themeStore = reactive(useThemeStore())
+
+function SelectModule(mid: any): void {
+  store.Select(mid);
+
+  emit('SelectModule', mid)
+}
 
 onMounted(() => {
 
@@ -50,8 +57,30 @@ onMounted(() => {
           </template>
           <template v-if="store.loading == false && store.error == ''">
             <template v-if="store.active_kind == ''">
-              <div class="flex flex-col state-msg flex-1 items-center justify-center gap-[0px]">
-                <span class="text-base text-[#8a8a8a]">Select a module from the left to configure it.</span>
+              <div class="flex flex-col overview flex-1 gap-[0px] overflow-auto p-8 bg-white">
+                <span class="text-2xl font-semibold text-[#1a1a1a]">System Overview</span>
+                <span class="text-sm text-[#616161] pb-4">Pick a module below to jump straight into its settings.</span>
+                <button class="overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)" v-for="m in store.view_standalone">
+                  <div class="flex flex-row items-center gap-3 w-full">
+                    <span class="text-2xl shrink-0">{{ m.icon }}</span>
+                    <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                      <span class="text-sm font-semibold text-[#1a1a1a]">{{ m.name }}</span>
+                      <span class="text-xs text-[#616161]">{{ m.description }}</span>
+                    </div>
+                  </div>
+                </button>
+                <div v-for="(g, __for_idx) in store.view_groups" :key="__for_idx">
+                  <span class="text-sm font-semibold text-[#1a1a1a] pt-4 pb-1">{{ g.label }}</span>
+                  <button class="overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
+                    <div class="flex flex-row items-center gap-3 w-full">
+                      <span class="text-2xl shrink-0">{{ m.icon }}</span>
+                      <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                        <span class="text-sm font-semibold text-[#1a1a1a]">{{ m.name }}</span>
+                        <span class="text-xs text-[#616161]">{{ m.description }}</span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
               </div>
             </template>
             <template v-if="store.active_kind == 'file'">
