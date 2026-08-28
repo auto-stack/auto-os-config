@@ -1,11 +1,18 @@
 <!-- App component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import CollectionBrowser from './components/CollectionBrowser.vue'
 import ConfigEditor from './components/ConfigEditor.vue'
 import DaemonView from './components/DaemonView.vue'
 import Sidebar from './components/Sidebar.vue'
 
+import { system_info } from '@/lib/api'
+
+const sys_host = ref<string>('')
+const sys_os = ref<string>('')
+const sys_cpu = ref<string>('')
+const sys_mem = ref<string>('')
+const sys_disk = ref<string>('')
 
 const emit = defineEmits<{
   Init: []
@@ -25,13 +32,22 @@ function SelectModule(mid: any): void {
   emit('SelectModule', mid)
 }
 
-onMounted(() => {
+onMounted(async () => {
 
 
   store.Init();
 
 
   themeStore.Init();
+
+
+
+  let r = await system_info();
+  sys_host.value = r.hostname;
+  sys_os.value = r.os_name + ' ' + r.os_version;
+  sys_cpu.value = r.cpu;
+  sys_mem.value = r.memory_display;
+  sys_disk.value = r.storage_display;
 })
 
 
@@ -60,6 +76,14 @@ onMounted(() => {
               <div class="flex flex-col overview flex-1 gap-[0px] overflow-auto p-8 bg-white">
                 <span class="text-2xl font-semibold text-[#1a1a1a]">System Overview</span>
                 <span class="text-sm text-[#616161] pb-4">Pick a module below to jump straight into its settings.</span>
+                <div class="flex flex-col overview-info w-full gap-[0px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3 mb-4" :key="'sysinfo'">
+                  <span class="text-sm font-semibold text-[#1a1a1a] pb-2">System Information</span>
+                  <span class="text-xs text-[#616161]">{{ 'Hostname: ' + sys_host }}</span>
+                  <span class="text-xs text-[#616161]">{{ 'OS: ' + sys_os }}</span>
+                  <span class="text-xs text-[#616161]">{{ 'CPU: ' + sys_cpu }}</span>
+                  <span class="text-xs text-[#616161]">{{ 'Memory: ' + sys_mem }}</span>
+                  <span class="text-xs text-[#616161]">{{ 'Disk: ' + sys_disk }}</span>
+                </div>
                 <button class="overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)" v-for="m in store.view_standalone">
                   <div class="flex flex-row items-center gap-3 w-full">
                     <span class="text-2xl shrink-0">{{ m.icon }}</span>

@@ -1053,3 +1053,9 @@ export function bodyHasText(body: any, name: string): boolean {
   const obj = asBodyObj(body)
   return obj && typeof obj === 'object' ? Object.prototype.hasOwnProperty.call(obj, name) : false
 }
+
+/** GET /api/system-info (Plan 011 T3/T9) — host facts for the overview card. */
+export async function system_info(): Promise<any> {
+  const resp = await fetch('/api/system-info')
+  return json(resp)
+}
