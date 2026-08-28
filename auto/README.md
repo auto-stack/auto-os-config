@@ -214,6 +214,55 @@ bash auto/gen/regen.sh
 - **G21** use 清单必须含 computed/handler 引用的全部 ext fn——漏了不在
   编译期报错，运行时 `ReferenceError`（e2e 抓）。
 
+## 双端一致性（Plan 010 定稿）
+
+vue 轨与 vm 轨消费同一视图源（`src/front/*.at`）+ 同一 daemon（:17701），
+一致性按三层口径验收（Plan 010 §架构方案）：
+
+| 层 | 内容 | 判定 | 门槛 |
+|---|---|---|---|
+| L1 结构 | 元素族/层级/文本 | `autoui_snapshot` vs vue DOM 映射核对 | 必须一致 |
+| L2 样式 | 类串/色板/间距/布局 | 双轨 PNG 像素 diff + 分区 metrics | 可修则修，否则台账归因 |
+| L3 光栅 | 字体抗锯齿/亚像素/hover | 人工标注 | 登记，不入门禁 |
+
+**对拍工具**：`scripts/track-parity/`——`capture.mjs --track vue|vm`（vue=
+Playwright 1440x900@1x 同 accent 禁动画；vm=每视图独立 `auto run -r vm` 实例 +
+MCP autoui_screenshot）、`diff.mjs`（pixelmatch + 差异 bbox）。PNG 落
+`tmp/track-parity/`（不入库）；数值台账在 `docs/plans/010-*` §残差台账。
+
+**窗口定标纪律**（T7 教训）：vm 用 `AUTO_VM_WINDOW=1440x900`（逻辑几何必须
+等于 vue 视口），2x DPI 下 PNG 物理 2880x1800 由 capture 重采样归一
+1440x900。**不要**用"PNG 物理尺寸对齐"口径定窗（720x450 会让逻辑几何变半幅，
+布局比例全失配且 diff% 虚高）。
+
+**门禁**：`./scripts/e2e.sh`（vue 28 断言 + 对 css-era 基准像素 diff 零回归）
++ `node scripts/e2e-vm.mjs`（MCP 驱动自愈式）。凡触视图源的改动必回 vue 门禁
+（N4 冻结纪律：vm 侧修正不得倒灌污染 vue 已验收形态）。
+
+**终值**（2026-08-28，css-era 基准 00 视图 0.00% 零回归前提）：
+00=0.97 / 01=6.72 / 02=2.99 / 04=3.64 / 05=4.16 / 06=2.25 / 07=1.69
+（03-roles 见台账 U3：vm 详情态截图通道冻结）。残差主项均为登记在案的上游
+缺口（select 渲染缺位 / table thead 内置暗色）与 L3 光栅层。
+
+### vm 兼容词汇（Plan 010 实证，写 `.at` 前先读）
+
+vm（iced）端与 vue 端类串消费差异，按以下纪律写可双端一致的视图源：
+
+1. **button 禁动态 `class:` 表达式**——loop 字段 Dot 求值失败会静默兜底
+   primary preset（紫块/白字/h-10 裁多行 label）。双态样式用**条件展开**
+   （`if .store.x == y { button (class: "静态串") } else { … }`，
+   theme_picker swatch 同款）。store 预计算类串仅 vue 端可靠。
+2. **label 必须用 `text:` prop 直取**（`label (text: e.label, …) {}`）——
+   children 折叠链对 loop 字段表达式求值失败，整个 label 缺位。
+3. **文字色/尺寸必须显式**——vm 默认前景是暗色主题白，白底上"看不见"。
+   等值类串尾缀（`text-[#1a1a1a] h-auto` 等）在 vue 端为同值叠加，像素零变。
+4. **未知类名（btn/field-row 等命名类）vm 端无效果**——布局/配色凡 vm 需要
+   的，以 Tailwind 等值类写进类串；命名类仅作 vue 端 CSS/测试钩子。
+   grid 布局 vm 无对应：双列字段行用 `flex flex-row items-start gap-[12px]`
+   （box_class 孪生：`src/lib/api.ts` 与 `src/back/api.at` 双端同改，
+   vue 端 styles.css 后加载、grid 压制 display，像素零变化）。
+5. **row 不自伸铺满**——需要全宽的行显式 `w-full`。
+
 ## 已知残留差异
 
 - TableField 单元格 input 生成了 `v-model="row[c.name]"`（对 prop 数组的
