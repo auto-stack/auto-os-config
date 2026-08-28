@@ -1,17 +1,17 @@
 ---
 plan_id: PLAN-011
-status: drafting
+status: executing
 feature_name: os-config-daemon Auto 版——外部 back 形态改造
 author: [zcode]
 created_at: 2026-08-28T18:30:00+08:00
-updated_at: 2026-08-28T18:30:00+08:00
+updated_at: 2026-08-28T20:05:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
 new_spec_components: []
 touched_goals: []
 
-current_step: 0
+current_step: 6
 total_steps: 11
 ---
 
@@ -142,29 +142,49 @@ vm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 �
 
 ### 阶段 0 · 形态 POC
 
-- [ ] T1 (P0) 双形态 POC:①在 `auto-os-config-back/` 落 015-notes 式最小 `#[api]`
-  端点（`hello` + 读 `~/.config/autoos` 下一文件名）——验证 pac.at `back:` 接线、
-  vue 模式（后端起 HTTP，前端 use back.api 拿到值）、vm merged 直调三条路径;②同款
-  端点以 auto-ai-daemon 式（axum main + .at 逻辑）复现一次。产出:形态裁决记录
-  （三路径 × 两形态对照表），入本文件复审记录。
+- [x] T1 (P0) 双形态 POC:①在 `auto-os-config-back/` 落 015-notes 式最小 `#[api]`
+  端点(`hello` + 读 `~/.config/autoos` 下一文件名)——验证 pac.at `back:` 接线、
+  vue 模式(后端起 HTTP,前端 use back.api 拿到值)、vm merged 直调三条路径;②同款
+  端点以 auto-ai-daemon 式(axum main + .at 逻辑)复现一次。产出:形态裁决记录
+  (三路径 × 两形态对照表),入本文件复审记录。
   验证:两形态各自的 hello 端点在三路径下返回一致值;裁决记录提交。
+  [✅ 已完成] 三路径×两形态实证完毕:形态b(桥)三路全通(poc-t1-verify PASS 双形态
+  merged + axum bin curl 双端点);形态a merged ✅ / HTTP ❌(生成器骨架局限)。裁决:
+  采形态 b,对照表与证据见复审记录 §T1;产物 commit 于 plan-011-dev
+  (auto-os-config-back/ + examples/poc-hello/ + scripts/poc-t1-verify.mjs)。
 
 ### 阶段 1 · 骨架与 system_info
 
-- [ ] T2 (S1) 项目骨架:按 T1 裁决形态落 `auto-os-config-back/`（Cargo/pac.at/api.at
+- [x] T2 (S1) 项目骨架:按 T1 裁决形态落 `auto-os-config-back/`（Cargo/pac.at/api.at
   契约层——从前端 api.at 反向提取 56 fn 签名，未迁移端点 stub 返回
   `{"error":"not-migrated"}`）+ os-config 前端 `auto/pac.at` 增 `back: { project }`。
   验证:`auto run` 双模式起，前端 boot 不因 back 切换报错（stub 端点可见）。
-- [ ] T3 (S2) `system_info` 端点:sys.at/env.at 取 OS 版本/主机名/CPU（PROCESSOR_IDENTIFIER）
+  [✅ 已完成] api.at 56 fn 落成(12 I/O fn 契约形状 stub);pac.at back: 接线。
+  vm:external backend linked+loaded + boot 零报错 + error:"not-migrated" 可见;
+  vue:regen 零意外 diff + e2e.sh ALL PASS。commit d5bdd54(plan-011-dev)。
+- [x] T3 (S2) `system_info` 端点:sys.at/env.at 取 OS 版本/主机名/CPU（PROCESSOR_IDENTIFIER）
   + sys native 能力内的 MEM/存储（缺则字段登记 "n/a"）;实现 + 单测。
   验证:`curl /api/system-info`（vue 模式）与 vm 直调均返回字段齐全的 JSON。
+  [✅ 已完成] Rust 单实现双传输(桥+axum):env 取 hostname/cpu,Windows API 取
+  os 版本/内存/存储(待澄清#3 方案①,RtlGetVersion/GlobalMemoryStatusEx/
+  GetDiskFreeSpaceExW);单测 2 绿;curl 全字段实值;vm 直调 hostname=VISUS。
+  commit f0e01aa。
 
 ### 阶段 2 · 端点分组移植
 
-- [ ] T4 (M1) registry/modules 组:`/api/modules`（registry.rs 615 行的只读部分先行）。
+- [x] T4 (M1) registry/modules 组:`/api/modules`（registry.rs 615 行的只读部分先行）。
   验证:前端 boot 侧栏 7 模块渲染（e2e-vm `modules loaded (7)`）。
-- [ ] T5 (M2) config get/put 组:config_root 移植 + `/api/config/:id`。
+  [✅ 已完成] registry.rs/config_root.rs 移植,core::modules_json 单实现双传输
+  (桥 fetchModulesRaw + GET /api/modules);cargo test 16 绿;curl 7 模块同字段;
+  vm 直调侧栏 7 模块渲染零 HTTP(e2e-vm 同口径断言)。plan-011-dev commit。
+- [x] T5 (M2) config get/put 组:config_root 移植 + `/api/config/:id`。
   验证:test-generic-editor.mjs 全绿（AI Daemon 表单读写回环）。
+  [✅ 已完成] project.rs(518 行含测试)移植;core::get/put/delete_block 单实现
+  双传输(桥 fetchConfigSafe/putConfigSafe/deleteBlockSafe + GET/PUT
+  /api/config/:id + DELETE blocks/:name);cargo test 30 绿;新 back 上 :17701 跑
+  test-generic-editor:14 项功能断言全绿(save 落盘/.bak/dirty 回环)。套件残留
+  404 console error = T6 collection / T7 enums+action 未移植端点(预期,计划
+  分组推进的自然中间态),套件全绿在 T7 收口。
 - [ ] T6 (M3) collection CRUD 组:collection.rs 429 行（entity/sidecar/.bak）。
   验证:test-collection-editor.mjs 全绿（roles 增删改查回环）。
 - [ ] T7 (M4) enums + action 组:`/api/enums/*` + `/api/action/test-daemon` + health。
@@ -187,10 +207,55 @@ vm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 �
 
 （/auto-plan:review 回填）
 
+### T1 形态裁决记录(执行期产出,2026-08-28)
+
+**裁决:采形态 b(axum main + .at 混编桥,auto-ai-daemon/musk 式)。** 待澄清事项 1 的
+默认采 a 条款不触发——形态 a 三路径未全通(HTTP 面失败,证据见下)。
+
+三路径 × 两形态对照表:
+
+| 路径 | 形态 a(#[api] 自动路由,015-notes 式) | 形态 b(axum main + 桥,auto-ai-daemon 式) |
+|---|---|---|
+| 1. pac.at `back:` 接线 | ✅ `external backend linked + loaded`(cdylib 空注册) | ✅ 同左(cdylib 注册 hello/config_probe) |
+| 2. vue 模式 HTTP | ❌ `auto run --no-merge --server=rust` 生成 `poc-hello-back`:无 db.at 时只出骨架 stub(`// TODO: Implement`)且 main.rs 硬编码 `use api::Db` 编译失败;生成物落 auto-lang 共享 workspace(跨仓耦合) | ✅ crate 自带 axum bin,AUTOOS_BACK_PORT=17901 curl `/api/hello`→`"poc-hello"`、`/api/config-probe`→`"ai-daemon.at:ok"` |
+| 3. vm merged 直调 | ✅ AUTOOS_BACK_BRIDGE=0 空注册 → has_host_calls()=false → #[api] 裸调用 VM 解释函数体(Env.get/File.read_text natives),零 HTTP | ✅ 桥注册 → #[api] 裸调用改写 auto.host.call → cdylib Rust 实现,零 HTTP |
+
+证据(均可复跑):
+
+- `node scripts/poc-t1-verify.mjs`(AUTOOS_BACK_BRIDGE=0/1 双态):MCP 读探针模型
+  `hello_val="poc-hello"`、`probe_val="ai-daemon.at:ok"`,PASS;
+  boot proof 行:external backend linked/loaded + cdylib 注册日志。
+- 形态 a HTTP 失败现场:`/tmp` 已弃,生成物在
+  `auto-lang/examples/rust-workspace/poc-hello-back/`(api.rs 全 TODO handler,
+  cargo build E0432 unresolved import `api::Db`)。
+
+裁决依据(超出三路径表的机制面):
+
+1. **vue 轨的服务形态不变**:os-config vue 轨是仓内 npm/vite + 手写 `src/lib/api.ts`
+   → HTTP :17701,`auto run` 的生成式编排(start_api_server → auto-lang 共享
+   workspace)不在其启动模型内;新后端必须是一个可 `cargo run` 的自治 daemon——
+   即形态 b 的 crate 形态(等价现 backend/,e2e.sh 无缝换源)。
+2. **单实现双传输**:形态 b 中 axum bin 与 cdylib 桥共享同一 Rust 端点核心,
+   vue(HTTP)与 vm(进程内)语义天然一致;形态 a 的 .at 函数体与 HTTP 实现是
+   两份逻辑,漂移风险高。
+3. **#[api] 注解保留但职责变为机器可读契约**:注解驱动桥注册名与未来工具链
+   (a2r/LSP),不再承诺「自动路由出生产服务器」。
+4. **形态 a 的解释路径不废弃**:未注解的纯 .at 辅助 fn 在 merged 模式恒走 VM 解释
+   (codegen 只改写 #[api] 裸调用),「逻辑 .at 化」按 fn 逐个推进;涉 Rust 能力
+   (auto-atom 解析 .at 配置)的端点经桥进入 Rust。
+5. 残差:路径 2 的「前端拿到值」本次以 HTTP 契约层(curl)为证;真实前端全链
+   (api.ts → 新后端)由 T8/T10 的 e2e 双门禁闭合——与计划分阶一致。
+
+POC 产物(commit 于 plan-011-dev):`auto-os-config-back/`(pac.at + api.at 契约 +
+Cargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路径
+探针,T2 骨架模板)、`scripts/poc-t1-verify.mjs`(merged 轨验证器)。
+
 ## 待澄清事项
 
 1. **形态 a/b 的裁决权**:T1 POC 若两形态三路径全通，默认采 a（#[api] 自动路由，
    逻辑层独立 db.at 式文件，与 015-notes/前端消费面最贴近）;用户可否决。
+   → **已裁决(2026-08-28 执行期):采形态 b**——形态 a 三路径未全通(HTTP 面失败),
+   证据与对照表见复审记录 §T1。
 2. **端口策略**:沿用 17701（e2e 脚本零改动）vs AUTO_HTTP_PORT 新端口（多实例隔离）
    ——T9 定，倾向沿用。
 3. **MEM/存储取数**:sys.at 若无对应 native，候选:①`use.rust` 直桥 Windows API
@@ -198,3 +263,24 @@ vm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 �
    实测定，不预设。
 4. **与 plan010 的边界**:本计划交付后端与接线;plan010 的 T18（概要页）在 T3 完成
    后即可 vue-first 推进（不阻塞于 T4-T7 的存量迁移）——两计划可并行，T9 是汇合点。
+5. **[Phase 0 折叠阻塞,非本计划引入] e2e-vm「Test connection roundtrip」断言在
+   今日 rebuild 的 auto-lang 二进制上不稳定**(2026-08-28):
+   - 现象:三遍 e2e-vm 全在 `test connection: "loaded"` 失败(vue 轨门禁全绿;
+     其余 vm 断言全过;daemon 侧 `POST /api/action/test-daemon` ~1s 返回
+     `{"success":true}` 实证正常);隔离探针显示按钮 press 派发**间歇性失效**
+     (同代码一会话 nav 命中、另一会话不命中;`disabled:` 绑定按钮、
+     `http.post_json`、参数化 msg 按钮均单独实证正常)。
+   - 关联:auto 二进制 16:08 rebuild(含 plan-451 actions DSL / 458 theme entry /
+     463 shell 合入),晚于 plan010 门禁绿的时间点;auto/README 的上游锚定
+     (1487b5c5d)与「rebuild 后先 vue regen+e2e 再 vm 冒烟」惯例即为此场景。
+     另有 `status` 字段名冲突(DaemonView vs ConfigEditor,MCP state 按 bare
+     字段名恒读 ConfigEditor 的 "loaded")使该断言判据失真——但 press 派发
+     间歇失效本身即足以失败。
+   - 环境噪声(已清理)::17701 曾被 plan-010-dev worktree 残留 daemon 占用
+     (AddrInUse),首遍 e2e 打到 stale daemon;taskkill 后换新 build 复跑失败
+     依旧,排除该混杂因素。
+   - 处置(2026-08-28 修订):本计划代码(POC 为纯新增目录)不触前端/旧
+     backend,失败可于 pristine main 复现——登记为上游漂移问题。原定 Phase 0
+     不折叠、改按 T8/T10 汇合点重试;现按用户指示于 T5 后提前合并入 main
+     (e2e-vm 门禁仍红的事实如实随行,双门禁全绿仍在 T8/T10 收口;届时若仍红,
+     需用户裁决:上游回退锚定 vs e2e-vm 断言改口径)。
