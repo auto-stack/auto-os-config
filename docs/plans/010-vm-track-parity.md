@@ -1,17 +1,17 @@
 ---
 plan_id: PLAN-010
-status: executing
+status: execution_done
 feature_name: VM 轨一致性——Auto/VM 版对齐 Auto/Vue 版
 author: [zcode]
 created_at: 2026-08-27T12:00:00+08:00
-updated_at: 2026-08-27T14:00:00+08:00
+updated_at: 2026-08-28T16:00:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
 new_spec_components: []
 touched_goals: []
 
-current_step: 3
+current_step: 13
 total_steps: 13
 ---
 
@@ -157,21 +157,12 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 
 - [x] T5 (C1) 对拍工具入库 ✅ 已完成 [2026-08-27] `scripts/track-parity/{capture,diff}.mjs` 落库（commit c9eb9f1）；vue 8/8、vm 7/8 捕获成功（roles 详情视图见 U3）。
 - [x] T6 (C2) vm 窗口定标探针 ✅ 已完成 [2026-08-27] 上游支持 `AUTO_VM_WINDOW=WxH`（默认 1280x800）；本机 2x DPI 致 PNG 物理像素翻倍——capture 设 `720x450` + 截图后重采样归一到 1440x900，两轨尺寸全对齐（T6 头注已录）。
-- [ ] T7 (C3) 12 视图 diff 台账初稿：
-  操作：跑全套 capture+diff+metrics；逐视图归因分层（L1 结构不符单列 / L2 / L3）；人工抽查 ≥3 视图互证。
-  验证：台账表（本文件 §残差台账）填满 12 行且每行带初判层级标签。
-  进行中 [2026-08-27]：7/8 视图已建基线（roles 详情截图超时见 U3），初值 diff% 79→26（R3 bg-white 清偿后）；归因分解中——主导残差为 R4 导航文字丢失 + 光栅层。
+- [x] T7 (C3) 12 视图 diff 台账初稿 ✅ 已完成 [2026-08-28] 真实基线建立。三项关键修正：①上游锚定 b0992306d→1487b5c5d（446 批二 codegen 类串清理，regen 漂移采认，vue 门禁绿 ffce0cb）；②窗口定标口径修正 1440x900 逻辑（T6 的 720x450 逻辑半幅致布局比例全失配，diff% 虚高）；③capture 导航移植 e2e-vm 精确匹配 + active_id 全验证（旧 walk-back 版 6 视图假阳性拍成裸侧栏）(4c8c8a9)。真实基线：00=10.10 / 01=20.23 / 02=11.92 / 04=12.45 / 05=14.07 / 06=12.86 / 07=12.29（03 见 U3）；分区 sidebar 28-32%（R4）/ content-head 84-93%（R8）/ content-body 0.1-14.2%（R4 系统性+L3）。人工抽查 00/01/04/07 四视图互证一致。台账 12 行见 §残差台账。
 
 ### D 相 · 差异清偿迭代
 
-- [ ] T8 (D1) 逐视图清偿循环（可多轮提交）：
-  文件：`auto/src/front/*.at`（必要时）、`src/lib/api.ts`+`api 层孪生`（仅当 L2 修复要求 additve 字段）。
-  操作：每轮取台账一条 L2 行 → 修复 → 双门禁 → 台账行改绿或转登记；触及视图源必过 N4 回退门禁（vue 28 + css-era diff）。
-  验证：每轮 `./scripts/e2e.sh && node scripts/e2e-vm.mjs` 双绿。
-- [ ] T9 (D2) 残差终稿与 README 章：
-  文件：`auto/README.md`（新章「双端一致性」）、本文件台账终态。
-  操作：L3 光栅层清单定稿（字体光栅/hover 缺失/控件形态/滚动条样式差）；上游缺口按 446/455 格式拟回报稿（入本文件附录）。
-  验证：台账无「未归因」行。
+- [x] T8 (D1) 逐视图清偿循环（可多轮提交） ✅ 已完成 [2026-08-28] 三轮清偿（R3 一轮 + T8 主轮 1610c21 + R11 轮 8074c87）。root cause 定格：vm button 的 `class: <loop字段表达式>` 求值失败→convert_button 兜底 primary preset（紫块/白字/h-10 裁 3 行折叠 label）；label 元素 children 折叠链 Dot 求值失败致 label 整列缺位（text: prop 直取链可解）；field-row/subform-cont grid 布局 vm 无对应。清偿：侧栏 nav 条件展开双态静态串、header w-full、btn 族/reveal/输入框/表头显式色中和、label text-prop 化、box_class 孪生补 flex。终值 diff%：00=0.97 / 01=6.72 / 02=2.99 / 04=3.64 / 05=4.16 / 06=2.25 / 07=1.69（03 见 U3）。双门禁两连绿 + css-era 00=0.00% 零回归（N4）。剩余残差全部登记（U4/U5/L3）。
+- [x] T9 (D2) 残差终稿与 README 章 ✅ 已完成 [2026-08-28] ①auto/README.md 新章「双端一致性」（三层口径/对拍工具/窗口定标纪律/门禁/终值/vm 兼容词汇 5 条——条件展开、text-prop、显式色、等值类、w-full）；②台账终态：全部行带归因（U1-U7 上游缺陷号化、R 系列全 ✅ 或登记），无「未归因」行；③L3 光栅层清单定稿（字体光栅/hover 缺失/select 形态/滚动条/thead 暗色/emoji fallback）；④上游缺口按 446 格式拟回报稿（本文件附录，U1-U7 含复现载体与修复建议），T11 正式写入 446。
 
 ### E 相 · 门禁扩容与收尾
 
@@ -187,24 +178,29 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
   文件：`scripts/vm-probes/probe-mcp-health.mjs`（及其余两件按用途复核）。
   操作：崩溃在 A2/全程未见再现 → 删除 + KNOWN-DEBT 撤条；仍偶发 → 保留并头注标注观测频率与定位价值。
   验证：`ls scripts/vm-probes/` 与 KNOWN-DEBT 相关行一一对应。
-- [ ] T13 (E4) 终验与验收包：
-  操作：双端按走查清单 W 全量实机一遍；生成双端并排对比 sheet（tmp/，不入库）；本文件验证清单全勾。
-  验证：G1-G6 逐条满足；用户验收确认后在计划头追加验收记录行。
+- [x] T13 (E4) 终验与验收包 ✅ 已完成 [2026-08-28] ①走查清单 W：vue 轨=e2e 28 断言全覆盖（ALL PASS）；vm 轨=e2e-vm 14 断言（搜索/折叠/accent 切换+持久化重启/Test connection/集合列表/实体选择/detail 常驻）+ 专项 MCP 走查（auto-musk 增块 ✓[删块按钮快照定位失败,vue e2e 已覆盖同链路]、roles 详情字段 ✓、harness-roles 详情/子表单 ✓ inputs=4、skills 只读 ✓[T4+04 视图]、ai-client 双 select=U4 已登记）；**实机新发现 U8**（modal 删除确认:AskDelete 不执行,U1 冻结面扩展）。②双端并排 sheet：tmp/track-parity/sheet.png（2916x7308,8 视图,不入库）。③G1-G6：G1 ✓（vue 门禁 ALL PASS + css-era 00=0.00% 零回归,多轮）/ G2 ✓（14 断言连续多遍全绿）/ G3 ✓（台账全归因无未归因行;03-roles L1 实机走查由 U3 约定覆盖——列表/选择链路 e2e-vm 断言在案,详情态肉眼核对留用户验收）/ G4 ✓ / G5 ✓ / G6 ▶ **走查完成,用户验收确认待办**（确认后在计划头追加验收记录行）。
 
-## 残差台账（T7 初填 / T9 终稿）
+## 残差台账（T9 终稿 [2026-08-28]；全行带归因，无未归因项）
 
 | # | 视图 | 层级 | 现象 | 归因 | 处置 | 状态 |
 |---|---|---|---|---|---|---|
 | U1 | 全局/集合页 | 上游P0 | 实体列表循环构建后，侧栏任意 press 被接受但 active_id 冻结不变——用户逛完集合页即全局死导航 | auto-lang dynamic_view 事件路由（复现序列已存 tmp/seq.mjs） | 门禁段序绕行（集合段排最后）；缺陷回报渠道待办 | 登记待回报 |
 | U2 | 编辑器字段 | 上游P1 | autoui_type 合成输入把内联 onchange 表达式粘连成 handler 名（.ApplyEntryi0s$event.t…），文本不落盘、dirty 不置位；真键盘 live-apply 待实机走查 | action_mapper 仅找 "type" handler 名 | e2e-vm KNOWN-GAP 机制显式登记 | 登记待回报 |
+| U3 | roles 详情视图 | 上游P1 | 选中实体后的详情态 autoui_screenshot 必超时（复测 3/3：MCP 服务端内部 ~10s 上限放弃，非客户端超时；详情态 state/snapshot 通道 0.0s 存活 → iced 主线程活、仅截图通道死）；其余 7 视图截图正常 | 疑 autoui_screenshot 与 detail 富子树的 redraw 管线协作阻塞 | capture 跳过该视图；T13 实机核对 | 登记待回报 |
+| R4 | 全部（按钮族） | L2 | **动态 `style:`/`class:` 绑定在 vm button 路径不解析**——全页按钮（nav item/Test/Reload/Save/+Row/Delete）落默认主色紫块，关联文字大量不可见；静态类串控件（search/input/swatch）正常 | root cause（T8 定格）：loop 字段 Dot 表达式在 button prop 求值失败 → convert_button 兜底 primary preset（bg-primary/text-primary-foreground/h-10）+ 子树折叠为多行 label 被 h-10 裁剪 | 条件展开双态静态串（theme_picker 同款词汇）+ vm 中和类（text-[#1a1a1a] h-auto 等值尾缀）；上游 455/446 渠道回报 | ✅ 大部清偿（1610c21）|
+| R8 | 全部（content-header） | L2 | 头部 row 仅包裹内容宽度，右段露出近黑底（vue 块级铺满）——content-head 区 diff 84-93% 的主导项 | vm row 主轴不自伸；header style 无 w-full/flex-1 | header 加 w-full（vue 块级本全宽，css-era 零变化） | ✅ 已修（1610c21，content-head 84-93%→2.4-3.2%）|
+| U4 | 编辑器/集合页 | 上游P1 | **select 控件 vm 端整体缺位**——Default Model/Default Provider 行只有 label，下拉控件不渲染（T4 快照计数有 select=结构在、渲染丢） | vm select 组件渲染转换缺口（D7 降级形态未落） | 446/455 渠道回报；L1 结构残差 | 登记待回报 |
+| U5 | 编辑器表格 | 上游P2 | vm table thead 内置暗色底白字（css-era 是 #ededed 灰底深字）；th 的 style 属性被忽略（表格特化节点非 text 元素，style 不可达） | vm table 组件内置样式 | 446/455 渠道回报 | 登记待回报 |
+| U8 | 集合页 modal | 上游P1（U1家族） | **T13 实机新增**：详情区 Delete press 被接受但 AskDelete handler 不执行（confirm_open 恒 false，modal 不弹、实体不删不报错）——集合页列表构建后 widget 局部 msg 也被冻结，U1 冻结面从侧栏扩展到页面内按钮 | U1 同域：dynamic_view 事件路由在列表循环构建后冻结 handler 分发 | 与 U1 同一回报；modal 渲染本身未验（前置 handler 死） | 登记待回报 |
+| R11 | 编辑器字段 | L2 | field 双列布局（label 左/input 右）在 vm 纵向堆叠（label 上/input 下占全宽）——单字段行高约 2 倍，页面纵向溢出 | .field-row/.subform-cont 是 grid 布局，vm 无 grid；box_class 孪生数据（api.at + src/lib/api.ts）只有类名无布局类 | box_class 双端补 flex 等值类（styles.css 后加载，vue 端 grid 压制 display 像素零变）+ field-label 定宽 w-[160px] | ✅ 已修（8074c87，01 content-body 9.0→7.7%）|
+| R9 | 工具链 | 上游P2 | autoui_snapshot 偶发空壳树（105B，实测空壳期可 >8s）——446 批一 J1 竞态家族余震 | styled_vtree 落盘时机竞态 | capture/pressNav 已加非空重试 ✅；上游同渠道知悉 | 工具已缓冲 |
+| R10 | 04-skills vm | 工具残差 | vm 轨 skills 页 "no Load button"——实体列表未加载，content-body 残差含未加载成分 | pressLabel 未匹配该页 Load 形态 | T13 实机走查核实加载态；capture 后续复用 e2e-vm 通道 | 登记 |
 | R1 | vm 无 auto-Init | 设计差异 | accent 桌面轨重启丢失 / 文件模块需手动 Load | 007 已登记偏差的余项 | app.at 根 Init 链补 Theme.Init()（已修）；Load-first 形态保留为双端定型 | ✅ 已修 |
 | R2 | 集合页列表行 | 结构差异 | div+onclick 在 vm 不可交互 | css-era HTML 语义无 vm 对应 widget | e-row 定型为 button（styles.css 中和 UA 态保像素） | ✅ 已修 |
-
-| U3 | roles 详情视图 | 上游P1 | 选中实体后的详情态 autoui_screenshot 必超时（"iced thread may not be responding"，20s 足否待复测）；其余 7 视图截图正常 | 疑与 U1 同域（detail 富子树 + 截图线程协作） | capture 跳过该视图；T13 实机核对 |
-| R3 | app 内容面板 | L2候选 | content-body 无背景类，iced 默认暗色主题下透明底露出近黑（右半画布全暗）→ 全视图 diff% ~79 的主导项 | css-era html 白底隐式依赖；vm 需显式 bg-white | T8 清偿候选（加 bg 类，css-era 像素应零变化） |
-| R4 | 侧栏导航项 | L2 | nav item 文字不可见、容器呈大紫块（按钮默认主色主题）。快照树文本节点存在=结构在、样式丢。根因假设：vm 按钮路径仅静态 `extract_string("class")`，**动态 `class:` 绑定（store 预计算串）不解析**；容器有绑定感知的 `extract_style_with` 而 button 无。注意 008 批1 结论「vue 绑定必须 class:」构成跨端挤压 | 上游 aura_view_builder 标签分派差异 | 待实验：button 改 `style:` 绑定（vue 端 inline :style 影响面评估）或上游补齐；T8 攻坚点 |
-| R5 | accent 基线 | 工具纪律 | vm 读 autoos-ui.json 而 vue 用 localStorage，历史状态互串 | 双端存储不同源 | capture 已预置双端 indigo ✅ |
-| R6 | 进程卫生 | 工具纪律 | node 崩溃遗留僵尸 auto.exe 占 MCP 端口——后续所有 boot 截图拍到旧画面（coral 事件实证） | libuv 断言退出不留清场 | capture 已加逐次 taskkill 清场 ✅ |
+| R3 | app 内容面板 | L2 | content-body 无背景类，iced 默认暗色主题下透明底露出近黑 → 全视图 diff% 79 的主导项（已清偿） | css-era html 白底隐式依赖 | app.at content-body 显式 bg-white（cc3094b，vue 门禁零回归） | ✅ 已修 |
+| R5 | accent 基线 | 工具纪律 | vm 读 autoos-ui.json 而 vue 用 localStorage，历史状态互串 | 双端存储不同源 | capture 已预置双端 indigo ✅ | ✅ 已修 |
+| R6 | 进程卫生 | 工具纪律 | node 崩溃遗留僵尸 auto.exe 占 MCP 端口——后续所有 boot 截图拍到旧画面 | libuv 断言退出不留清场 | capture 已加逐次 taskkill 清场 ✅ | ✅ 已修 |
+| R7 | 窗口定标 | 工具纪律（已修） | T6 定标 720x450 只对齐 PNG 物理尺寸（1440x900），**逻辑几何是 vue 半幅**——侧栏占宽 40% vs vue 20%，布局比例全失配，diff% 系统性虚高（26 vs 真实 10-20） | DPR 语义混用：vm 720 逻辑 @2x = vue 1440 逻辑 @1x | capture 改 AUTO_VM_WINDOW=1440x900 + normalizeSize 重采样归一（4c8c8a9） | ✅ 已修 |
 
 ## 已知 GAP 汇总（e2e-vm 运行时输出，共 2 项常驻）
 
@@ -226,13 +222,49 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 | 日期 | auto-lang master | 动作 |
 |---|---|---|
 | 2026-08-27 | `b0992306d`（含 446 批一 J1/J2 收口、455 Phase 1 input focus 样式） | debug CLI 重建 + regen + 双轨基线 |
+| 2026-08-28 | `1487b5c5d`（446 批二 A1/E1/E2：多store消歧显式报错、codegen arity 分流、类串清理） | 锚定更新：regen 类串清理漂移采认（ffce0cb）；A1 歧义报错适配——app.at 裸 store.Init()→Modules.Init() + regen.sh sed 回写（b870260，vm 恢复启动） |
 
 （/auto-plan:review 回填）
 
 ## 待澄清事项
 
-1. **「一致」口径**：本计划按 009 §非目标沿用「同一设计语言 + L1 结构级一致 + L2 清偿/归因 + L3 光栅登记」，未设全局像素阈值。如需升级为硬阈值（例：每视图 L2 分区 diff% ≤ 3%），请在草案确认时批注，验收标准 G3 将随之收紧。
-2. **T2 盘点为 B 相前置**：若批 4 区断言仍失败且非自愈可救，需先行归因登记（上溯 446/455 渠道），B 相整体顺延——届时回到本计划修订，不擅自扩大范围。
-3. **vm 窗口尺寸可控性未知**（T6 定案）：若完全不可控，L2 量化口径退化为「内容坐标聚类 + 交集区 diff」，需用户知悉该口径调整。
-4. **上游缺陷回报（新增，2026-08-27）**：T3 实测确诊两项 auto-lang 缺陷（U1 侧栏事件冻结 P0 / U2 autoui_type×onchange P1），已按本仓纪律 workaround + 登记。按 007 D10 惯例应写入 auto-lang `docs/plans/446-*` 现场报告增补——该项跨仓操作拟在 T11 文档阶段一并执行。
-5. **T2 盘点为 B 相前置**（已被 T3 消解：批4 卡点证实为失真快照假象 + U1/U2 两个真实缺陷，见残差台账）。
+1. **「一致」口径**（已按 009 沿用口径执行）：L1 结构 + L2 清偿/归因 + L3 登记，未设全局像素阈值；终值 00=0.97 / 最高 6.72，若需硬阈值请在 review 批注。
+2. ~~T2 盘点为 B 相前置~~（已被 T3 消解）。
+3. ~~vm 窗口尺寸可控性未知~~（T6/T7 定案：AUTO_VM_WINDOW 可控；T7 修正口径为 1440x900 逻辑几何）。
+4. ~~上游缺陷回报~~（T11 已执行：auto-lang 446 §P 增补 commit e06fb31e0，U1-U7；T13 新增 U8 待下次增补一并写入）。
+5. **用户验收（G6）待确认**：走查与 sheet 已就绪（tmp/track-parity/sheet.png），验收记录行待用户确认后追加。
+
+## 附录：auto-lang 上游缺口回报稿（T9 拟定，T11 正式写入 446 现场报告增补）
+
+> 基线：auto-lang master `1487b5c5d`。复现载体：auto-os-config `plan-010-dev`
+> （main 同步至 8074c87）——`auto run -r vm`（cwd=auto/）+ MCP + 
+> `node scripts/track-parity/capture.mjs --track vm`；vue 侧对照
+> `./scripts/e2e.sh`。全部条目已在本仓 workaround/登记，不阻塞消费。
+
+| # | 类别 | 严重度 | 一句话 |
+|---|---|---|---|
+| U1 | 事件路由 | P0 | 集合页实体列表循环构建后，侧栏任意 press 被接受但 active_id 冻结（全局死导航） |
+| U2 | action_mapper | P1 | autoui_type 合成输入把内联 onchange 表达式粘连成 handler 名，文本不落盘 |
+| U3 | 截图通道 | P1 | 集合页详情态 autoui_screenshot 必超时（服务端 ~10s 上限放弃；state/snapshot 通道 0.0s 存活——仅截图路径与 detail 富子树协作死） |
+| U4 | select 渲染 | P1 | select 控件 vm 端整体缺位（快照结构在、渲染丢）——编辑器标量 select 字段无输入形态 |
+| U5 | table 样式 | P2 | thead 内置暗色底白字；th 的 style 属性被忽略（表格特化节点非 text 元素） |
+| U6 | 快照通道 | P2 | autoui_snapshot 偶发空壳树（105B），实测空壳期可 >8s；boot 后轮询窗口内概率出现 |
+| U7 | 表达式求值 | P1 | **loop 字段 Dot 表达式在元素 prop 求值失败**（`class: m.nav_class` 静默落 preset、`label` children 折叠链整列缺位）——同表达子在**条件位**（`if g.open`）与 **text prop 直取链**（`input value: e.value`）均可求值，仅「children 折叠」与「button class: prop」两链失败。vue 端（运行时 JS）全部正常 |
+
+**U7 细节**（本计划最大清偿项的根因，修复后可删仓内全部条件展开 workaround）：
+- 复现 A（button）：`for m in .store.view_standalone { button (class: m.nav_class) … }`
+  ——class 求值失败 → `convert_button` 的 preset 兜底 `bg-primary text-primary-foreground … h-10`
+  （且子树折叠成多行 label 被 h-10 裁剪，仅首行 icon 可见）。
+- 复现 B（label）：`label (style: "…") { text (text: e.label) {} }`——children
+  折叠（AuraNode::Text Interpolated）对 e.label 求值失败 → content 空 → label
+  整列缺位。改 `label (text: e.label, …) {}`（props 直取链）即恢复正常。
+- 修复建议：把 children 折叠链与 button class: 链的字段求值统一走
+  input value 同款 `extract_string_with` 直取链（或为 loop 绑定补 Obj 字段
+  物化），并对「求值失败→静默 preset 兜底」改为显式告警（BuildProbe 已有
+  通道）。
+- 本仓 workaround：侧栏 nav 条件展开双态静态串 + label 全量 text-prop 化
+  （commit 1610c21）。
+
+**L3 光栅层清单（定稿，不入门禁）**：字体光栅与字重渲染差（2x 重采样 vs 1x
+直渲）、hover 态缺失（vm 静默跳过 hover: 类）、select 形态差（原生下拉 vs 缺位
+U4）、滚动条样式差、表格 thead 暗色（U5）、emoji 字体 fallback 差。
