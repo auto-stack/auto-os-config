@@ -4,32 +4,39 @@
 2026-08-24）。本目录是嵌入式 Auto 工程（jade-garden plan 011 同款模式）。
 Plan 007 在此基础上加出 **VM 桌面版**（`vm/` 子工程，视图分叉、逻辑统一）。
 
-## VM 桌面版（Plan 007）
+## VM 桌面版（Plan 007 建，008/009/010 演进为双端一致轨）
 
 单工程双后端（widgets-gallery 模式）：同一 `auto/` 工程，CLI `-r vm` 切换。
 `use back.api:` 一行导入双后端各自解析——vue codegen → `@/lib/api`（TS），
 vm 解释器 → `src/back/api.at`（全文本实现：transport 配方 + inferField 移植 +
-投影/编辑 text 手术）。3 个 store 为两轨共享单一真源（handler 按 vm gotcha
-改写、model 形状不变，vue widget 零改动）。
+投影/编辑 text 手术）。3 个 store 为两轨共享单一真源。
+
+**视图单源（008/009 定稿）**：`src/front/*.at` 是唯一视图源，`*_vm.at` 分叉
+已清零——app.at 为双端共享根（regen → src/App.vue 由 main.ts 挂载；vm 直接
+解释同一 widget）。集合页/编辑器/主题的 vm 形态（条件展开、D7 降级、中和类
+等兼容词汇）见下文「双端一致性」章。
 
 ```
-auto/src/back/api.at          # vm 侧 back.api 实现（~70 pub fn，纯文本管线）
-auto/src/front/app.at         # vm 桌面真根（vue gen 产出未引用的 App.vue，无害）
-auto/src/front/*_vm.at        # vm 视图层：sidebar/theme_picker/vm_editor/vm_daemon/vm_collection
+auto/src/back/api.at          # vm 侧 back.api 实现（~70 pub fn，纯文本管线；box_class 布局类与 src/lib/api.ts 孪生）
+auto/src/front/app.at         # 双端共享根（vue: regen 产出 src/App.vue；vm: 解释执行）
+auto/src/front/*.at           # 唯一视图源（10 文件，无 _vm 分叉）
 ```
 
 运行与测试：
 
 ```sh
-cd auto && auto run -r vm             # 桌面窗口（1280x800），直连 daemon :17701
+cd auto && auto run -r vm             # 桌面窗口，直连 daemon :17701
 AUTOOS_DAEMON=http://… auto run -r vm # 远端 daemon 覆盖
-node scripts/e2e-vm.mjs               # vm 轨回归门（MCP 驱动，9 断言）
+AUTO_VM_WINDOW=1440x900 auto run -r vm # 显式窗口逻辑尺寸（对拍口径，见「双端一致性」）
+node scripts/e2e-vm.mjs               # vm 轨回归门（MCP 驱动，14 断言自愈式）
+node scripts/track-parity/capture.mjs --track vm   # 双轨对拍捕获
 AUTOUI_MCP_PORT=9320 auto run -r vm   # 自定 MCP 通道（调试用，端点 /mcp）
 ```
 
 与 vue 轨的禁令不同：**vm 工程内可以 `auto run`**（无 gen 直写风险）；
 仓库根的 `auto run` / `auto build` 依旧禁止。
-上游锚定：auto-lang commit `3d45fb10d`（上游 rebuild 后先 vue regen+e2e 再 vm 冒烟）。
+上游锚定：auto-lang master `1487b5c5d`（2026-08-28 观察基线；rebuild 后先
+vue regen+e2e 再 vm 冒烟；漂移处置惯例见 plans/010 复审记录）。
 
 ### vm 编码规范（VG 清单，Phase 1/2/4 实证）
 
@@ -265,9 +272,12 @@ vm（iced）端与 vue 端类串消费差异，按以下纪律写可双端一致
 
 ## 已知残留差异
 
+- 01-ai-daemon 1.88% / 02-auto-musk 1.59%（css-era 基准像素 diff，L3 光栅
+  量级；视觉检查无异常，e2e 全绿）——双轨终值全集见「双端一致性」章。
 - TableField 单元格 input 生成了 `v-model="row[c.name]"`（对 prop 数组的
   深写）——与 `$event` 重建路径并存，行为正确但违反 D5 字面约定（登记）。
 - 表格空行的 colspan 丢省（原 `columns.length + 1`）；表格 select 列的
   "(current)" 回退 option 恒渲染（原为条件）——均无视觉差异。
-- 01-ai-daemon / 02-auto-musk 两张截图与手写版有非布局性像素差（视觉
-  检查无异常，e2e 全绿）。
+- vm 轨上游缺口（select 渲染缺位 / table thead 内置暗色 / 事件冻结 U1 /
+  截图通道 U3 / 快照空壳竞态）全部登记于 `docs/plans/010-*` §残差台账
+  （auto-lang 446 §P 已回报），不在本仓修复范围。

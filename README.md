@@ -56,18 +56,25 @@ key-name conventions to a control:
 | `[{obj, obj}]` | homogeneous objects | **table** (add/remove rows) |
 | nested object | — | collapsible subform (recursive) |
 
-## Desktop (VM) track — Plan 007
+## Desktop (VM) track — Plan 007, parity-hardened in Plan 010
 
-The same `auto/` sources build BOTH tracks:
+The same `auto/` view sources build BOTH tracks (single source, no `*_vm`
+forks — one widget tree, two backends):
 
 ```sh
-./scripts/e2e.sh              # web track gate (vite :17700 + Playwright)
-node scripts/e2e-vm.mjs       # desktop track gate (auto run -r vm + MCP assertions)
+./scripts/e2e.sh              # web track gate (vite :17700 + Playwright, 28 assertions)
+node scripts/e2e-vm.mjs       # desktop track gate (auto run -r vm + MCP, 14 assertions, self-healing)
+node scripts/track-parity/capture.mjs --track vue|vm   # dual-track pixel capture
 cd auto && auto run -r vm     # launch the desktop window manually
 ```
 
-The vm track connects to the same daemon directly (`AUTOOS_DAEMON` env overrides).
-See `auto/README.md` for the vm coding rules (VG list) and known v1 deviations.
+The vm track connects to the same daemon directly (`AUTOOS_DAEMON` env
+overrides). Cross-track consistency is verified by the pixel-parity harness
+(`scripts/track-parity/`, plan 010): same view source, same daemon, per-view
+diff ledger — sidebar 0.97%, worst editor view 6.72% against the css-era
+baseline (residuals are registered upstream gaps, see
+`docs/plans/010-*` 残差台账). See `auto/README.md` for the dual-backend
+coding rules (VG list, vm-compat vocabulary) and the consistency chapter.
 
 ## Quick start
 

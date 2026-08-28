@@ -25,12 +25,13 @@
 | 002 | 已知限制 | modes 是 builtin（无磁盘目录），`/api/enums/dir/modes` 返回空 → 控件降级为自由文本（设计行为）。 | `scalar_fields.at` fallback 分支 |
 | 003 | 已知限制 | **remote custom 协议已移除（Plan 006 §1）**：`createComponent(Vue)` 动态加载无声明式等价物且无真实使用者；custom kind 模块现渲染移除提示，`examples/remote-module` 归档至 `archive/`。原"无沙箱/无版本协商"两项随之失效。 | `app_shell.at` custom 分支 |
 | 003 | 已知限制 | `/api/enums/self/:id/providers` 用"子节点有 `kind` prop 即 provider"启发式；非 provider 子块若带 kind 会被误判（仅影响下拉选项）。 | `backend/src/main.rs` enum_self_providers |
-| 006 | 已知限制 | 前端 Auto 化后 2 张截图（01-ai-daemon/02-auto-musk）与手写版有非布局性像素差（视觉检查无异常，e2e 全绿）；TableField 单元格生成 `v-model` 深写与 `$event` 重建并存（行为正确）。 | `auto/README.md` 已知残留差异 |
+| 006 | 已知限制 | 前端 Auto 化后 2 张截图与手写版有非布局性像素差——**010 已定量**：css-era 基准像素 diff 01-ai-daemon 1.88% / 02-auto-musk 1.59%（L3 光栅量级，e2e 全绿）；TableField 单元格生成 `v-model` 深写与 `$event` 重建并存（行为正确）。 | `auto/README.md` 双端一致性 |
 | 006 | 已知限制 | 21 条 DSL gotcha（G1-G21）以 workaround 形态存在（静默降级/吞链/编译陷阱），见 `auto/README.md`——待 auto-lang 回填后逐条删除。 | `auto/README.md` |
-| 007 | 已知限制 | **vm 轨 v1 偏差**：侧栏无分组折叠、集合无过滤、select=自由文本+提示、markdown sidecar 单行、表格/subform 只读 JSON、块增删未暴露；字段顺序字母序（serde_json 无 preserve_order）。 | `auto/README.md` vm 章节 |
-| 007 | 已知限制 | **vm 后端薄弱区 → 已上报 auto-lang Plan 446**（`auto-lang/docs/plans/446-vm-backend-os-config-field-report.md`，commit `ec961f1b2`）：多 store 消歧错位、store 列表循环事件参数致死 MCP、popover 解析毒药、json.parse 占位、handler 嵌套读取语义分裂、数组跨界丢失、http status/builder 缺陷、崩溃静默回滚、模块 parse 静默丢弃、vue store 直连路径错误等 17 项（含复现载体与验收标准、四批实施切分）。 | auto-lang Plan 446 |
+| 007 | 已知限制 | **vm 轨 v1 偏差 → 009/010 终态**：侧栏分组折叠 ✓ 集合过滤 ✓ accent 持久化 ✓ 均已平（e2e-vm 断言在案）；字段顺序字母序已由 446 批三 D6 preserve_order 修复（条目可撤）；**仍开放**：select 控件 vm 渲染缺位、table thead 内置暗色——已定性为上游缺口（446 §P4/P5）。 | `docs/plans/010-*` 残差台账 |
+| 007 | 已知限制 | **vm 后端薄弱区 → auto-lang Plan 446**（`auto-lang/docs/plans/446-vm-backend-os-config-field-report.md`）：批一（J1/J2 收口、渲染修复）+ 批二（A1/E1/E2/B1）+ 批三（D1/D6/G1、D2/D3 验证解除）已陆续落地；**Plan 010 新增 §P 增补 7 项**（U1 事件冻结 P0 / U7 loop 字段 Dot 求值链不一致 P1 / U3 截图通道 P1 / U4 select 缺位 P1 / U2 type×onchange / U5 thead 样式 / U6 快照空壳竞态），观察基线 `1487b5c5d`。 | auto-lang Plan 446 §P（commit e06fb31e0） |
 | 007 | 已知限制 | vue codegen 对 widget 内 `use XStore: Store` 直连导入生成错误路径（`@/stores/useXStore` 应为 `src/stores/auto/`）——vm 专属组件已从 web 部署排除（regen.sh VM_ONLY 清单）规避；vue widget 若需直连 store 仍会踩（006 惯例 ext facade 即为此）。 | `auto/gen/regen.sh` |
-| 007 | 已知限制 | e2e-vm 依赖 MCP 通道时序（快速连发偶发丢响应），等待阈值已加固；vm 实例偶发闲置死亡（疑似环境/GPU，非代码路径）。 | `scripts/e2e-vm.mjs` |
+| 007 | 已知限制 | e2e-vm 依赖 MCP 通道时序（快速连发偶发丢响应），等待阈值已加固；vm 实例偶发闲置死亡（疑似环境/GPU，非代码路径）。**010 补充**：autoui_snapshot 偶发空壳树（105B，空壳期可 >8s，446 §P6）——capture/e2e 已加非空重试缓冲。 | `scripts/e2e-vm.mjs`、`scripts/track-parity/capture.mjs` |
+| 010 | 已知限制 | **vm 轨对拍残差**（css-era 基准 00 视图 0.00% 零回归前提）：侧栏 0.97%、最复杂编辑器视图 6.72%；残差主项=上游缺口（446 §P）+ L3 光栅层（字体光栅/hover 缺失/select 形态/滚动条/emoji fallback，登记不入门禁）。U1 事件冻结以门禁段序绕行（集合段排最后）；roles 详情态截图超时（U3）capture 跳过、实机走查覆盖。 | `docs/plans/010-*` §残差台账/§附录 |
 
 ## 📋 未来增强
 
