@@ -318,6 +318,15 @@ if (!(await press('Test', 2000))) fail('Test button not found');
     else fail(`accent persistence: ${st.current}`);
   }
 
+  // 3c. swatch→nav smoke (plan010 T10): after accent switch + full app
+  // restart, sidebar navigation must still mutate active_id — an interactive
+  // regression canary for the U1 frozen-state family.
+  if (await pressNav('Auto Musk', 3000)) {
+    st = await state('active_id');
+    if (st.active_id === '"auto-musk"') pass('swatch→nav smoke (post-restart navigation works)');
+    else fail(`swatch smoke: active_id=${st.active_id}`);
+  } else fail('swatch smoke: Auto Musk nav not found');
+
   // 4. collection page LAST (see the U1 defect note above): navigate into
   // Roles and exercise master-detail; anything requiring further sidebar
   // navigation after this point would hit the frozen-state defect.
@@ -337,6 +346,18 @@ if (!(await press('Test', 2000))) fail('Test button not found');
   st = await state('selected_name', 'entries');
   if (st.selected_name === '"assistant"' && st.entries?.includes('vmref')) pass('entity selected, entries projected');
   else fail(`entity select: ${st.selected_name} entries=${st.entries}`);
+
+  // 4c. detail region constant presence (plan010 T10 — the original batch-4
+  // blocker "detail inputs/applies missing (0/0)" solidified as a standing
+  // assertion: detail inputs and action buttons must exist on every run).
+  {
+    const s = await snapshot();
+    const inputCount = (s.match(/(^|\n)\s*input #/g) || []).length;
+    const hasSave = /"Save"/.test(s);
+    const hasDelete = /"Delete"/.test(s) || /"🗑"/.test(s);
+    if (inputCount >= 1 && (hasSave || hasDelete)) pass(`detail inputs/applies present (inputs=${inputCount}, save=${hasSave}, delete=${hasDelete})`);
+    else fail(`detail region: inputs=${inputCount} save=${hasSave} delete=${hasDelete}`);
+  }
 
   // 5. edit Description → Apply → dirty
   const snap1 = await snapshot();
