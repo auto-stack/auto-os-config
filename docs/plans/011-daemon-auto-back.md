@@ -4,7 +4,7 @@ status: executing
 feature_name: os-config-daemon Auto 版——外部 back 形态改造
 author: [zcode]
 created_at: 2026-08-28T18:30:00+08:00
-updated_at: 2026-08-29T00:40:00+08:00
+updated_at: 2026-08-29T02:30:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
@@ -317,6 +317,15 @@ Cargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路
      调试会话(renderer 失效链路),已登记 ④。
      ④ __json_object 浮点字段 Dot 读编码缺陷(f64→i32 误读,54.16→
      -1073741824)—— 未修,本仓已用展示串绕开;待上游。
+   - ③ 深入定位(2026-08-29 续):上游 canary
+     auto-lang examples/capability-tests/p1-toggle-array-rerender(RED 6/6 确
+     定性)——App 以 button 循环消费 view_groups + SidePanel 条件渲染同一数
+     组 → handler 正确执行(dbg 探针:expanded/重建投影均更新)但子 widget
+     if g.open 子树不重渲染。二分排除:key/onclick 事件参数/双写/数据通道
+     (桥 vs HTTP)/T9 改动;触发面=第二消费者循环体含 button。静默失效
+     (-D 无错误)。修复需 renderer 插桩(DynamicComponent::update/view 链
+     路),canary README 已打包全部二分数据;os-config 侧缓解案 = 概要卡
+     换独立投影数组(未采用,待上游修复)。
    - 上游 worktree:auto-lang/.worktrees/auto-os-config-dev(保留;含①提交)。
    - 处置(2026-08-28 修订):本计划代码(POC 为纯新增目录)不触前端/旧
      backend,失败可于 pristine main 复现——登记为上游漂移问题。原定 Phase 0
