@@ -1,0 +1,38 @@
+// app.at — POC 探针(Plan 011 T1/T3):外部 back 桥路径验证的最小前端。
+//
+// back.api 解析:本工程 pac.at `back: { project: "../../auto-os-config-back" }`
+// → vm merged 模式下 `back.api` 链接到外部 back 根的 api.at(Plan 061)。
+// T1:hello/config_probe 端点对(三路径证据,已入册);T3:system_info 桥直调
+// (对象返回值单跳字段读)。值显示在窗口文本上,由 scripts 层经 MCP
+// autoui_state 读取作证据。
+use back.api: system_info
+
+widget App {
+    msg { Init, Refresh }
+
+    model {
+        var sysinfo_val str = "(pending)"
+    }
+
+    view {
+        col {
+            style: "w-full h-screen flex flex-col bg-white p-6 gap-3"
+            text (text: "system_info.hostname: " + .sysinfo_val, style: "text-base text-[#1a1a1a]") {}
+            button "Refresh" {
+                onclick: .Refresh
+                style: "px-5 py-2 rounded text-sm bg-primary text-white w-fit" 
+            }
+        }
+    }
+
+    on {
+        .Init -> {
+            var r = system_info()
+            .sysinfo_val = r.hostname
+        }
+        .Refresh -> {
+            var r = system_info()
+            .sysinfo_val = r.hostname
+        }
+    }
+}
