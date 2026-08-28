@@ -491,7 +491,7 @@ onMounted(async () => {
         </div>
       </div>
       <template v-if="confirm_save">
-        <div class="flex flex-row gap-4 items-center gap-3 px-3 py-2 border border-[#e0e0e0] rounded bg-[#ededed]">
+        <div class="flex flex-row items-center gap-3 px-3 py-2 border border-[#e0e0e0] rounded bg-[#ededed]">
           <span class="text-sm text-[#1a1a1a]">Save changes to disk? (.bak backup kept)</span>
           <div class="flex-1" />
           <button class="btn px-3 py-1 text-xs rounded bg-primary border-primary text-white" @click="ConfirmSaveYes">Yes, save</button>
@@ -499,7 +499,7 @@ onMounted(async () => {
         </div>
       </template>
       <template v-if="confirm_del != ''">
-        <div class="flex flex-row gap-4 items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]">
+        <div class="flex flex-row items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]">
           <span class="text-sm text-[#c42b1c]">{{ 'Delete block ' + confirm_del + '? (.bak kept)' }}</span>
           <div class="flex-1" />
           <button class="btn px-3 py-1 text-xs rounded bg-[#c42b1c] border-[#c42b1c] text-white" @click="ConfirmDeleteYes">Yes, delete</button>

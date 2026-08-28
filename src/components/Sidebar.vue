@@ -47,7 +47,7 @@ function ToggleGroup(gid: any): void {
         <template v-if="store.search == ''">
           <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in store.view_standalone">
             <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-            <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
+            <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
               <span :class="m.name_class">{{ m.name }}</span>
               <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
             </div>
@@ -68,7 +68,7 @@ function ToggleGroup(gid: any): void {
           <template v-if="store.search != ''">
             <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
               <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-              <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
+              <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
                 <span :class="m.name_class">{{ m.name }}</span>
                 <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
               </div>
@@ -78,7 +78,7 @@ function ToggleGroup(gid: any): void {
             <template v-if="g.open">
               <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
                 <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
+                <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
                   <span :class="m.name_class">{{ m.name }}</span>
                   <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
                 </div>

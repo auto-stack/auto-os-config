@@ -30,8 +30,8 @@ async function Test(): Promise<void> {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4 daemon-view test-card gap-[0px] max-w-[820px]">
-      <div class="flex flex-row gap-4 test-row gap-[14px]">
+    <div class="flex flex-col daemon-view test-card gap-[0px] max-w-[820px]">
+      <div class="flex flex-row test-row gap-[14px]">
         <span class="test-label">Daemon connection</span>
         <span class="test-status">
           <template v-if="status == 'idle'">

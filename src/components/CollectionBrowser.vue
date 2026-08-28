@@ -258,7 +258,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="flex flex-row gap-4 collection gap-[16px] max-w-[960px]">
+    <div class="flex flex-row collection gap-[16px] max-w-[960px]">
       <aside class="list-pane gap-[0px]">
         <div class="list-head gap-[6px]">
           <input class="filter-input" :placeholder="'Filter…'" :value="store.name_filter" @input="SetFilter(($event.target as HTMLInputElement).value)" />
@@ -390,7 +390,7 @@ onMounted(() => {
             </div>
           </template>
           <template v-if="store.is_read_only">
-            <div class="flex flex-col gap-4 fm-view gap-[0px]">
+            <div class="flex flex-col fm-view gap-[0px]">
               <div class="field-row">
                 <label class="field-label">
                   <span>Name</span>
