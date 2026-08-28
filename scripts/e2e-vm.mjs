@@ -418,7 +418,7 @@ if (!(await press('Test', 2000))) fail('Test button not found');
 console.log('=== VM desktop e2e (Plan 007/008) ===');
 let attempt = 0;
 let last = null;
-while (attempt < 3) {
+while (attempt < 4) {
   attempt++;
   if (attempt > 1) {
     console.log(`[e2e-vm] attempt ${attempt - 1} hit the known infra crash (channel died) — rebooting app`);
@@ -428,7 +428,7 @@ while (attempt < 3) {
   if (!last.crashed) break;
   await sleep(2000);
 }
-if (!last || (last.crashed && attempt >= 3)) {
+if (!last || (last.crashed && attempt >= 4)) {
   console.log('FATAL: vm app / MCP channel never came up (3 crashes in a row)');
   process.exit(1);
 }
