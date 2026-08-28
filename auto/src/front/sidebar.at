@@ -38,12 +38,30 @@ widget Sidebar {
             nav (style: "nav-list flex-1 overflow-auto px-2") {
                 if .store.search == "" {
                     for m in .store.view_standalone {
-                        button (class: m.nav_class, key: m.id) {
-                            onclick: .SelectModule(m.id)
-                            span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                            col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
-                                text (text: m.name, class: m.name_class) {}
-                                text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                        // R4（plan010 T8）:vm button 对 `class: <loop 字段表达式>`
+                        // 求值失败 → convert_button 兜底 primary preset（紫块/白字/
+                        // h-10 裁掉 3 行折叠 label 的 2、3 行）。条件展开双态静态串
+                        // 是 vm 可解析的等价形态（theme_picker swatch 同款词汇）。
+                        // 串尾 text-[#1a1a1a]/h-auto、idle 态 bg-[#f9f9f9] 为 vm
+                        // 中和类——vue 端 CSS 效果等价（侧栏纯色底/子元素自带文字色）。
+                        if .store.active_id == m.id {
+                            button (class: "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto", key: m.id) {
+                                onclick: .SelectModule(m.id)
+                                span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                                col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                    text (text: m.name, class: m.name_class) {}
+                                    text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                }
+                            }
+                        }
+                        if .store.active_id != m.id {
+                            button (class: "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto", key: m.id) {
+                                onclick: .SelectModule(m.id)
+                                span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                                col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                    text (text: m.name, class: m.name_class) {}
+                                    text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                }
                             }
                         }
                     }
@@ -53,7 +71,7 @@ widget Sidebar {
                     div (style: "contents") {
                         key: g.id
                         if .store.search == "" {
-                            button (style: "group-header w-full text-left flex items-center gap-[6px] px-3 py-[10px] mt-2 rounded hover:bg-[#ededed] transition-colors duration-[120ms]") {
+                            button (style: "group-header w-full text-left flex items-center gap-[6px] px-3 py-[10px] mt-2 rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto") {
                                 key: g.id
                                 onclick: .ToggleGroup(g.id)
                                 if g.open {
@@ -67,12 +85,24 @@ widget Sidebar {
                         }
                         if .store.search != "" {
                             for m in g.members {
-                                button (class: m.nav_class, key: m.id) {
-                                    onclick: .SelectModule(m.id)
-                                    span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                    col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
-                                        text (text: m.name, class: m.name_class) {}
-                                        text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                if .store.active_id == m.id {
+                                    button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto", key: m.id) {
+                                        onclick: .SelectModule(m.id)
+                                        span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                                        col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                            text (text: m.name, class: m.name_class) {}
+                                            text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                        }
+                                    }
+                                }
+                                if .store.active_id != m.id {
+                                    button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto", key: m.id) {
+                                        onclick: .SelectModule(m.id)
+                                        span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                                        col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                            text (text: m.name, class: m.name_class) {}
+                                            text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                        }
                                     }
                                 }
                             }
@@ -80,12 +110,24 @@ widget Sidebar {
                         if .store.search == "" {
                             if g.open {
                                 for m in g.members {
-                                    button (class: m.nav_class, key: m.id) {
-                                        onclick: .SelectModule(m.id)
-                                        span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                        col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
-                                            text (text: m.name, class: m.name_class) {}
-                                            text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                    if .store.active_id == m.id {
+                                        button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto", key: m.id) {
+                                            onclick: .SelectModule(m.id)
+                                            span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                                            col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                                text (text: m.name, class: m.name_class) {}
+                                                text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                            }
+                                        }
+                                    }
+                                    if .store.active_id != m.id {
+                                        button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto", key: m.id) {
+                                            onclick: .SelectModule(m.id)
+                                            span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
+                                            col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                                text (text: m.name, class: m.name_class) {}
+                                                text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                            }
                                         }
                                     }
                                 }

@@ -63,10 +63,16 @@ done
 # plan010: multi-store root Init — codegen emits `Theme.Init()` without
 # creating a reactive binding for the second imported store; rewrite to a
 # direct composable call (upstream codegen gap, same family as 007 G-list).
+# plan446批二 A1 follow-up: the bare `store.Init()` form is now REJECTED by
+# vm-side handler synthesis (ambiguous Init across Modules+Theme), so app.at
+# qualifies it as `Modules.Init()` — which vue codegen passes through raw
+# (multi-store facade is an upstream v1 gap). Rewrite it back to the local
+# `store` const (= useModulesStore), byte-identical to the pre-A1 artifact.
 sed -e "s|@/components/|./components/|g" \
     -e "s|@/stores/use|./stores/auto/use|g" \
     -e "s|@/ext/src/front/utils/|../auto/src/front/utils/|g" \
     -e "s|@/ext/src/lib/api|./lib/api|g" \
+    -e "s|^  Modules\.Init();|  store.Init();|" \
     -e "s|^  Theme\.Init();|  useThemeStore().Init();|" \
     -e "s|\$event\.target\.value|(\$event.target as HTMLInputElement).value|g" \
     -e "s|\$event\.target\.checked|(\$event.target as HTMLInputElement).checked|g" \

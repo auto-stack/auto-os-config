@@ -99,26 +99,26 @@ widget ConfigEditor(module_id: str) {
                         span (style: "block-error", text: .block_error) {}
                     }
                     if .adding_block {
-                        input (style: "block-name", placeholder: "block name", value: .new_block_name) {
+                        input (style: "block-name text-[#1a1a1a] h-auto", placeholder: "block name", value: .new_block_name) {
                             oninput: .NameDraft
                             onkeydown.enter: .AddBlock
                         }
-                        button (style: "btn", text: "Add") {
+                        button (style: "btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto", text: "Add") {
                             onclick: .AddBlock
                         }
-                        button (style: "btn", text: "Cancel") {
+                        button (style: "btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto", text: "Cancel") {
                             onclick: .CancelAddBlock
                         }
                     }
                     if .adding_block == false {
                         if .loaded_once {
-                            button (style: "btn", text: "＋ Add block") {
+                            button (style: "btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto", text: "＋ Add block") {
                                 onclick: .ToggleAddBlock
                             }
                         }
                     }
                     if .loaded_once {
-                        button (style: "btn", text: "Reload", disabled: .saving) {
+                        button (style: "btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto", text: "Reload", disabled: .saving) {
                             onclick: .Load
                         }
                         button (style: "btn primary", disabled: .saving || .dirty == false) {
@@ -132,7 +132,7 @@ widget ConfigEditor(module_id: str) {
                         }
                     }
                     if .loaded_once == false {
-                        button (style: "btn", text: "Load") {
+                        button (style: "btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto", text: "Load") {
                             onclick: .Load
                         }
                     }
@@ -171,7 +171,7 @@ widget ConfigEditor(module_id: str) {
                                 div (style: "subform-header gap-[0px]") {
                                     span (style: "subform-title", text: e.label) {}
                                     if e.is_provider {
-                                        button (style: "btn danger btn-sm", text: "🗑") {
+                                        button (style: "btn danger btn-sm bg-[#c42b1c] text-white border-[#c42b1c] px-2 py-0.5 text-xs h-auto", text: "🗑") {
                                             onclick: .AskDelete(e.key)
                                         }
                                     }
@@ -179,9 +179,7 @@ widget ConfigEditor(module_id: str) {
                             }
                             if e.kind != "subform" {
                                 div (class: e.box_class) {
-                                    label (style: "field-label") {
-                                        text (text: e.label) {}
-                                    }
+                                    label (text: e.label, style: "field-label text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                     if e.kind == "toggle" {
                                         label (style: "toggle gap-[0px]") {
                                             input ("type": "checkbox", checked: e.is_on) {
@@ -201,7 +199,7 @@ widget ConfigEditor(module_id: str) {
                                         }
                                     }
                                     if e.kind == "number" {
-                                        input ("type": "number", value: e.value, style: "input") {
+                                        input ("type": "number", value: e.value, style: "input text-[#1a1a1a] h-auto") {
                                             oninput: .Draft
                                             onchange: .Apply(e, $event.target.value)
                                         }
@@ -209,24 +207,24 @@ widget ConfigEditor(module_id: str) {
                                     if e.kind == "password" {
                                         div (style: "secret gap-[0px]") {
                                             if .pw_show {
-                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw") {
+                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
                                                     oninput: .Draft
                                                     onchange: .Apply(e, $event.target.value)
                                                 }
                                             }
                                             if .pw_show == false {
-                                                input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw") {
+                                                input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
                                                     oninput: .Draft
                                                     onchange: .Apply(e, $event.target.value)
                                                 }
                                             }
-                                            button (style: "reveal", text: "👁") {
+                                            button (style: "reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto", text: "👁") {
                                                 onclick: .PwToggle
                                             }
                                         }
                                     }
                                     if e.kind == "text" {
-                                        input (value: e.value, "type": "text", placeholder: "(empty)", style: "input") {
+                                        input (value: e.value, "type": "text", placeholder: "(empty)", style: "input text-[#1a1a1a] h-auto") {
                                             oninput: .Draft
                                             onchange: .Apply(e, $event.target.value)
                                         }
@@ -245,7 +243,7 @@ widget ConfigEditor(module_id: str) {
                                         }
                                         if e.options.len() == 0 {
                                             div (style: "fallback-text gap-[0px]") {
-                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input") {
+                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input text-[#1a1a1a] h-auto") {
                                                     oninput: .Draft
                                                     onchange: .Apply(e, $event.target.value)
                                                 }
@@ -263,7 +261,7 @@ widget ConfigEditor(module_id: str) {
                                                     }
                                                 }
                                             }
-                                            input (value: "", "type": "text", placeholder: "add…", style: "tag-input") {
+                                            input (value: "", "type": "text", placeholder: "add…", style: "tag-input text-[#1a1a1a] h-auto") {
                                                 oninput: .Draft
                                                 onkeydown.enter: .TagAdd(e)
                                             }
@@ -282,7 +280,7 @@ widget ConfigEditor(module_id: str) {
                                                 thead {
                                                     tr {
                                                         for c in e.t_cols {
-                                                            th (text: c.name) {}
+                                                            th (text: c.name, style: "bg-[#ededed] text-[#616161] text-xs font-semibold h-auto") {}
                                                         }
                                                         th (style: "row-act") {}
                                                     }

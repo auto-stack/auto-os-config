@@ -19,9 +19,9 @@ function Pick(name: any): void {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4 theme-picker shrink-0 pt-3 pb-4 px-5 border-t border-[#e0e0e0] gap-[0px]">
+    <div class="flex flex-col theme-picker shrink-0 pt-3 pb-4 px-5 border-t border-[#e0e0e0] gap-[0px]">
       <span class="theme-label text-xs font-semibold text-[#8a8a8a] mb-[10px]">Accent color</span>
-      <div class="flex flex-row gap-4 swatches items-center gap-[10px]">
+      <div class="flex flex-row swatches items-center gap-[10px]">
         <button :class="(store.current == 'indigo' ? 'swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#6366f1] shadow-[0_0_0_2px_#f9f9f9,0_0_0_4px_#1a1a1a] cursor-pointer' : 'swatch w-6 h-6 rounded-full border-2 border-transparent p-0 flex items-center justify-center bg-[#6366f1] cursor-pointer hover:scale-[1.12]')" @click="Pick('indigo')">
           <template v-if="store.current == 'indigo'">
             <span class="text-xs font-bold text-white leading-none">✓</span>

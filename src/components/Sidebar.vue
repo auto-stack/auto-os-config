@@ -45,17 +45,30 @@ function ToggleGroup(gid: any): void {
       </div>
       <nav class="nav-list flex-1 overflow-auto px-2">
         <template v-if="store.search == ''">
-          <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in store.view_standalone">
-            <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-            <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
-              <span :class="m.name_class">{{ m.name }}</span>
-              <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
-            </div>
-          </button>
+          <div v-for="m in store.view_standalone" :key="m.id">
+            <template v-if="store.active_id == m.id">
+              <button class="nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto" :key="m.id" @click="SelectModule(m.id)">
+                <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+                <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                  <span :class="m.name_class">{{ m.name }}</span>
+                  <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+                </div>
+              </button>
+            </template>
+            <template v-if="store.active_id != m.id">
+              <button class="nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto" :key="m.id" @click="SelectModule(m.id)">
+                <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+                <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                  <span :class="m.name_class">{{ m.name }}</span>
+                  <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+                </div>
+              </button>
+            </template>
+          </div>
         </template>
         <div class="contents" :key="g.id" v-for="g in store.view_groups">
           <template v-if="store.search == ''">
-            <button class="group-header w-full text-left flex items-center gap-[6px] px-3 py-[10px] mt-2 rounded hover:bg-[#ededed] transition-colors duration-[120ms]" :key="g.id" @click="ToggleGroup(g.id)">
+            <button class="group-header w-full text-left flex items-center gap-[6px] px-3 py-[10px] mt-2 rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto" :key="g.id" @click="ToggleGroup(g.id)">
               <template v-if="g.open">
                 <span class="text-[11px] text-[#8a8a8a] w-[14px] shrink-0">▾</span>
               </template>
@@ -66,23 +79,49 @@ function ToggleGroup(gid: any): void {
             </button>
           </template>
           <template v-if="store.search != ''">
-            <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
-              <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-              <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
-                <span :class="m.name_class">{{ m.name }}</span>
-                <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
-              </div>
-            </button>
+            <div v-for="m in g.members" :key="m.id">
+              <template v-if="store.active_id == m.id">
+                <button class="nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto" :key="m.id" @click="SelectModule(m.id)">
+                  <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+                  <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                    <span :class="m.name_class">{{ m.name }}</span>
+                    <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+                  </div>
+                </button>
+              </template>
+              <template v-if="store.active_id != m.id">
+                <button class="nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto" :key="m.id" @click="SelectModule(m.id)">
+                  <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+                  <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                    <span :class="m.name_class">{{ m.name }}</span>
+                    <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+                  </div>
+                </button>
+              </template>
+            </div>
           </template>
           <template v-if="store.search == ''">
             <template v-if="g.open">
-              <button :class="m.nav_class" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
-                <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                <div class="flex flex-col gap-4 nav-text flex-1 min-w-0 gap-[0px]">
-                  <span :class="m.name_class">{{ m.name }}</span>
-                  <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
-                </div>
-              </button>
+              <div v-for="m in g.members" :key="m.id">
+                <template v-if="store.active_id == m.id">
+                  <button class="nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto" :key="m.id" @click="SelectModule(m.id)">
+                    <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+                    <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                      <span :class="m.name_class">{{ m.name }}</span>
+                      <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+                    </div>
+                  </button>
+                </template>
+                <template v-if="store.active_id != m.id">
+                  <button class="nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto" :key="m.id" @click="SelectModule(m.id)">
+                    <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
+                    <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
+                      <span :class="m.name_class">{{ m.name }}</span>
+                      <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
+                    </div>
+                  </button>
+                </template>
+              </div>
             </template>
           </template>
         </div>

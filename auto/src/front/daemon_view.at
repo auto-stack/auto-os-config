@@ -44,7 +44,7 @@ widget DaemonView(module_id: str) {
                     }
                 }
                 div (style: "flex-1") {}
-                button (text: "Test", style: "btn", disabled: .status == "checking") {
+                button (text: "Test", style: "btn bg-white border border-[#e0e0e0] rounded px-5 py-2 text-sm text-[#1a1a1a] h-auto", disabled: .status == "checking") {
                     onclick: .Test
                 }
             }
