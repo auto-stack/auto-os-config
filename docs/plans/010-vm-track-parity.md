@@ -11,8 +11,8 @@ supersedes_spec_components: []
 new_spec_components: []
 touched_goals: []
 
-current_step: 14
-total_steps: 14
+current_step: 19
+total_steps: 19
 ---
 
 # [PLAN-010] VM 轨一致性——Auto/VM 版 (`auto run -r vm`) 对齐 Auto/Vue 版 (`auto run`)
@@ -176,6 +176,18 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 - [x] T14b (用户报告修复) 侧栏三问题 ✅ 已完成 [2026-08-28]（9133334）。**根因:上游 CLI 漂移**——auto-lang master 推进 42 提交（1487b5c5d→05b9362af,446 批三+归档）,button 渲染路径变化:子树从「折叠 label」变「结构竖排渲染」,button 内布局类失效;分组内文字缺失为新 CLI 回归。修复:①nav button 子树包显式 `row` 容器（vm row 横排可靠,field-row 先例;6 处 nav item + group-header ▾/label）②去 items-start/items-center（iced 对齐行为异常,默认对齐正确）③去分组 `contents` 容器（key 在 button 上,vue 端 loop key 提升机制接管）。结果:左右布局 ✓/分组头正常高度 ✓/分组内名称可见 ✓;css-era 00=0.00% 零回归 + e2e-vm 15/15 两连绿。**残留登记**:分组内 desc 缺失（双层 for 内 text 高度钳制,上游 P9 待回报）+ 行距偏大（L2）。**教训**:A 相锚定纪律须覆盖"轮内 CLI 被并行会话重建"——复审/用户验收前应重验 `auto --version` 与锚定哈希一致。
 
 - [x] T14c (用户报告二轮) 高度/desc 终修 ✅ 已完成 [2026-08-28]（5062510）。用户实机反馈:h-auto 在 row 包裹下高度倍数膨胀(standalone/Harness 头 2-3 倍);去 h-auto 则 preset h-10 裁掉 desc。实测矩阵(h-fit 不识别/去 items 类/items-start 组合)后定案:**去 h-auto + 显式 h-[50px]**(vue 端 offsetHeight 实测 50 等值,vm 端两行全容);row 对齐采「无 items 类」(items-start+flex-1 组合是 30px 错位元凶,单独 items-start 无恙)。结果:**desc 全恢复(含分组二级项)+高度正常+左右布局**,vm 00=0.99%。已知残差:css-era 侧栏文字整体上移 ~9px(00=0.82%,各视图 +0.8-1.1%)——上游漂移期 button 高度语义变化的 L2 权衡(vm 可用性优先),py-3/py-10 双向验证不可归零,登记待上游布局类语义稳定后复核。门禁:vue ALL PASS + e2e-vm 15/15 两连绿。
+- [ ] T19 (G 合入) plan011 后端合入——前端切换与全链回归：
+  前提:plan011 T1-T8 完成(外部 back 三路径可用 + 双模式启动固化,见 011 计划)。
+  操作(vue-first 顺序):
+  a. 启动/脚本切换:`scripts/e2e.sh` 与日常启动方式的服务源从 `backend/` Cargo daemon
+     切到 plan011 的 Auto 后端 HTTP 服务(011 T8 固化的形态);vm 轨验证 merged 直调。
+  b. T18 概要页数据接入:概要页信息卡数据源从桩切 `/api/system-info` 真数据
+     (vue 端浏览器先验功能与显示 → vm 端对拍一致——vue-first 纪律)。
+  c. 残差复核:U1(事件冻结)/U8(AskDelete)/vm http 阻塞一类问题在「零 HTTP 后端」
+     下的表现复测,台账行更新或结案。
+  d. 全链回归:e2e.sh 三套件 + e2e-vm 15 断言连续两遍全绿;css-era 对拍复核。
+  e. 与 plan011 T11(Rust daemon 退役)联动确认后,G6 用户验收。
+  验证:双门禁两连绿;概要页双端信息一致;残差台账更新。
 - [x] T14 (复审修复) 修复清单 5 项 ✅ 已完成 [2026-08-28]（c4df24b + 354b6a9）：
   ① **[P1] read_only 集合 vm 实体加载**——方案①落地:`Modules.Select` 命中集合时 `Collection.Open(si.id)` 预载（store→store 调用;vm synthesis+运行时实测通,skills `names` 7 实体+Pick 详情链路全通;vue 端幂等——mount Init 同 id 再 Open）。vue 产物跨 store 裸引用由 regen.sh 后处理改写 `useCollectionStore().Open()`+import（又一例多store facade 上游缺口,446 §P 同族）。e2e-vm 固化第 **15 断言**（skills 预载,断言后受控重启避开 U1 污染）;Roles 段 Load 改条件式（预载后空态按钮自然消失=设计行为）;Test 轮询条件补 `"loaded"` 中间态;capture 04-skills 补首实体选中口径（diff 11.48→3.52%）。② U8 补进附录 §P 表。③ metrics.mjs 入库 scripts/track-parity/（路径适配+头注）。④ nav_class 死代码清理（4 处声明/重赋值/push 字段,产物零引用）。⑤ 重验:vue ALL E2E PASS + e2e-vm **15/15 两连绿** + css-era 00=0.00%（零回归）。**待办**:G6 用户验收（/auto-plan:review 复审通过后、merge 前签字）。
 
@@ -217,6 +229,7 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
   现状:vm 词汇手写的跳转卡片骨架已入 app.at(**纯跳转被用户否决,视为废稿**,重开时以
   vue 端为准;骨架的 row/text-prop 词汇经验可复用)。
   验证:vue 端信息卡数据真实呈现;vm 端与 vue 显示一致;双门禁绿;css-era 空态基准随设计变更重拍。
+  ⤷ 数据接入段(桩→真数据)在 **T19**(依赖 plan011 T3/T8);UI 段(vue-first)不等待,可先行。
 
 ### G 相 · Auto 后端架构演进（2026-08-28 用户提案；方案记录，执行待确认）
 
@@ -258,6 +271,12 @@ HTTP 客户端**。
 - merged 模式成熟度(015-notes 例为简单端点;本仓端点含文件 IO/解析,需 G1 实证);
 - Plan 061 `back: { project }` pac.at 配置的具体语法与宿主编排行为(G1 首项验证);
 - 迁移期双后端并存的路由/端口策略。
+
+#### 合并执行细则 → 本计划 T19
+
+> plan011 交付「后端 + pac.at 接线 + 双模式启动机制」(至其 T8);**前端侧切换归
+> 本计划 T19**:e2e/启动脚本服务源切换、T18 概要页数据源桩→真(vue-first)、
+> 残差在新后端下复核、全链回归与验收。汇合点 = plan011 T9 ↔ 本计划 T19。
 
 ## 残差台账（T9 终稿 [2026-08-28]；全行带归因，无未归因项）
 
