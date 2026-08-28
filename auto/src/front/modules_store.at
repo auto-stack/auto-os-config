@@ -170,7 +170,7 @@ store Modules {
                         if .active_id == m.id {
                             nmcls = "nav-name text-sm font-semibold text-primary"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: "nav-item", name_class: nmcls })
                     }
                 }
                 var open = false
@@ -205,7 +205,7 @@ store Modules {
                     if .active_id == sm.id {
                         snm = "nav-name text-sm font-semibold text-primary"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: "nav-item", name_class: snm })
                     any_hit = true
                 }
             }
@@ -281,7 +281,7 @@ store Modules {
                         if .active_id == m.id {
                             nmcls = "nav-name text-sm font-semibold text-primary"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: "nav-item", name_class: nmcls })
                     }
                 }
                 var open = false
@@ -316,7 +316,7 @@ store Modules {
                     if .active_id == sm.id {
                         snm = "nav-name text-sm font-semibold text-primary"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: "nav-item", name_class: snm })
                     any_hit = true
                 }
             }
@@ -372,7 +372,7 @@ store Modules {
                         if .active_id == m.id {
                             nmcls = "nav-name text-sm font-semibold text-primary"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: "nav-item", name_class: nmcls })
                     }
                 }
                 var open = false
@@ -407,7 +407,7 @@ store Modules {
                     if .active_id == sm.id {
                         snm = "nav-name text-sm font-semibold text-primary"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: "nav-item", name_class: snm })
                     any_hit = true
                 }
             }
@@ -443,7 +443,7 @@ store Modules {
                         if .active_id == m.id {
                             nmcls = "nav-name text-sm font-semibold text-primary"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: "nav-item", name_class: nmcls })
                     }
                 }
                 var open = false
@@ -478,7 +478,7 @@ store Modules {
                     if .active_id == sm.id {
                         snm = "nav-name text-sm font-semibold text-primary"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: "nav-item", name_class: snm })
                     any_hit = true
                 }
             }

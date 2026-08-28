@@ -105,7 +105,7 @@ if (m.name.toLowerCase().includes(q)) {hit = true;
 }if (m.description.toLowerCase().includes(q)) {hit = true;
 }}if (hit) {let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
 if (active_id.value == m.id) {nmcls = 'nav-name text-sm font-semibold text-primary';
-}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls });
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: 'nav-item', name_class: nmcls });
 }}
 let open: boolean = false;
 for (const x of expanded.value) {if (x == g.id) {open = true;
@@ -122,7 +122,7 @@ if (sm.name.toLowerCase().includes(q)) {shit = true;
 }if (sm.description.toLowerCase().includes(q)) {shit = true;
 }}if (shit) {let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
 if (active_id.value == sm.id) {snm = 'nav-name text-sm font-semibold text-primary';
-}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm });
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: 'nav-item', name_class: snm });
 any_hit = true;
 }}
 view_standalone.value = vs;
@@ -153,7 +153,7 @@ if (m.name.toLowerCase().includes(q)) {hit = true;
 }if (m.description.toLowerCase().includes(q)) {hit = true;
 }}if (hit) {let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
 if (active_id.value == m.id) {nmcls = 'nav-name text-sm font-semibold text-primary';
-}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls });
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: 'nav-item', name_class: nmcls });
 }}
 let open: boolean = false;
 for (const x of expanded.value) {if (x == g.id) {open = true;
@@ -170,7 +170,7 @@ if (sm.name.toLowerCase().includes(q)) {shit = true;
 }if (sm.description.toLowerCase().includes(q)) {shit = true;
 }}if (shit) {let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
 if (active_id.value == sm.id) {snm = 'nav-name text-sm font-semibold text-primary';
-}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm });
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: 'nav-item', name_class: snm });
 any_hit = true;
 }}
 view_standalone.value = vs;
@@ -211,7 +211,7 @@ if (m.name.toLowerCase().includes(q)) {hit = true;
 }if (m.description.toLowerCase().includes(q)) {hit = true;
 }}if (hit) {let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
 if (active_id.value == m.id) {nmcls = 'nav-name text-sm font-semibold text-primary';
-}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls });
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: 'nav-item', name_class: nmcls });
 }}
 let open: boolean = false;
 for (const x of expanded.value) {if (x == g.id) {open = true;
@@ -228,7 +228,7 @@ if (sm.name.toLowerCase().includes(q)) {shit = true;
 }if (sm.description.toLowerCase().includes(q)) {shit = true;
 }}if (shit) {let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
 if (active_id.value == sm.id) {snm = 'nav-name text-sm font-semibold text-primary';
-}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm });
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: 'nav-item', name_class: snm });
 any_hit = true;
 }}
 view_standalone.value = vs;
@@ -261,7 +261,7 @@ if (m.name.toLowerCase().includes(q)) {hit = true;
 }if (m.description.toLowerCase().includes(q)) {hit = true;
 }}if (hit) {let nmcls: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
 if (active_id.value == m.id) {nmcls = 'nav-name text-sm font-semibold text-primary';
-}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, name_class: nmcls });
+}members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: 'nav-item', name_class: nmcls });
 }}
 let open: boolean = false;
 for (const x of expanded.value) {if (x == g.id) {open = true;
@@ -278,7 +278,7 @@ if (sm.name.toLowerCase().includes(q)) {shit = true;
 }if (sm.description.toLowerCase().includes(q)) {shit = true;
 }}if (shit) {let snm: string = 'nav-name text-sm font-medium text-[#1a1a1a]';
 if (active_id.value == sm.id) {snm = 'nav-name text-sm font-semibold text-primary';
-}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, name_class: snm });
+}vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: 'nav-item', name_class: snm });
 any_hit = true;
 }}
 view_standalone.value = vs;
