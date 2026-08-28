@@ -57,15 +57,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "── Building backend ──"
-cargo build --manifest-path backend/Cargo.toml
+echo "── Building backend (Plan 011 T8:服务源 = auto-os-config-back)──"
+cargo build --manifest-path auto-os-config-back/Cargo.toml
 
 echo "── Starting services (reusing any already running) ──"
 if is_up 17701; then
   echo "[e2e] daemon already on :17701 (reusing — NOTE: must be freshly built for current code)"
 else
-  # Redirect so the daemon's stdout doesn't keep this script's pipe open.
-  ./backend/target/debug/auto-os-config-daemon.exe >/dev/null 2>&1 & DAEMON_PID=$!
+  # Plan 011 T8:vue 轨服务 = 新 back 的 axum bin;端口策略沿用 17701
+  # (前端 api.ts/e2e 零改动)。Redirect stdout so it doesn't keep the pipe open.
+  AUTOOS_BACK_PORT=17701 ./auto-os-config-back/target/debug/auto-os-config-back-server.exe >/dev/null 2>&1 & DAEMON_PID=$!
   wait_up 17701 20
 fi
 

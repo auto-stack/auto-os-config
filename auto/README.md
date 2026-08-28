@@ -25,13 +25,27 @@ auto/src/front/*.at           # 唯一视图源（10 文件，无 _vm 分叉）
 运行与测试：
 
 ```sh
-cd auto && auto run -r vm             # 桌面窗口，直连 daemon :17701
-AUTOOS_DAEMON=http://… auto run -r vm # 远端 daemon 覆盖
+cd auto && auto run -r vm             # 桌面窗口，back.api 经外部 back 桥进程内直调（零 HTTP）
+AUTOOS_DAEMON=http://… auto run -r vm # 远端 daemon 覆盖（仅 T7 前遗留 enum URL 词汇消费）
 AUTO_VM_WINDOW=1440x900 auto run -r vm # 显式窗口逻辑尺寸（对拍口径，见「双端一致性」）
-node scripts/e2e-vm.mjs               # vm 轨回归门（MCP 驱动，14 断言自愈式）
+node scripts/e2e-vm.mjs               # vm 轨回归门（MCP 驱动，自愈式）
 node scripts/track-parity/capture.mjs --track vm   # 双轨对拍捕获
 AUTOUI_MCP_PORT=9320 auto run -r vm   # 自定 MCP 通道（调试用，端点 /mcp）
 ```
+
+### 双模式启动与端口策略（Plan 011 T8 定案）
+
+- **端口沿用 17701**（待澄清#2 裁决）：前端 `src/lib/api.ts` 与 e2e 脚本零改动。
+- **vue 模式**：`auto-os-config-back-server.exe`（`cargo run` 于 `auto-os-config-back/`，
+  env `AUTOOS_BACK_PORT=17701`）即 HTTP 服务，前端 api.ts 打它，等价旧 daemon。
+  `scripts/e2e.sh` 的服务源已切换至此（T8）。
+- **vm 模式**：`auto run -r vm`（merged）——pac.at `back: { project }` 链接外部
+  back，`back.api` 解析到 `auto-os-config-back/api.at`，cdylib
+  (`auto_os_config_back.dll`) 经宿主桥进程内直调，**零 HTTP**。前置：先
+  `cargo build` 于 `auto-os-config-back/`（merged 装载强制要求 cdylib 存在）。
+- 11 端点实现核心在 `auto-os-config-back/src/core.rs` + `registry.rs`/
+  `project.rs`/`collection.rs`（自旧 `backend/` 移植）；桥与 axum bin 双传输
+  共享同一实现。
 
 与 vue 轨的禁令不同：**vm 工程内可以 `auto run`**（无 gen 直写风险）；
 仓库根的 `auto run` / `auto build` 依旧禁止。
