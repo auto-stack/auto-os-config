@@ -187,6 +187,25 @@ pub fn system_info_json() -> serde_json::Value {
         .or_else(|| env_or_na("HOSTNAME"))
         .unwrap_or_else(|| "n/a".to_string());
     let cpu = env_or_na("PROCESSOR_IDENTIFIER").unwrap_or_else(|| "n/a".to_string());
+    // 展示串(加法字段,双端 UI 直用):VM 侧 __json_object 浮点字段 Dot 读
+    // 有上游编码缺陷(f64 误读为 i32,如 54.16 → -1073741824),前端展示一律
+    // 消费这里的手串;数值字段保留给程序化消费方。
+    let fmt = |v: &serde_json::Value| -> String {
+        match v.as_f64() {
+            Some(f) => format!("{:.0}", f),
+            None => "n/a".to_string(),
+        }
+    };
+    let memory_display = format!(
+        "{} / {} MB free",
+        fmt(&memory_free_mb),
+        fmt(&memory_total_mb)
+    );
+    let storage_display = format!(
+        "{} / {} GB",
+        fmt(&storage_free_gb),
+        fmt(&storage_total_gb)
+    );
     serde_json::json!({
         "os_name": std::env::consts::OS,
         "os_version": os_version,
@@ -196,6 +215,8 @@ pub fn system_info_json() -> serde_json::Value {
         "memory_free_mb": memory_free_mb,
         "storage_total_gb": storage_total_gb,
         "storage_free_gb": storage_free_gb,
+        "memory_display": memory_display,
+        "storage_display": storage_display,
     })
 }
 
