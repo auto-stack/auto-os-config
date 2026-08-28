@@ -218,6 +218,47 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
   vue 端为准;骨架的 row/text-prop 词汇经验可复用)。
   验证:vue 端信息卡数据真实呈现;vm 端与 vue 显示一致;双门禁绿;css-era 空态基准随设计变更重拍。
 
+### G 相 · Auto 后端架构演进（2026-08-28 用户提案；方案记录，执行待确认）
+
+#### 现状确认（回答用户问句）
+
+是——os-config 依赖 **Rust 版 os-config-daemon**（`backend/`,axum :17701,002-009 的
+核心资产:配置文件读写 `~/.config/autoos/*.at`、模块 registry、枚举、test-daemon
+action 等 10+ 端点);**无 Auto 版 daemon**。`auto/src/back/api.at`(56 pub fn)是
+vm 侧的 HTTP 配方层——vm 端 in-process 直调这些 fn,但 fn 内部仍是打 :17701 的
+http 配方;vue 端走手写 `src/lib/api.ts` 打同一 daemon。即:**两端都是 daemon 的
+HTTP 客户端**。
+
+#### 目标架构（用户提案）
+
+把 daemon 改造成 **Auto 后端形式**（015-notes / Plan 061 外部后端根模式）:
+
+- 新 Auto 后端项目（如 `auto-os-config-back/`）:`pac.at` + `api.at`（`#[api]`
+  端点）+ 逻辑层（db.at 式;配置文件 IO 用 fs/File native 或 Rust 桥——Auto 可调
+  任意 Rust,能力不受限）;
+- **系统信息端点**（T18 概要页数据源）在新后端里实现:`#[api(GET /api/system-info)]`;
+- **vue 模式启动**:Auto 后端编译/启动成 **Rust 版 HTTP 服务**
+  （`examples/rust-workspace/015-notes-back` 形态:axum + AUTO_HTTP_PORT）——
+  vue 轨连接它,等价现在的 daemon;
+- **vm 模式（merged）启动**:vm 进程**直接调用后端代码**（api.at fn 进程内执行,
+  零 HTTP）——消灭 vm http 阻塞解释器/daemon 依赖一类问题。
+
+#### 分阶段迁移（并存渐替,不做大爆炸）
+
+- G1 骨架:Auto 后端项目(pac.at/api.at + `system_info` + `health` 端点);验证
+  「vue 模式起 HTTP 服务」与「vm merged 直调」两条启动路径;
+- G2 概要页(T18):vue-first 消费 `system_info`(新后端);
+- G3 存量端点分组迁移(config get/put → collection CRUD → enums/action),每组
+  双门禁回归;
+- G4 Rust daemon 退役,e2e 全链切新后端。
+
+#### 风险与开放点
+
+- 迁移面:56 个 api.at fn + daemon 的 .at 解析/registry 逻辑的 Auto 重写量;
+- merged 模式成熟度(015-notes 例为简单端点;本仓端点含文件 IO/解析,需 G1 实证);
+- Plan 061 `back: { project }` pac.at 配置的具体语法与宿主编排行为(G1 首项验证);
+- 迁移期双后端并存的路由/端口策略。
+
 ## 残差台账（T9 终稿 [2026-08-28]；全行带归因，无未归因项）
 
 | # | 视图 | 层级 | 现象 | 归因 | 处置 | 状态 |
