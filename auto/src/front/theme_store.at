@@ -1,11 +1,22 @@
 // theme_store.at — accent color state (Plan 006 Phase 2). Port of the
 // hand-written composables/useTheme.ts; the palette/DOM/localStorage live in
 // src/lib/api.ts (stores only support the `use back.api:` import form).
+//
+// plan010 T15/T16: the vm renderer resolves theme mode + primary per frame
+// from root state fields named EXACTLY `dark_mode` / `accent_color`
+// (renderer.rs sync block: read_state("dark_mode") → set_dark_mode,
+// read_state("accent_color") → set_accent_name; missing fields keep the
+// dark/indigo defaults). Declare both here so the light UI gets a light
+// theme and swatch clicks actually recolor `primary`. `current` stays for
+// the existing theme_picker/store consumers.
 use back.api: loadAccent, applyAccent
 
 store Theme {
     model {
         var current str = "indigo"
+        // renderer 同步字段（见头注）:false=浅色主题(本 UI 的既定配色)
+        var dark_mode bool = false
+        var accent_color str = "indigo"
     }
 
     msg Msg { Init, SetAccent(str) }
@@ -13,9 +24,12 @@ store Theme {
     on {
         .Init -> {
             .current = loadAccent()
+            .dark_mode = false
+            .accent_color = .current
         }
         .SetAccent(name) -> {
             .current = name
+            .accent_color = name
             applyAccent(name)
         }
     }
