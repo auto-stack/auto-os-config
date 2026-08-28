@@ -306,3 +306,28 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 **L3 光栅层清单（定稿，不入门禁）**：字体光栅与字重渲染差（2x 重采样 vs 1x
 直渲）、hover 态缺失（vm 静默跳过 hover: 类）、select 形态差（原生下拉 vs 缺位
 U4）、滚动条样式差、表格 thead 暗色（U5）、emoji 字体 fallback 差。
+
+**Feature Request F1：导航/列表语义化（建议随 Plan 457 shadcn-vue 内置立项）**
+
+现状：侧栏导航项与集合列表行以 `<button>` 模拟。成因三重——① CSS 原版基线
+（tmp/css-era/Sidebar.vue:66）自身即 `<button :class="nav-item" @click>`，
+本仓像素对拍忠实复刻；② vm（iced）无 nav/menu/list widget，且 div+onclick
+不可交互（U1 关联域），Button 是双端唯一交集；③ `.at` DSL 无
+nav/aria/router 语义表达通道。
+
+标准形态（Web 侧共识）：语义 `<nav>` + 列表结构 + `aria-current="page"`
+标激活项（WAI-ARIA APG）；组件层 shadcn-vue Sidebar 全家桶（Provider/
+Menu/Group/Collapsible）、Element Plus el-menu、Vuetify v-navigation-drawer。
+
+演进建议（两步，均不破坏 vm 轨）：
+1. **codegen 语义包装（低成本，可先行）**：vue codegen 对携带约定标记类
+   （如 `nav-item`、`e-row`）的元素按注册表映射输出语义标签与 ARIA 属性
+   （`button.nav-item` → `<a aria-current="page">` 包裹于 `<nav>`）；
+   vm 渲染路径不受影响。
+2. **内置 Sidebar 组件（随 457）**：Sidebar（含分组折叠/过滤插槽）作为
+   AutoUI 内置复合组件——`.at` 一行声明，web 端产出 shadcn-vue Sidebar
+   等价 DOM，vm 端产出原生 widget；本仓 sidebar.at 约 200 行手写结构可
+   整体退役。
+
+验收锚点：双轨对拍 diff% 不回升；web 端 axe/读屏可识别 navigation 地标
+与当前项；vm 端 MCP press 语义不变。（已登记 KNOWN-DEBT 未来增强 010 行）
