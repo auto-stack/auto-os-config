@@ -4,7 +4,7 @@ status: executing
 feature_name: os-config-daemon Auto 版——外部 back 形态改造
 author: [zcode]
 created_at: 2026-08-28T18:30:00+08:00
-updated_at: 2026-08-28T20:05:00+08:00
+updated_at: 2026-08-28T22:40:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
