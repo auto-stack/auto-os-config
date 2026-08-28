@@ -26,7 +26,7 @@ use collection_browser: CollectionBrowser
 use theme_store: Theme
 
 widget App {
-    msg Msg { Init }
+    msg Msg { Init, SelectModule(str) }
 
     view {
         row (style: "app-layout h-full w-full flex flex-row gap-[0px]") {
@@ -48,8 +48,38 @@ widget App {
                     }
                     if .store.loading == false && .store.error == "" {
                         if .store.active_kind == "" {
-                            col (style: "state-msg flex-1 flex flex-col items-center justify-center gap-[0px]") {
-                                text (text: "Select a module from the left to configure it.", style: "text-base text-[#8a8a8a]") {}
+                            // T18: 默认落地页 = 系统概要(方案 A)——模块入口卡片替代
+                            // 空白提示。卡片模式与侧栏 nav 同款(vm row/text-prop 词汇)。
+                            col (style: "overview flex-1 flex flex-col gap-[0px] overflow-auto p-8 bg-white") {
+                                text (text: "System Overview", style: "text-2xl font-semibold text-[#1a1a1a]") {}
+                                text (text: "Pick a module below to jump straight into its settings.", style: "text-sm text-[#616161] pb-4") {}
+                                for m in .store.view_standalone {
+                                    button (class: "overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]", key: m.id) {
+                                        onclick: .SelectModule(m.id)
+                                        row (style: "flex flex-row items-center gap-3 w-full") {
+                                            span (text: m.icon, style: "text-2xl shrink-0") {}
+                                            col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                                text (text: m.name, style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                                text (text: m.description, style: "text-xs text-[#616161]") {}
+                                            }
+                                        }
+                                    }
+                                }
+                                for g in .store.view_groups {
+                                    text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a] pt-4 pb-1") {}
+                                    for m in g.members {
+                                        button (class: "overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]", key: m.id) {
+                                            onclick: .SelectModule(m.id)
+                                            row (style: "flex flex-row items-center gap-3 w-full") {
+                                                span (text: m.icon, style: "text-2xl shrink-0") {}
+                                                col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
+                                                    text (text: m.name, style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                                    text (text: m.description, style: "text-xs text-[#616161]") {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         if .store.active_kind == "file" {
@@ -83,6 +113,10 @@ widget App {
             // plan010: vm 轨无 auto-Init——accent 从 autoos-ui.json 读回需在根
             // Init 链上显式触发（vue 端 useTheme onMounted 同源，幂等）。
             Theme.Init()
+        }
+        // T18: 概要页卡片点击 → 模块跳转（sidebar 同款 Select 链）
+        .SelectModule(mid) -> {
+            store.Select(mid)
         }
     }
 }
