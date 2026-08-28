@@ -47,20 +47,24 @@ widget Sidebar {
                         if .store.active_id == m.id {
                             button (class: "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto", key: m.id) {
                                 onclick: .SelectModule(m.id)
+                                row (style: "flex flex-row gap-3 w-full") {
                                 span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
                                 col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
                                     text (text: m.name, class: m.name_class) {}
                                     text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                }
                                 }
                             }
                         }
                         if .store.active_id != m.id {
                             button (class: "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto", key: m.id) {
                                 onclick: .SelectModule(m.id)
+                                row (style: "flex flex-row gap-3 w-full") {
                                 span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
                                 col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
                                     text (text: m.name, class: m.name_class) {}
                                     text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                }
                                 }
                             }
                         }
@@ -68,40 +72,46 @@ widget Sidebar {
                 }
 
                 for g in .store.view_groups {
-                    div (style: "contents") {
-                        key: g.id
                         if .store.search == "" {
                             button (style: "group-header w-full text-left flex items-center gap-[6px] px-3 py-[10px] mt-2 rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto") {
                                 key: g.id
                                 onclick: .ToggleGroup(g.id)
-                                if g.open {
-                                    text (text: "▾", style: "text-[11px] text-[#8a8a8a] w-[14px] shrink-0") {}
+                                // T14b: vm button 子树按结构竖排渲染（上游 05b9362af
+                                // 行为），▾/label 需显式 row 才左右排列、高度正常
+                                row (style: "flex flex-row items-center gap-[6px] w-full gap-[0px]") {
+                                    if g.open {
+                                        text (text: "▾", style: "text-[11px] text-[#8a8a8a] w-[14px] shrink-0") {}
+                                    }
+                                    if g.open == false {
+                                        text (text: "▸", style: "text-[11px] text-[#8a8a8a] w-[14px] shrink-0") {}
+                                    }
+                                    text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a]") {}
                                 }
-                                if g.open == false {
-                                    text (text: "▸", style: "text-[11px] text-[#8a8a8a] w-[14px] shrink-0") {}
-                                }
-                                text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a]") {}
                             }
                         }
                         if .store.search != "" {
                             for m in g.members {
                                 if .store.active_id == m.id {
-                                    button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto", key: m.id) {
+                                    button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a]", key: m.id) {
                                         onclick: .SelectModule(m.id)
+                                        row (style: "flex flex-row gap-3 w-full") {
                                         span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
                                         col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
                                             text (text: m.name, class: m.name_class) {}
                                             text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                         }
+                                        }
                                     }
                                 }
                                 if .store.active_id != m.id {
-                                    button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto", key: m.id) {
+                                    button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a]", key: m.id) {
                                         onclick: .SelectModule(m.id)
+                                        row (style: "flex flex-row gap-3 w-full") {
                                         span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
                                         col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
                                             text (text: m.name, class: m.name_class) {}
                                             text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                        }
                                         }
                                     }
                                 }
@@ -111,28 +121,31 @@ widget Sidebar {
                             if g.open {
                                 for m in g.members {
                                     if .store.active_id == m.id {
-                                        button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto", key: m.id) {
+                                        button (class: "nav-item active w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a]", key: m.id) {
                                             onclick: .SelectModule(m.id)
+                                            row (style: "flex flex-row gap-3 w-full") {
                                             span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
                                             col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
                                                 text (text: m.name, class: m.name_class) {}
                                                 text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                             }
+                                            }
                                         }
                                     }
                                     if .store.active_id != m.id {
-                                        button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto", key: m.id) {
+                                        button (class: "nav-item w-full text-left flex items-start gap-3 pl-[28px] pr-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a]", key: m.id) {
                                             onclick: .SelectModule(m.id)
+                                            row (style: "flex flex-row gap-3 w-full") {
                                             span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
                                             col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
                                                 text (text: m.name, class: m.name_class) {}
                                                 text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                                            }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
                     }
                 }
 
