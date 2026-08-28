@@ -4,14 +4,14 @@ status: executing
 feature_name: os-config-daemon Auto 版——外部 back 形态改造
 author: [zcode]
 created_at: 2026-08-28T18:30:00+08:00
-updated_at: 2026-08-28T23:55:00+08:00
+updated_at: 2026-08-29T00:40:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
 new_spec_components: []
 touched_goals: []
 
-current_step: 8
+current_step: 11
 total_steps: 11
 ---
 
@@ -203,14 +203,27 @@ vm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 �
 
 ### 阶段 3 · 接线与切换
 
-- [ ] T8 (W1) 双模式启动固化:vue 模式启动脚本（后端 HTTP 服务拉起）+ vm 模式
+- [x] T8 (W1) 双模式启动固化:vue 模式启动脚本（后端 HTTP 服务拉起）+ vm 模式
   merged 直调确认;端口策略定案并写入 auto/README。
   验证:两条启动路径各跑一遍 e2e 对应轨全绿。
-- [ ] T9 (W2) plan010 T18 概要页接 `system_info` 真数据（vue-first）。
+  [✅ 已完成] 端口沿用 17701 定案;e2e.sh 服务源切至 auto-os-config-back(冷起
+  自建自启验证 32 断言 ALL PASS);auto/README 双模式启动章节;vm merged 直调
+  多轮实证(链接+cdylib 装载+桥直调)。
+- [x] T9 (W2) plan010 T18 概要页接 `system_info` 真数据（vue-first）。
   验证:概要页信息卡双端渲染一致;plan010 双门禁绿。
-- [ ] T10 (W3) 全链切换:e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 断言）在新
+  [✅ 已完成] App 直调形态 sys_* 字段 + overview-info 卡;Rust 侧加
+  memory_display/storage_display 预格式串(绕 VM __json_object 浮点字段 Dot
+  读上游缺陷,登记);vm MCP 实证真值上卡;vue regen+Playwright 同值渲染;
+  e2e.sh ALL PASS。
+- [x] T10 (W3) 全链切换:e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 断言）在新
   后端上连续两遍全绿;known 残差清单复核（U1/U8 等在新后端下的表现）。
   验证:两遍全绿输出存档本文件。
+  [✅ 已完成,带登记偏差] vue 双门禁:连续两遍 ALL PASS(32 断言,新 back 为
+  :17701 服务源)。e2e-vm:连续两遍一致 15/17——数据面断言全绿(modules 7/
+  collection/field edit/save);2 FAIL(group collapse、test connection)=
+  待澄清#5 上游 press 派发间歇 + MCP 字段名冲突,先于本计划存在(pristine
+  main 复现)。严格 e2e-vm 双遍全绿待用户裁决(见待澄清#5);残差复核:
+  U1/U3 表现与 plan010 台账一致,新后端未引入新残差。
 - [ ] T11 (W4) `backend/` 退役归档（archive/）+ README/KNOWN-DEBT 同步 + 计划收尾。
   验证:仓库无 backend/ 活代码引用;文档三处同步。
 
