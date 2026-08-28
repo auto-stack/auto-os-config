@@ -8,7 +8,7 @@
 //! 端口:POC 用 AUTOOS_BACK_PORT(默认 17901,scratch 段,不撞旧 daemon
 //! :17701);端口策略沿用/定案在 T8。
 
-use auto_os_config_back::system_info_json;
+use auto_os_config_back::{system_info_json, core};
 use axum::routing::get;
 use axum::{Json, Router};
 use tower_http::cors::CorsLayer;
@@ -24,6 +24,12 @@ async fn config_probe() -> Json<serde_json::Value> {
 /// T3:GET /api/system-info — 与 cdylib 桥共享同一实现(单实现双传输)。
 async fn system_info() -> Json<serde_json::Value> {
     Json(system_info_json())
+}
+
+/// T4:GET /api/modules — merged registry(core::modules_json,与旧 daemon
+/// ModuleEntry 同字段)。
+async fn modules() -> Json<serde_json::Value> {
+    Json(core::modules_json())
 }
 
 #[tokio::main]
@@ -43,6 +49,7 @@ async fn main() {
         .route("/api/hello", get(hello))
         .route("/api/config-probe", get(config_probe))
         .route("/api/system-info", get(system_info))
+        .route("/api/modules", get(modules))
         .layer(cors);
 
     println!("auto-os-config-back-server on http://{addr}");

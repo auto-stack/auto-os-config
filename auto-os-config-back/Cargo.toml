@@ -20,10 +20,15 @@ path = "src/main.rs"
 [dependencies]
 # Plan 061 ABI(backend_abi)出自 auto-lang;同源同工具链(extern "Rust" 约束)。
 auto-lang = { path = "../../auto-lang/crates/auto-lang" }
+# T4:registry 移植依赖(auto-atom 解析 .at registry;同 backend/ daemon 依赖)。
+auto-atom = { path = "../../auto-lang/crates/auto-atom" }
+auto-val = { path = "../../auto-lang/crates/auto-val", features = ["serde"] }
 axum = "0.7"
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.5", features = ["cors"] }
 serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
 
 # system_info(T3):RtlGetVersion / GlobalMemoryStatusEx / GetDiskFreeSpaceExW。
 # 纯 FFI 声明 crate,无运行时开销(替代 powershell/wmic 子进程方案,待澄清#3)。

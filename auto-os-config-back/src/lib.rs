@@ -13,6 +13,10 @@
 use auto_lang::vm::backend_abi::{BackendHostCallFn, BackendRegistry, BACKEND_ABI_VERSION};
 use std::sync::Arc;
 
+pub mod config_root;
+pub mod core;
+pub mod registry;
+
 #[no_mangle]
 pub extern "Rust" fn auto_backend_abi_version() -> u32 {
     BACKEND_ABI_VERSION
@@ -24,7 +28,7 @@ pub extern "Rust" fn auto_backend_register(reg: Arc<dyn BackendRegistry>) -> Res
         reg.log("auto-os-config-back: AUTOOS_BACK_BRIDGE=0 — empty registry (form a: #[api] bodies interpret in-VM)");
         return Ok(());
     }
-    reg.log("auto-os-config-back: registering hello / config_probe into host bridge (form b)");
+    reg.log("auto-os-config-back: registering api endpoints into host bridge (form b)");
 
     let hello: BackendHostCallFn = Arc::new(|_args: &str| {
         // 返回 JSON 串(宿主 json.to_value 还原为 VM 值;str → 带引号)。
@@ -39,6 +43,11 @@ pub extern "Rust" fn auto_backend_register(reg: Arc<dyn BackendRegistry>) -> Res
     // 还原为 VM 对象,前端单跳字段读)。
     let sysinfo: BackendHostCallFn = Arc::new(|_args: &str| Ok(system_info_json().to_string()));
     reg.host_call("system_info", sysinfo);
+
+    // T4:fetchModulesRaw — 前端契约包装 {ok, error, text},text = /api/modules
+    // 数组文本;失败 fail-soft(ok:false,VG 传输错误形状),不炸 handler。
+    let modules: BackendHostCallFn = Arc::new(|_args: &str| Ok(fetch_modules_raw_payload().to_string()));
+    reg.host_call("fetchModulesRaw", modules);
 
     Ok(())
 }
@@ -197,6 +206,16 @@ pub fn config_probe_public() -> String {
     config_probe_rs()
 }
 
+/// fetchModulesRaw 的前端契约载荷:{ok, error, text}(text = /api/modules
+/// 数组 JSON 文本)。core 恐慌(如 config root 缺失)fail-soft 为传输错误形状
+/// ——桥 Err 会让 VM handler 崩(VG7 回滚),这里必须 Ok 包装。
+pub fn fetch_modules_raw_payload() -> serde_json::Value {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(core::modules_json)) {
+        Ok(text) => serde_json::json!({ "ok": true, "error": "", "text": text.to_string() }),
+        Err(_) => serde_json::json!({ "ok": false, "error": "registry unavailable", "text": "" }),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,5 +256,16 @@ mod tests {
         let s = system_info_json().to_string();
         let parsed: serde_json::Value = serde_json::from_str(&s).expect("bridge payload must be JSON");
         assert!(parsed.is_object());
+    }
+
+    /// T4 桥返回形状:fetchModulesRaw 的前端契约包装 {ok, error, text}。
+    #[test]
+    fn fetch_modules_raw_bridge_shape() {
+        let payload = fetch_modules_raw_payload();
+        assert_eq!(payload["ok"], true);
+        assert_eq!(payload["error"], "");
+        let text = payload["text"].as_str().expect("text carries the array");
+        let arr: serde_json::Value = serde_json::from_str(text).expect("text is JSON array");
+        assert_eq!(arr.as_array().unwrap().len(), 7);
     }
 }

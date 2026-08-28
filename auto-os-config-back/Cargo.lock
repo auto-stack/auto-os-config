@@ -279,9 +279,13 @@ dependencies = [
 name = "auto-os-config-back"
 version = "0.1.0"
 dependencies = [
+ "auto-atom",
  "auto-lang",
+ "auto-val",
  "axum",
+ "serde",
  "serde_json",
+ "thiserror 1.0.69",
  "tokio",
  "tower-http 0.5.2",
  "windows-sys 0.59.0",
@@ -296,6 +300,7 @@ dependencies = [
  "indexmap",
  "normalize-path",
  "regex",
+ "serde",
  "thiserror 2.0.20",
 ]
 

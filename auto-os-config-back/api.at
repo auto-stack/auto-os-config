@@ -782,7 +782,11 @@ pub fn testDaemon() any {
 
 // ─── flat list surface (VG12/VG13-safe: text + count + per-item getters) ────
 
-/// [M1] stub — /api/modules GET(移植后侧栏 7 模块渲染回归)
+/// GET /api/modules —— 侧栏模块清单(前端契约包装 {ok, error, text})。
+/// [M1 已移植] 实现:Rust 侧 core::modules_json(registry 移植,同名同语义);
+/// merged 模式经宿主桥直调,函数体被旁路。#[api] 注解 = 机器可读契约
+/// (vue 轨仍走 src/lib/api.ts 手写 transport,不受此注解影响)。
+#[api(method = "GET", path = "/api/modules")]
 pub fn fetchModulesRaw() any {
     return { ok: false, error: "not-migrated", text: "" }
 }
