@@ -9,7 +9,8 @@
 //! :17701);端口策略沿用/定案在 T8。
 
 use auto_os_config_back::{system_info_json, core};
-use axum::routing::get;
+use axum::extract::{Path, Json as ExtractJson};
+use axum::routing::{get, put, delete};
 use axum::{Json, Router};
 use tower_http::cors::CorsLayer;
 
@@ -32,6 +33,48 @@ async fn modules() -> Json<serde_json::Value> {
     Json(core::modules_json())
 }
 
+/// T5:GET /api/config/:module_id → {value, meta:{file, root}}。
+async fn get_config(
+    Path(module_id): Path<String>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    core::get_config_json(&module_id)
+        .map(Json)
+        .map_err(|e| config_error(&e))
+}
+
+/// T5:PUT /api/config/:module_id(body {value})→ {ok, file, note}。
+async fn put_config(
+    Path(module_id): Path<String>,
+    ExtractJson(body): ExtractJson<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let value = body.get("value").cloned().unwrap_or(serde_json::Value::Null);
+    core::put_config_json(&module_id, &value)
+        .map(Json)
+        .map_err(|e| config_error(&e))
+}
+
+/// T5:DELETE /api/config/:module_id/blocks/:name → {ok, file, note}。
+async fn delete_block(
+    Path((module_id, name)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    core::delete_block_json(&module_id, &name)
+        .map(Json)
+        .map_err(|e| config_error(&e))
+}
+
+/// 旧 daemon 错误映射:not found → 404,其余 → 400(响应体 {error})。
+fn config_error(msg: &str) -> (axum::http::StatusCode, Json<serde_json::Value>) {
+    let status = if msg.contains("not registered")
+        || msg.contains("could not read")
+        || msg.contains("not found")
+    {
+        axum::http::StatusCode::NOT_FOUND
+    } else {
+        axum::http::StatusCode::BAD_REQUEST
+    };
+    (status, Json(serde_json::json!({ "error": msg })))
+}
+
 #[tokio::main]
 async fn main() {
     let port: u16 = std::env::var("AUTOOS_BACK_PORT")
@@ -50,6 +93,11 @@ async fn main() {
         .route("/api/config-probe", get(config_probe))
         .route("/api/system-info", get(system_info))
         .route("/api/modules", get(modules))
+        .route("/api/config/:module_id", get(get_config).put(put_config))
+        .route(
+            "/api/config/:module_id/blocks/:name",
+            delete(delete_block),
+        )
         .layer(cors);
 
     println!("auto-os-config-back-server on http://{addr}");

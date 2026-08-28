@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 pub mod config_root;
 pub mod core;
+pub mod project;
 pub mod registry;
 
 #[no_mangle]
@@ -48,6 +49,30 @@ pub extern "Rust" fn auto_backend_register(reg: Arc<dyn BackendRegistry>) -> Res
     // 数组文本;失败 fail-soft(ok:false,VG 传输错误形状),不炸 handler。
     let modules: BackendHostCallFn = Arc::new(|_args: &str| Ok(fetch_modules_raw_payload().to_string()));
     reg.host_call("fetchModulesRaw", modules);
+
+    // T5:config get/put/delete-block(Shape A)。参数以 {"p":...} JSON 入。
+    let fetch_cfg: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let id = a["id"].as_str().unwrap_or_default().to_string();
+        Ok(fetch_config_safe_payload(&id).to_string())
+    });
+    reg.host_call("fetchConfigSafe", fetch_cfg);
+
+    let put_cfg: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let id = a["id"].as_str().unwrap_or_default().to_string();
+        let body = a["body"].as_str().unwrap_or_default().to_string();
+        Ok(put_config_safe_payload(&id, &body).to_string())
+    });
+    reg.host_call("putConfigSafe", put_cfg);
+
+    let del_block: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let id = a["id"].as_str().unwrap_or_default().to_string();
+        let name = a["name"].as_str().unwrap_or_default().to_string();
+        Ok(delete_block_safe_payload(&id, &name).to_string())
+    });
+    reg.host_call("deleteBlockSafe", del_block);
 
     Ok(())
 }
@@ -213,6 +238,35 @@ pub fn fetch_modules_raw_payload() -> serde_json::Value {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(core::modules_json)) {
         Ok(text) => serde_json::json!({ "ok": true, "error": "", "text": text.to_string() }),
         Err(_) => serde_json::json!({ "ok": false, "error": "registry unavailable", "text": "" }),
+    }
+}
+
+/// fetchConfigSafe 的前端契约载荷:{ok, value, meta} | {ok:false, error}。
+pub fn fetch_config_safe_payload(id: &str) -> serde_json::Value {
+    match core::get_config_json(id) {
+        Ok(v) => serde_json::json!({ "ok": true, "value": v["value"], "meta": v["meta"] }),
+        Err(_) => serde_json::json!({ "ok": false, "error": "Failed to load config" }),
+    }
+}
+
+/// putConfigSafe 的前端契约载荷(旧配方写后 GET 验证;直写等价,{ok} 契约)。
+pub fn put_config_safe_payload(id: &str, body_text: &str) -> serde_json::Value {
+    let parsed: serde_json::Result<serde_json::Value> =
+        serde_json::from_str(body_text);
+    match parsed
+        .map_err(|e| e.to_string())
+        .and_then(|value| core::put_config_json(id, &value))
+    {
+        Ok(_) => serde_json::json!({ "ok": true }),
+        Err(_) => serde_json::json!({ "ok": false, "error": "Save failed (config unreadable after PUT)" }),
+    }
+}
+
+/// deleteBlockSafe 的前端契约载荷:{ok} | {ok:false, error}。
+pub fn delete_block_safe_payload(id: &str, name: &str) -> serde_json::Value {
+    match core::delete_block_json(id, name) {
+        Ok(_) => serde_json::json!({ "ok": true }),
+        Err(_) => serde_json::json!({ "ok": false, "error": "Delete request failed" }),
     }
 }
 

@@ -514,12 +514,17 @@ pub fn expandGroupFor(expanded []any, groups []any, id str) []any {
 
 // ─── file-config (config_editor surface, vm widgets) ────────────────────────
 
-/// [M2] stub — /api/config/:id GET 移植后改为 #[api] + 实现
+/// GET /api/config/:id —— 文件模块配置体({ok, value, meta} 契约包装)。
+/// [M2 已移植] 实现:core::get_config_json(project.rs AST 投影移植);
+/// merged 模式经宿主桥直调,函数体被旁路。
+#[api(method = GET, path = /api/config/:id)]
 pub fn fetchConfigSafe(id str) any {
     return { ok: false, error: "not-migrated" }
 }
 
-/// [M2] stub — /api/config/:id PUT
+/// PUT /api/config/:id —— merge 进当前 AST 后写盘(.bak 先行)。
+/// [M2 已移植] 实现:core::put_config_json。
+#[api(method = PUT, path = /api/config/:id)]
 pub fn putConfigSafe(id str, body str) any {
     return { ok: false, error: "not-migrated" }
 }
@@ -1184,7 +1189,9 @@ pub fn bodyHasText(body str, name str) bool {
     return false
 }
 
-/// [M2] stub — DELETE /api/config/:id/blocks/:name(mirrors api.ts deleteBlockSafe)
+/// DELETE /api/config/:id/blocks/:name —— 结构化删块(mirrors api.ts deleteBlockSafe)。
+/// [M2 已移植] 实现:core::delete_block_json。
+#[api(method = DELETE, path = /api/config/:id/blocks/:name)]
 pub fn deleteBlockSafe(id str, name str) any {
     return { ok: false, error: "not-migrated" }
 }
