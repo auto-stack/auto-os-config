@@ -166,18 +166,9 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 
 ### E 相 · 门禁扩容与收尾
 
-- [ ] T10 (E1) e2e-vm 9→14：
-  文件：`scripts/e2e-vm.mjs`。
-  操作：新增断言——搜索过滤、分组折叠、accent 持久化重启保持、collection detail inputs/applies 常驻存在、swatch 导航冒烟（详见详细设计 E 相）。
-  验证：`node scripts/e2e-vm.mjs` 连续两遍 14/14 全绿。
-- [ ] T11 (E2) 文档三件套：
-  文件：`auto/README.md`、`README.md`、`docs/plans/KNOWN-DEBT-AND-RISKS.md`。
-  操作：vm 章节改写为双端一致架构叙述（含窗口/门禁/残差指引）；KNOWN-DEBT 中 J1-J4、MCP 轮询崩溃、007 vm v1 偏差等条目按 T2/T9 实证终态改写或移除。
-  验证：三文件交叉引用一致（446/455 号、断言数、残差数）。
-- [ ] T12 (E3) probe 去留裁决：
-  文件：`scripts/vm-probes/probe-mcp-health.mjs`（及其余两件按用途复核）。
-  操作：崩溃在 A2/全程未见再现 → 删除 + KNOWN-DEBT 撤条；仍偶发 → 保留并头注标注观测频率与定位价值。
-  验证：`ls scripts/vm-probes/` 与 KNOWN-DEBT 相关行一一对应。
+- [x] T10 (E1) e2e-vm 9→14 ✅ 已完成 [2026-08-28]（9e72c9e;T14 轮扩至 15 断言）——detail inputs/applies 常驻存在(原批4卡点固化)+swatch→nav 重启冒烟;连续多遍全绿。登记行曾于编辑事故丢失,本行重建。
+- [x] T11 (E2) 文档三件套 ✅ 已完成 [2026-08-28]（7217817;446 §P 增补 e06fb31e0 已写入上游）——auto/README vm 章改写+双端一致章;根 README Desktop 段;KNOWN-DEBT 按实证终态改写,交叉引用一致。登记行曾丢失,本行重建。
+- [x] T12 (E3) probe 去留裁决 ✅ 已完成 [2026-08-28]（3241568）——三件全撤(J4 未再现+诊断使命完成),KNOWN-DEBT 446 行补 J4 终态。登记行曾丢失,本行重建。
 - [x] T13 (E4) 终验与验收包 ✅ 已完成 [2026-08-28] ①走查清单 W：vue 轨=e2e 28 断言全覆盖（ALL PASS）；vm 轨=e2e-vm 14 断言（搜索/折叠/accent 切换+持久化重启/Test connection/集合列表/实体选择/detail 常驻）+ 专项 MCP 走查（auto-musk 增块 ✓[删块按钮快照定位失败,vue e2e 已覆盖同链路]、roles 详情字段 ✓、harness-roles 详情/子表单 ✓ inputs=4、skills 只读 ✓[T4+04 视图]、ai-client 双 select=U4 已登记）；**实机新发现 U8**（modal 删除确认:AskDelete 不执行,U1 冻结面扩展）。②双端并排 sheet：tmp/track-parity/sheet.png（2916x7308,8 视图,不入库）。③G1-G6：G1 ✓（vue 门禁 ALL PASS + css-era 00=0.00% 零回归,多轮）/ G2 ✓（14 断言连续多遍全绿）/ G3 ✓（台账全归因无未归因行;03-roles L1 实机走查由 U3 约定覆盖——列表/选择链路 e2e-vm 断言在案,详情态肉眼核对留用户验收）/ G4 ✓ / G5 ✓ / G6 ▶ **走查完成,用户验收确认待办**（确认后在计划头追加验收记录行）。
 
 ### 复审修复轮（2026-08-28,「/auto-plan:review 退回 → /auto-plan:work 接续」）
@@ -187,6 +178,26 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 - [x] T14c (用户报告二轮) 高度/desc 终修 ✅ 已完成 [2026-08-28]（5062510）。用户实机反馈:h-auto 在 row 包裹下高度倍数膨胀(standalone/Harness 头 2-3 倍);去 h-auto 则 preset h-10 裁掉 desc。实测矩阵(h-fit 不识别/去 items 类/items-start 组合)后定案:**去 h-auto + 显式 h-[50px]**(vue 端 offsetHeight 实测 50 等值,vm 端两行全容);row 对齐采「无 items 类」(items-start+flex-1 组合是 30px 错位元凶,单独 items-start 无恙)。结果:**desc 全恢复(含分组二级项)+高度正常+左右布局**,vm 00=0.99%。已知残差:css-era 侧栏文字整体上移 ~9px(00=0.82%,各视图 +0.8-1.1%)——上游漂移期 button 高度语义变化的 L2 权衡(vm 可用性优先),py-3/py-10 双向验证不可归零,登记待上游布局类语义稳定后复核。门禁:vue ALL PASS + e2e-vm 15/15 两连绿。
 - [x] T14 (复审修复) 修复清单 5 项 ✅ 已完成 [2026-08-28]（c4df24b + 354b6a9）：
   ① **[P1] read_only 集合 vm 实体加载**——方案①落地:`Modules.Select` 命中集合时 `Collection.Open(si.id)` 预载（store→store 调用;vm synthesis+运行时实测通,skills `names` 7 实体+Pick 详情链路全通;vue 端幂等——mount Init 同 id 再 Open）。vue 产物跨 store 裸引用由 regen.sh 后处理改写 `useCollectionStore().Open()`+import（又一例多store facade 上游缺口,446 §P 同族）。e2e-vm 固化第 **15 断言**（skills 预载,断言后受控重启避开 U1 污染）;Roles 段 Load 改条件式（预载后空态按钮自然消失=设计行为）;Test 轮询条件补 `"loaded"` 中间态;capture 04-skills 补首实体选中口径（diff 11.48→3.52%）。② U8 补进附录 §P 表。③ metrics.mjs 入库 scripts/track-parity/（路径适配+头注）。④ nav_class 死代码清理（4 处声明/重赋值/push 字段,产物零引用）。⑤ 重验:vue ALL E2E PASS + e2e-vm **15/15 两连绿** + css-era 00=0.00%（零回归）。**待办**:G6 用户验收（/auto-plan:review 复审通过后、merge 前签字）。
+
+### F 相 · 用户实机反馈轮（2026-08-28 新增；用户授权扩围）
+
+> 背景:T14b/T14c 修复侧栏后用户实机验收,提出五项体验问题;经确认集成为本计划新范围。
+> 其中第 5 项方案抉择:推荐**方案 A(系统概要主页)**——Windows Settings 范式、纯前端
+> (模块卡片复用现有 store 数据,backend/ 零改动惯例不破);方案 B(系统信息页)需新增
+> CPU/MEM/OS 端点,成本高且信息一次性,可日后作为主页增量卡片。
+
+- [ ] T15 (F1) vm 深浅色主题配置（用户问题 1:Search 框字体浅色适配暗色主题,与浅色 UI 不符）：
+  操作:调研 AutoUI 主题机制(AUTOUI_* env/Theme store/上游默认 dark 的指定方式)——app 级显式声明 light;检查 Theme.Init 链是否需同步设 mode。
+  验证:vm 截图 Search 框文字/placeholder 为深色可读;vue 轨零回归。
+- [ ] T16 (F2) accent 切换的 primary 动态刷新（用户问题 2:点击色板 nav/主按钮仍 indigo;vue 版 e2e 已证可用 → vm 端未实现）：
+  操作:定位 vm 端 primary 解析时机(编译期 vs SetAccent 动态);视图源/store 侧修复或上游登记。
+  验证:vm 端点色板后 nav active 底色与主按钮随 accent 变化;e2e-vm accent 断言保持绿。
+- [ ] T17 (F3) 模块页按需自动加载 + 打开失败盘点（用户问题 3+4:不要手动 Load,页面打开即首次加载）：
+  操作:R10 预载模式扩展——Modules.Select 对 file 模块同样触发对应配置加载(Collection.Open 同款 store 预载);Load 按钮转为双端一致的手动刷新语义(去留随实现定);逐模块盘点"打不开"清单并入残差台账。
+  验证:vm 端逐模块单击即见内容;e2e-vm 相应断言更新;vue 轨零回归。
+- [ ] T18 (F4) 默认落地页改「系统概要」（用户问题 5,方案 A）：
+  操作:app.at 空态分支(active_kind=="")改为概要页——常用模块入口卡片(点击即 Select 跳转)+简要状态;新增视图注意 vm 兼容词汇(row 布局/text-prop/显式色/h-50px 家族);css-era 空态基准随设计变更重拍。
+  验证:vm/vue 双端启动即见概要页,卡片点击可达对应模块;双门禁绿;css-era 基准更新并全绿。
 
 ## 残差台账（T9 终稿 [2026-08-28]；全行带归因，无未归因项）
 
