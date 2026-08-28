@@ -77,7 +77,9 @@ widget App {
 
     on {
         .Init -> {
-            store.Init()
+            // plan446 批二 A1:App 同持 Modules+Theme 两 store,裸 store.Init 现歧义报错;
+            // 旧 codegen 里 store 即首个 use(Modules),显式限定语义不变。
+            Modules.Init()
             // plan010: vm 轨无 auto-Init——accent 从 autoos-ui.json 读回需在根
             // Init 链上显式触发（vue 端 useTheme onMounted 同源，幂等）。
             Theme.Init()
