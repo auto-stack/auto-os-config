@@ -326,7 +326,11 @@ Cargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路
      ToggleGroup 路径复现,新旧二进制 + 摘除 T9 Init 均复现)。需上游专门
      调试会话(renderer 失效链路),已登记 ④。
      ④ __json_object 浮点字段 Dot 读编码缺陷(f64→i32 误读,54.16→
-     -1073741824)—— 未修,本仓已用展示串绕开;待上游。
+     -1073741824)—— 未修,本仓已用展示串绕开。auto-lang ④ 会话已开工并
+     认领:指纹(0xC0000000 = -2.0f32 位型按 i32 重解释)与已修同族缺陷
+     fb06cd8b2/bb6608f75(decode 兜底位读/Float 无 tag 守卫)同源,写入侧
+     (Double 正常入字段)初步排除,焦点在 GET_FIELD/Dot 读取侧 pop/decode
+     的 tag 宽度错配;修复落地后本仓撤展示串绕法、恢复原始数值字段。
    - ③ 深入定位(2026-08-29 续):上游 canary
      auto-lang examples/capability-tests/p1-toggle-array-rerender(RED 6/6 确
      定性)——App 以 button 循环消费 view_groups + SidePanel 条件渲染同一数
