@@ -7,8 +7,9 @@
 //  - flat api surface only (VG12/VG13): text + per-item getters, editField
 //    text-in/text-out; `body_text` is the authoritative body, `entries` is
 //    the D4 display projection rebuilt after every edit (whole-replace, D5);
-//  - stores cannot self-dispatch actions — Init/Reload inline the reload
-//    logic, Create inlines the Select body;
+//  - 446 撤绕行（B1/VG16）：事件实参直取循环变量字段（e.name/e.key），
+//    平行 names/entry_keys/view_names 影子数组已删；Create 经
+//    Collection.Select 自限定调用复用选中链（A1 修后合法）；
 //  - the fm entity object stays flattened into three str fields.
 use back.api: fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat, createEntitySafe, putEntitySafe, deleteEntitySafe, entriesCount, entryAt, editField, editTagField, fieldDisplayOf, warmEnumsText, setCellText, tableAddRowText, tableRemoveRowText
 
@@ -16,13 +17,9 @@ store Collection {
     model {
         var module_id str = ""
         var list Array<str> = []
-        // Plan 007: parallel plain-string names (vm event args must be
-        // scalars; field access on store-list loop vars kills the MCP channel)
-        var names Array<str> = []
         var selected_name ?str = None
         var entries Array<str> = []
         // Plan 007: parallel entry key strings (vm event args must be scalars)
-        var entry_keys Array<str> = []
         var sidecar str = ""
         // Plan 007: authoritative atom body text (edits go text-in/text-out)
         var body_text str = ""
@@ -31,12 +28,10 @@ store Collection {
         var fm_description str = ""
         var fm_body str = ""
         var is_read_only bool = false
-        // Plan 008 batch 4: filter projection (view_names).
+        // Plan 008 batch 4: filter projection.
         var name_filter str = ""
-        var view_names Array<str> = []
         // 2026-08-27 像素对拍：vue 侧行循环需要 {name, description} 对象
         // （css-era 列表行带描述行）；vm 事件参数不能引用 store 列表项字段
-        // （007 实证），vm 侧继续用 view_names。
         var view_entities Array<str> = []
         var list_loading bool = false
         var loading bool = false
@@ -70,7 +65,6 @@ store Collection {
             var r = fetchCollectionListRaw(mid)
             if r.ok {
                 var items = []
-                var nm = []
                 let n = collectionCount(r.text)
                 var i = 0
                 loop {
@@ -79,13 +73,10 @@ store Collection {
                     }
                     let e = collectionAt(r.text, i)
                     items.push({ name: e.name, description: e.description })
-                    nm.push(e.name)
                     i = i + 1
                 }
                 .list = items
-                .names = nm
-                // Plan 008 batch 4: filter projection over names
-                var vn = []
+                // Plan 008 batch 4: filter projection
                 var ve = []
                 let fq = .name_filter.to_lower()
                 for e in .list {
@@ -95,16 +86,13 @@ store Collection {
                     }
                     if hit {
                         ve.push({ name: e.name, description: e.description })
-                        vn.push(e.name)
                     }
                 }
                 .view_entities = ve
-                .view_names = vn
             }
             if r.ok == false {
                 .error = r.error
                 .list = []
-                .names = []
             }
             .list_loading = false
         }
@@ -114,7 +102,6 @@ store Collection {
             var r = fetchCollectionListRaw(.module_id)
             if r.ok {
                 var items = []
-                var nm = []
                 let n = collectionCount(r.text)
                 var i = 0
                 loop {
@@ -123,13 +110,10 @@ store Collection {
                     }
                     let e = collectionAt(r.text, i)
                     items.push({ name: e.name, description: e.description })
-                    nm.push(e.name)
                     i = i + 1
                 }
                 .list = items
-                .names = nm
-                // Plan 008 batch 4: filter projection over names
-                var vn = []
+                // Plan 008 batch 4: filter projection
                 var ve = []
                 let fq = .name_filter.to_lower()
                 for e in .list {
@@ -139,11 +123,9 @@ store Collection {
                     }
                     if hit {
                         ve.push({ name: e.name, description: e.description })
-                        vn.push(e.name)
                     }
                 }
                 .view_entities = ve
-                .view_names = vn
             }
             if r.ok == false {
                 .error = r.error
@@ -160,7 +142,6 @@ store Collection {
                         .sidecar = e.sidecar
                         let w = warmEnumsText(.body_text, .module_id)
             var es = []
-                        var ek = []
                         let n2 = entriesCount(e.value)
                         var i2 = 0
                         loop {
@@ -169,11 +150,9 @@ store Collection {
                             }
                             let d = entryAt(e.value, i2, .module_id)
                             es.push(d)
-                            ek.push(d.key)
                             i2 = i2 + 1
                         }
                         .entries = es
-                        .entry_keys = ek
                     }
                     if e.is_atom == false {
                         .is_read_only = true
@@ -209,7 +188,6 @@ store Collection {
                     .sidecar = r.sidecar
                     let w = warmEnumsText(.body_text, .module_id)
             var es = []
-                    var ek = []
                     let n = entriesCount(r.value)
                     var i = 0
                     loop {
@@ -218,11 +196,9 @@ store Collection {
                         }
                         let d = entryAt(r.value, i, .module_id)
                         es.push(d)
-                        ek.push(d.key)
                         i = i + 1
                     }
                     .entries = es
-                    .entry_keys = ek
                 }
                 if r.is_atom == false {
                     // frontmatter-md (skill): read-only
@@ -247,7 +223,6 @@ store Collection {
                 var lr = fetchCollectionListRaw(.module_id)
                 if lr.ok {
                     var items = []
-                    var nm = []
                     let n = collectionCount(lr.text)
                     var i = 0
                     loop {
@@ -256,13 +231,10 @@ store Collection {
                         }
                         let e = collectionAt(lr.text, i)
                         items.push({ name: e.name, description: e.description })
-                        nm.push(e.name)
                         i = i + 1
                     }
                     .list = items
-                    .names = nm
-                    // Plan 008 batch 4: filter projection over names
-                    var vn = []
+                    // Plan 008 batch 4: filter projection
                     var ve = []
                     let fq = .name_filter.to_lower()
                     for e in .list {
@@ -272,11 +244,9 @@ store Collection {
                         }
                         if hit {
                             ve.push({ name: e.name, description: e.description })
-                            vn.push(e.name)
                         }
                     }
                     .view_entities = ve
-                    .view_names = vn
                 }
                 .list_loading = false
                 Collection.Select(name)
@@ -298,7 +268,6 @@ store Collection {
                     var lr = fetchCollectionListRaw(.module_id)
                     if lr.ok {
                         var items = []
-                        var nm = []
                         let n = collectionCount(lr.text)
                         var i = 0
                         loop {
@@ -307,13 +276,10 @@ store Collection {
                             }
                             let e = collectionAt(lr.text, i)
                             items.push({ name: e.name, description: e.description })
-                            nm.push(e.name)
                             i = i + 1
                         }
                         .list = items
-                        .names = nm
-                        // Plan 008 batch 4: filter projection over names
-                        var vn = []
+                        // Plan 008 batch 4: filter projection
                         var ve = []
                         let fq = .name_filter.to_lower()
                         for e in .list {
@@ -323,11 +289,9 @@ store Collection {
                             }
                             if hit {
                                 ve.push({ name: e.name, description: e.description })
-                                vn.push(e.name)
                             }
                         }
                         .view_entities = ve
-                        .view_names = vn
                     }
                     .list_loading = false
                 }
@@ -351,7 +315,6 @@ store Collection {
                 var lr = fetchCollectionListRaw(.module_id)
                 if lr.ok {
                     var items = []
-                    var nm = []
                     let n = collectionCount(lr.text)
                     var i = 0
                     loop {
@@ -360,13 +323,10 @@ store Collection {
                         }
                         let e = collectionAt(lr.text, i)
                         items.push({ name: e.name, description: e.description })
-                        nm.push(e.name)
                         i = i + 1
                     }
                     .list = items
-                    .names = nm
-                    // Plan 008 batch 4: filter projection over names
-                    var vn = []
+                    // Plan 008 batch 4: filter projection
                     var ve = []
                     let fq = .name_filter.to_lower()
                     for e in .list {
@@ -376,11 +336,9 @@ store Collection {
                         }
                         if hit {
                             ve.push({ name: e.name, description: e.description })
-                            vn.push(e.name)
                         }
                     }
                     .view_entities = ve
-                    .view_names = vn
                 }
                 .list_loading = false
             }
@@ -395,7 +353,6 @@ store Collection {
             .body_text = editField(.body_text, args.path, args.value)
             let w = warmEnumsText(.body_text, .module_id)
             var es = []
-            var ek = []
             let n = entriesCount(.body_text)
             var i = 0
             loop {
@@ -404,11 +361,9 @@ store Collection {
                 }
                 let d = entryAt(.body_text, i, .module_id)
                 es.push(d)
-                ek.push(d.key)
                 i = i + 1
             }
             .entries = es
-            .entry_keys = ek
             .dirty = true
         }
 
@@ -423,7 +378,6 @@ store Collection {
         .SetBodyText(nb) -> {
             .body_text = nb
             var es = []
-            var ek = []
             let n = entriesCount(.body_text)
             var i = 0
             loop {
@@ -432,17 +386,14 @@ store Collection {
                 }
                 let d = entryAt(.body_text, i, .module_id)
                 es.push(d)
-                ek.push(d.key)
                 i = i + 1
             }
             .entries = es
-            .entry_keys = ek
         }
 
         .TagRemove(k, t) -> {
             .body_text = editTagField(.body_text, k, "", t)
             var es = []
-            var ek = []
             let n = entriesCount(.body_text)
             var i = 0
             loop {
@@ -451,18 +402,15 @@ store Collection {
                 }
                 let d = entryAt(.body_text, i, .module_id)
                 es.push(d)
-                ek.push(d.key)
                 i = i + 1
             }
             .entries = es
-            .entry_keys = ek
         }
 
         .TagField(k, add) -> {
             .body_text = editTagField(.body_text, k, add, "")
             let w = warmEnumsText(.body_text, .module_id)
             var es = []
-            var ek = []
             let n = entriesCount(.body_text)
             var i = 0
             loop {
@@ -471,17 +419,14 @@ store Collection {
                 }
                 let d = entryAt(.body_text, i, .module_id)
                 es.push(d)
-                ek.push(d.key)
                 i = i + 1
             }
             .entries = es
-            .entry_keys = ek
             .dirty = true
         }
 
         .SetFilter(q) -> {
             .name_filter = q
-            var vn = []
             var ve = []
             let fq = .name_filter.to_lower()
             for e in .list {
@@ -491,11 +436,9 @@ store Collection {
                 }
                 if hit {
                     ve.push({ name: e.name, description: e.description })
-                    vn.push(e.name)
                 }
             }
             .view_entities = ve
-            .view_names = vn
         }
     }
 }

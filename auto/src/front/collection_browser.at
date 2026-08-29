@@ -3,11 +3,10 @@
 // the vue named-class browser + ScalarFields/TableField children (Plan 006)
 // and vm_collection.at (Plan 007).
 //
-// vm-proven patterns (007 gate): entity rows loop the store's parallel
-// `view_names` string array (filter projection — field access on store-list
-// loop vars in event args kills the MCP channel); field rows use INDEX event
-// args resolved against the parallel `entry_keys`; store calls accept map
-// literals ({path, value}); selection state is a bool (`has_selection`) —
+// vm-proven patterns (007 gate; 446 撤绕行 B1 更新): entity/field rows loop
+// store object lists and pass loop-var fields (e.name / e.key) as event args
+// directly — the parallel `view_names`/`entry_keys` shadow arrays are gone;
+// store calls accept map literals ({path, value});
 // nil-compare semantics diverge across backends. `.Init` auto-fires on vue
 // mount (list auto-loads); on vm the Load button kicks it (same shape as
 // the unified config editor).
@@ -38,14 +37,14 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
         ConfirmDeleteNo,
         Draft(str),
         SidecarDraft(str),
-        ApplyEntry(int, str),
-        TagAdd(int),
-        TagRemove(int, str),
-        MsToggle(int, str, bool),
-        Toggle(int, bool),
-        TableCell(int, int, str, str),
-        TableRowAdd(int),
-        TableRowRemove(int, int),
+        ApplyEntry(str, str),
+        TagAdd(str),
+        TagRemove(str, str),
+        MsToggle(str, str, bool),
+        Toggle(str, bool),
+        TableCell(str, int, str, str),
+        TableRowAdd(str),
+        TableRowRemove(str, int),
         PwToggle
     }
 
@@ -92,12 +91,12 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                 }
                 if .store.list_loading == false {
                     if .store.view_entities.len() == 0 {
-                        if .store.names.len() == 0 {
+                        if .store.list.len() == 0 {
                             div (style: "list-msg empty") {
                                 text (text: "No entities.") {}
                             }
                         }
-                        if .store.names.len() > 0 {
+                        if .store.list.len() > 0 {
                             div (style: "list-msg empty") {
                                 text (text: "No match.") {}
                             }
@@ -236,7 +235,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                     }
                     if .store.is_read_only == false {
                         div (style: "fields gap-[0px]") {
-                            for i, e in .store.entries {
+                            for e in .store.entries {
                                 div (style: "contents") {
                                     key: e.key
                                     if e.is_table {
@@ -259,7 +258,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                                     td {
                                                                         if c.kind == "select" {
                                                                             select (value: r[c.name], style: "cell-select") {
-                                                                                onchange: .TableCell(i, ri, c.name, $event.target.value)
+                                                                                onchange: .TableCell(e.key, ri, c.name, $event.target.value)
                                                                                 for o in c.options {
                                                                                     option (value: o.value, text: o.label) {}
                                                                                 }
@@ -268,19 +267,19 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                                         }
                                                                         if c.kind == "number" {
                                                                             input (value: r[c.name], "type": "number", style: "cell-input") {
-                                                                                onchange: .TableCell(i, ri, c.name, $event.target.value)
+                                                                                onchange: .TableCell(e.key, ri, c.name, $event.target.value)
                                                                             }
                                                                         }
                                                                         if c.kind != "select" && c.kind != "number" {
                                                                             input (value: r[c.name], "type": "text", style: "cell-input") {
-                                                                                onchange: .TableCell(i, ri, c.name, $event.target.value)
+                                                                                onchange: .TableCell(e.key, ri, c.name, $event.target.value)
                                                                             }
                                                                         }
                                                                     }
                                                                 }
                                                                 td (style: "row-act") {
                                                                     button (text: "×", style: "del-row") {
-                                                                        onclick: .TableRowRemove(i, ri)
+                                                                        onclick: .TableRowRemove(e.key, ri)
                                                                     }
                                                                 }
                                                             }
@@ -293,7 +292,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                     }
                                                 }
                                                 button (text: "+ Row", style: "add-row") {
-                                                    onclick: .TableRowAdd(i)
+                                                    onclick: .TableRowAdd(e.key)
                                                 }
                                             }
                                         }
@@ -303,7 +302,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                             label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             label (style: "toggle gap-[0px]") {
                                                 input ("type": "checkbox", checked: e.value == "true") {
-                                                    onchange: .Toggle(i, $event.target.checked)
+                                                    onchange: .Toggle(e.key, $event.target.checked)
                                                 }
                                                 span (style: "toggle-track") {
                                                     span (style: "toggle-thumb") {}
@@ -324,7 +323,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                             label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             input ("type": "number", value: e.value, style: "input") {
                                                 oninput: .Draft
-                                                onchange: .ApplyEntry(i, $event.target.value)
+                                                onchange: .ApplyEntry(e.key, $event.target.value)
                                             }
                                         }
                                     }
@@ -335,13 +334,13 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                 if .pw_show {
                                                     input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
                                                         oninput: .Draft
-                                                        onchange: .ApplyEntry(i, $event.target.value)
+                                                        onchange: .ApplyEntry(e.key, $event.target.value)
                                                     }
                                                 }
                                                 if .pw_show == false {
                                                     input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
                                                         oninput: .Draft
-                                                        onchange: .ApplyEntry(i, $event.target.value)
+                                                        onchange: .ApplyEntry(e.key, $event.target.value)
                                                     }
                                                 }
                                                 button (style: "reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto", text: "👁") {
@@ -355,7 +354,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                             label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             input (value: e.value, "type": "text", placeholder: "(empty)", style: "input text-[#1a1a1a] h-auto") {
                                                 oninput: .Draft
-                                                onchange: .ApplyEntry(i, $event.target.value)
+                                                onchange: .ApplyEntry(e.key, $event.target.value)
                                             }
                                         }
                                     }
@@ -364,7 +363,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                             label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
                                             if e.options.len() > 0 {
                                                 select (value: e.value, style: "input") {
-                                                    onchange: .ApplyEntry(i, $event.target.value)
+                                                    onchange: .ApplyEntry(e.key, $event.target.value)
                                                     for o in e.options {
                                                         option (value: o.value, text: o.label) {}
                                                     }
@@ -377,7 +376,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                 div (style: "fallback-text gap-[0px]") {
                                                     input (value: e.value, "type": "text", placeholder: "(not set)", style: "input text-[#1a1a1a] h-auto") {
                                                         oninput: .Draft
-                                                        onchange: .ApplyEntry(i, $event.target.value)
+                                                        onchange: .ApplyEntry(e.key, $event.target.value)
                                                     }
                                                     span (style: "fallback-hint", text: "no options available (e.g. builtin-only) — type freely") {}
                                                 }
@@ -392,13 +391,13 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                     span (style: "tag") {
                                                         text (text: t) {}
                                                         button (text: "×", style: "tag-x") {
-                                                            onclick: .TagRemove(i, t)
+                                                            onclick: .TagRemove(e.key, t)
                                                         }
                                                     }
                                                 }
                                                 input (value: "", "type": "text", placeholder: "add…", style: "tag-input") {
                                                     oninput: .Draft
-                                                    onkeydown.enter: .TagAdd(i)
+                                                    onkeydown.enter: .TagAdd(e.key)
                                                 }
                                             }
                                         }
@@ -410,7 +409,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                 for oi, o in e.options {
                                                     label (style: "ms-item") {
                                                         input ("type": "checkbox", checked: e.ms_checked[oi]) {
-                                                            onchange: .MsToggle(i, o.value, $event.target.checked)
+                                                            onchange: .MsToggle(e.key, o.value, $event.target.checked)
                                                         }
                                                         text (text: o.label) {}
                                                     }
@@ -506,130 +505,52 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
         .PwToggle -> {
             .pw_show = .pw_show == false
         }
-        .ApplyEntry(i, v) -> {
-            var k = ""
-            var j = 0
-            for x in .store.entry_keys {
-                if j == i {
-                    k = x
-                }
-                j = j + 1
-            }
-            if k != "" {
-                store.FieldEdited({ path: k, value: v })
-                .draft = ""
-            }
+        .ApplyEntry(k, v) -> {
+            store.FieldEdited({ path: k, value: v })
+            .draft = ""
         }
 
-        .TagAdd(i) -> {
-            var k = ""
-            var j = 0
-            for x in .store.entry_keys {
-                if j == i {
-                    k = x
-                }
-                j = j + 1
-            }
-            if .draft != "" && k != "" {
+        .TagAdd(k) -> {
+            if .draft != "" {
                 store.TagField(k, .draft)
                 .draft = ""
             }
         }
 
-        .TagRemove(i, t) -> {
-            var k = ""
-            var j = 0
-            for x in .store.entry_keys {
-                if j == i {
-                    k = x
-                }
-                j = j + 1
+        .TagRemove(k, t) -> {
+            store.TagRemove(k, t)
+        }
+
+        .MsToggle(k, v, on) -> {
+            if on {
+                store.TagField(k, v)
             }
-            if k != "" {
-                store.TagRemove(k, t)
+            if on == false {
+                store.TagRemove(k, v)
             }
         }
 
-        .MsToggle(i, v, on) -> {
-            var k = ""
-            var j = 0
-            for x in .store.entry_keys {
-                if j == i {
-                    k = x
-                }
-                j = j + 1
-            }
-            if k != "" {
-                if on {
-                    store.TagField(k, v)
-                }
-                if on == false {
-                    store.TagRemove(k, v)
-                }
-            }
+        .TableCell(k, ri, col, v) -> {
+            let nb = setCellText(.store.body_text, k, ri, col, v)
+            store.SetBodyText(nb)
         }
 
-        .TableCell(i, ri, col, v) -> {
-            var k = ""
-            var j = 0
-            for x in .store.entry_keys {
-                if j == i {
-                    k = x
-                }
-                j = j + 1
-            }
-            if k != "" {
-                let nb = setCellText(.store.body_text, k, ri, col, v)
-                store.SetBodyText(nb)
-            }
+        .TableRowAdd(k) -> {
+            let nb = tableAddRowText(.store.body_text, k)
+            store.SetBodyText(nb)
         }
 
-        .TableRowAdd(i) -> {
-            var k = ""
-            var j = 0
-            for x in .store.entry_keys {
-                if j == i {
-                    k = x
-                }
-                j = j + 1
-            }
-            if k != "" {
-                let nb = tableAddRowText(.store.body_text, k)
-                store.SetBodyText(nb)
-            }
+        .TableRowRemove(k, ri) -> {
+            let nb = tableRemoveRowText(.store.body_text, k, ri)
+            store.SetBodyText(nb)
         }
 
-        .TableRowRemove(i, ri) -> {
-            var k = ""
-            var j = 0
-            for x in .store.entry_keys {
-                if j == i {
-                    k = x
-                }
-                j = j + 1
-            }
-            if k != "" {
-                let nb = tableRemoveRowText(.store.body_text, k, ri)
-                store.SetBodyText(nb)
-            }
-        }
-
-        .Toggle(i, on) -> {
-            var k = ""
-            var j = 0
-            for x in .store.entry_keys {
-                if j == i {
-                    k = x
-                }
-                j = j + 1
-            }
+        .Toggle(k, on) -> {
             var nv = "false"
             if on {
                 nv = "true"
             }
-            if k != "" {
-                store.FieldEdited({ path: k, value: nv })
-            }
+            store.FieldEdited({ path: k, value: nv })
         }
     }
 }

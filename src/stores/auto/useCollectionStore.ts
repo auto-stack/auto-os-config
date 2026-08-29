@@ -3,10 +3,8 @@ import { fetchCollectionListRaw, collectionCount, collectionAt, fetchEntityFlat,
 
 const module_id = ref<string>('')
 const list = ref<any>([])
-const names = ref<any>([])
 const selected_name = ref<string | null>(null)
 const entries = ref<any>([])
-const entry_keys = ref<any>([])
 const sidecar = ref<string>('')
 const body_text = ref<string>('')
 const fm_name = ref<string>('')
@@ -14,7 +12,6 @@ const fm_description = ref<string>('')
 const fm_body = ref<string>('')
 const is_read_only = ref<boolean>(false)
 const name_filter = ref<string>('')
-const view_names = ref<any>([])
 const view_entities = ref<any>([])
 const list_loading = ref<boolean>(false)
 const loading = ref<boolean>(false)
@@ -29,29 +26,23 @@ let r = await createEntitySafe(module_id.value, name);
 if (r.ok) {list_loading.value = true;
 let lr = await fetchCollectionListRaw(module_id.value);
 if (lr.ok) {let items = [];
-let nm = [];
 let n = await collectionCount(lr.text);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let e = await collectionAt(lr.text, i);
 items.push({ name: e.name, description: e.description });
-nm.push(e.name);
 i = i + 1;
 }
 list.value = items;
-names.value = nm;
 
-let vn = [];
 let ve = [];
 let fq = name_filter.value.toLowerCase();
 for (const e of list.value) {let hit: boolean = true;
 if (fq != '') {hit = e.name.toLowerCase().includes(fq);
 }if (hit) {ve.push({ name: e.name, description: e.description });
-vn.push(e.name);
 }}
 view_entities.value = ve;
-view_names.value = vn;
 }list_loading.value = false;
 Select(name);
 }
@@ -62,18 +53,15 @@ saving.value = false;
     const FieldEdited = async (args: any) => { body_text.value = await editField(body_text.value, args.path, args.value);
 let w = await warmEnumsText(body_text.value, module_id.value);
 let es = [];
-let ek = [];
 let n = await entriesCount(body_text.value);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let d = await entryAt(body_text.value, i, module_id.value);
 es.push(d);
-ek.push(d.key);
 i = i + 1;
 }
 entries.value = es;
-entry_keys.value = ek;
 dirty.value = true;
  }
     const Init = async (mid: string) => { module_id.value = mid;
@@ -81,33 +69,26 @@ error.value = '';
 list_loading.value = true;
 let r = await fetchCollectionListRaw(mid);
 if (r.ok) {let items = [];
-let nm = [];
 let n = await collectionCount(r.text);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let e = await collectionAt(r.text, i);
 items.push({ name: e.name, description: e.description });
-nm.push(e.name);
 i = i + 1;
 }
 list.value = items;
-names.value = nm;
 
-let vn = [];
 let ve = [];
 let fq = name_filter.value.toLowerCase();
 for (const e of list.value) {let hit: boolean = true;
 if (fq != '') {hit = e.name.toLowerCase().includes(fq);
 }if (hit) {ve.push({ name: e.name, description: e.description });
-vn.push(e.name);
 }}
 view_entities.value = ve;
-view_names.value = vn;
 }
 if (r.ok == false) {error.value = r.error;
 list.value = [];
-names.value = [];
 }
 list_loading.value = false;
  }
@@ -116,29 +97,23 @@ list_loading.value = false;
     const Reload = async () => { list_loading.value = true;
 let r = await fetchCollectionListRaw(module_id.value);
 if (r.ok) {let items = [];
-let nm = [];
 let n = await collectionCount(r.text);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let e = await collectionAt(r.text, i);
 items.push({ name: e.name, description: e.description });
-nm.push(e.name);
 i = i + 1;
 }
 list.value = items;
-names.value = nm;
 
-let vn = [];
 let ve = [];
 let fq = name_filter.value.toLowerCase();
 for (const e of list.value) {let hit: boolean = true;
 if (fq != '') {hit = e.name.toLowerCase().includes(fq);
 }if (hit) {ve.push({ name: e.name, description: e.description });
-vn.push(e.name);
 }}
 view_entities.value = ve;
-view_names.value = vn;
 }
 if (r.ok == false) {error.value = r.error;
 }
@@ -151,18 +126,15 @@ body_text.value = e.value;
 sidecar.value = e.sidecar;
 let w = await warmEnumsText(body_text.value, module_id.value);
 let es = [];
-let ek = [];
 let n2 = await entriesCount(e.value);
 let i2: number = 0;
 while (true) {
 if (i2 >= n2) {break;
 }let d = await entryAt(e.value, i2, module_id.value);
 es.push(d);
-ek.push(d.key);
 i2 = i2 + 1;
 }
 entries.value = es;
-entry_keys.value = ek;
 }if (e.is_atom == false) {is_read_only.value = true;
 fm_name.value = e.fm_name;
 fm_description.value = e.fm_description;
@@ -179,29 +151,23 @@ body_text.value = '';
 }list_loading.value = true;
 let lr = await fetchCollectionListRaw(module_id.value);
 if (lr.ok) {let items = [];
-let nm = [];
 let n = await collectionCount(lr.text);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let e = await collectionAt(lr.text, i);
 items.push({ name: e.name, description: e.description });
-nm.push(e.name);
 i = i + 1;
 }
 list.value = items;
-names.value = nm;
 
-let vn = [];
 let ve = [];
 let fq = name_filter.value.toLowerCase();
 for (const e of list.value) {let hit: boolean = true;
 if (fq != '') {hit = e.name.toLowerCase().includes(fq);
 }if (hit) {ve.push({ name: e.name, description: e.description });
-vn.push(e.name);
 }}
 view_entities.value = ve;
-view_names.value = vn;
 }list_loading.value = false;
 }
 if (r.ok == false) {error.value = r.error;
@@ -214,29 +180,23 @@ if (r.ok) {dirty.value = false;
 list_loading.value = true;
 let lr = await fetchCollectionListRaw(module_id.value);
 if (lr.ok) {let items = [];
-let nm = [];
 let n = await collectionCount(lr.text);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let e = await collectionAt(lr.text, i);
 items.push({ name: e.name, description: e.description });
-nm.push(e.name);
 i = i + 1;
 }
 list.value = items;
-names.value = nm;
 
-let vn = [];
 let ve = [];
 let fq = name_filter.value.toLowerCase();
 for (const e of list.value) {let hit: boolean = true;
 if (fq != '') {hit = e.name.toLowerCase().includes(fq);
 }if (hit) {ve.push({ name: e.name, description: e.description });
-vn.push(e.name);
 }}
 view_entities.value = ve;
-view_names.value = vn;
 }list_loading.value = false;
 }if (r.ok == false) {error.value = r.error;
 }saving.value = false;
@@ -259,18 +219,15 @@ body_text.value = r.value;
 sidecar.value = r.sidecar;
 let w = await warmEnumsText(body_text.value, module_id.value);
 let es = [];
-let ek = [];
 let n = await entriesCount(r.value);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let d = await entryAt(r.value, i, module_id.value);
 es.push(d);
-ek.push(d.key);
 i = i + 1;
 }
 entries.value = es;
-entry_keys.value = ek;
 }if (r.is_atom == false) {
 is_read_only.value = true;
 fm_name.value = r.fm_name;
@@ -283,30 +240,24 @@ loading.value = false;
  }
     const SetBodyText = async (nb: string) => { body_text.value = nb;
 let es = [];
-let ek = [];
 let n = await entriesCount(body_text.value);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let d = await entryAt(body_text.value, i, module_id.value);
 es.push(d);
-ek.push(d.key);
 i = i + 1;
 }
 entries.value = es;
-entry_keys.value = ek;
  }
     const SetFilter = (q: string) => { name_filter.value = q;
-let vn = [];
 let ve = [];
 let fq = name_filter.value.toLowerCase();
 for (const e of list.value) {let hit: boolean = true;
 if (fq != '') {hit = e.name.toLowerCase().includes(fq);
 }if (hit) {ve.push({ name: e.name, description: e.description });
-vn.push(e.name);
 }}
 view_entities.value = ve;
-view_names.value = vn;
  }
     const SetSidecar = (v: string) => { sidecar.value = v;
 dirty.value = true;
@@ -314,42 +265,34 @@ dirty.value = true;
     const TagField = async (k: string, add: string) => { body_text.value = await editTagField(body_text.value, k, add, '');
 let w = await warmEnumsText(body_text.value, module_id.value);
 let es = [];
-let ek = [];
 let n = await entriesCount(body_text.value);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let d = await entryAt(body_text.value, i, module_id.value);
 es.push(d);
-ek.push(d.key);
 i = i + 1;
 }
 entries.value = es;
-entry_keys.value = ek;
 dirty.value = true;
  }
     const TagRemove = async (k: string, t: string) => { body_text.value = await editTagField(body_text.value, k, '', t);
 let es = [];
-let ek = [];
 let n = await entriesCount(body_text.value);
 let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let d = await entryAt(body_text.value, i, module_id.value);
 es.push(d);
-ek.push(d.key);
 i = i + 1;
 }
 entries.value = es;
-entry_keys.value = ek;
  }
     return {
         module_id,
         list,
-        names,
         selected_name,
         entries,
-        entry_keys,
         sidecar,
         body_text,
         fm_name,
@@ -357,7 +300,6 @@ entry_keys.value = ek;
         fm_body,
         is_read_only,
         name_filter,
-        view_names,
         view_entities,
         list_loading,
         loading,

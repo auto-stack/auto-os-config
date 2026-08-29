@@ -347,11 +347,13 @@ if (!(await press('Test', 2000))) fail('Test button not found');
 
   // 3d. read_only collection preload (plan010 R10, review fix): a read_only
   // collection renders NO Load button and vm child widgets have no auto-Init,
-  // so the ONLY load path is the Select-time Collection.Open preload.
+  // so the ONLY load path is the Select-time Collection.Init preload.
   if (await pressNav('Skills', 3000)) {
-    st = await state('names');
-    if (st.names && st.names.includes('brainstorming')) pass('read_only collection preload (skills names via Select)');
-    else fail(`skills preload: ${st.names}`);
+    // 446 撤绕行 B1: store 的影子 names 数组已删,state 投影看不到对象列表
+    // 内容——改断言快照渲染(更强:直接验证实体名进了 UI)。
+    const sk = await snapshot();
+    if (sk.includes('brainstorming')) pass('read_only collection preload (skills names via Select)');
+    else fail('skills preload: brainstorming not in snapshot');
   } else fail('skills nav not found');
   // The skills list build latches the U1 frozen-state — full reboot before
   // the Roles section (same controlled-reboot semantics as 3b).
@@ -375,17 +377,19 @@ if (!(await press('Test', 2000))) fail('Test button not found');
   if (st.active_kind === '"collection"' && st.active_id === '"roles"') pass('Roles selected (kind=collection)');
   else fail(`Roles selection: kind=${st.active_kind} id=${st.active_id}`);
 
-  // 4a. Load → names (plan010 R10: the Select-time Collection.Open preload
-  // populates names before this point, so the empty-state Load button may
-  // legitimately be absent — names present means already loaded).
-  st = await state('names');
-  if (st.names && st.names.includes('assistant')) {
-    pass('collection list loaded (assistant) [preloaded via Select]');
-  } else if (await press('Load', 5000)) {
-    st = await state('names');
-    if (st.names && st.names.includes('assistant')) pass('collection list loaded (assistant)');
-    else fail(`collection names: ${st.names}`);
-  } else fail('Load button not found and names empty');
+  // 4a. Load → list (plan010 R10: the Select-time Collection.Init preload
+  // populates the list before this point, so the empty-state Load button may
+  // legitimately be absent — 446 撤绕行 B1: 断言走快照渲染,影子 names 已删).
+  {
+    const s0 = await snapshot();
+    if (s0.includes('assistant')) {
+      pass('collection list loaded (assistant) [preloaded via Select]');
+    } else if (await press('Load', 5000)) {
+      const s1 = await snapshot();
+      if (s1.includes('assistant')) pass('collection list loaded (assistant)');
+      else fail('collection list: assistant not in snapshot');
+    } else fail('Load button not found and list empty');
+  }
 
   // 4b. pick assistant → entries
   if (!(await press('assistant', 5500))) fail('assistant button not found');

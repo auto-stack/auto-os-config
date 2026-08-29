@@ -31,14 +31,14 @@ const emit = defineEmits<{
   ConfirmDeleteNo: []
   Draft: [string]
   SidecarDraft: [string]
-  ApplyEntry: [number, string]
-  TagAdd: [number]
-  TagRemove: [number, string]
-  MsToggle: [number, string, boolean]
-  Toggle: [number, boolean]
-  TableCell: [number, number, string, string]
-  TableRowAdd: [number]
-  TableRowRemove: [number, number]
+  ApplyEntry: [string, string]
+  TagAdd: [string]
+  TagRemove: [string, string]
+  MsToggle: [string, string, boolean]
+  Toggle: [string, boolean]
+  TableCell: [string, number, string, string]
+  TableRowAdd: [string]
+  TableRowRemove: [string, number]
   PwToggle: []
 }>()
 
@@ -46,17 +46,11 @@ import { useCollectionStore } from '../stores/auto/useCollectionStore'
 import { reactive } from 'vue'
 const store = reactive(useCollectionStore())
 
-function ApplyEntry(i: any, v: any): void {
-  let k: string = '';
-  let j: number = 0;
-  for (const x of store.entry_keys) {if (j == i) {k = x;
-  }j = j + 1;
-  }
-  if (k != '') {store.FieldEdited({ path: k, value: v });
+function ApplyEntry(k: any, v: any): void {
+  store.FieldEdited({ path: k, value: v });
   draft.value = '';
-  }
 
-  emit('ApplyEntry', i, v)
+  emit('ApplyEntry', k, v)
 }
 
 function AskDelete(): void {
@@ -107,17 +101,13 @@ function Load(): void {
   emit('Load')
 }
 
-function MsToggle(i: any, v: any, on: any): void {
-  let k: string = '';
-  let j: number = 0;
-  for (const x of store.entry_keys) {if (j == i) {k = x;
-  }j = j + 1;
+function MsToggle(k: any, v: any, on: any): void {
+  if (on) {store.TagField(k, v);
   }
-  if (k != '') {if (on) {store.TagField(k, v);
-  }if (on == false) {store.TagRemove(k, v);
-  }}
+  if (on == false) {store.TagRemove(k, v);
+  }
 
-  emit('MsToggle', i, v, on)
+  emit('MsToggle', k, v, on)
 }
 
 function NewName(v: any): void {
@@ -134,7 +124,7 @@ function Pick(n: any): void {
   emit('Pick', n)
 }
 
-function PwToggle(i: any): void {
+function PwToggle(e: any): void {
   pw_show.value = pw_show.value == false;
 
   emit('PwToggle')
@@ -165,83 +155,48 @@ function SidecarDraft(v: any): void {
   emit('SidecarDraft', v)
 }
 
-async function TableCell(i: any, ri: any, col: any, v: any): Promise<void> {
-  let k: string = '';
-  let j: number = 0;
-  for (const x of store.entry_keys) {if (j == i) {k = x;
-  }j = j + 1;
-  }
-  if (k != '') {let nb = await setCellText(store.body_text, k, ri, col, v);
+async function TableCell(k: any, ri: any, col: any, v: any): Promise<void> {
+  let nb = await setCellText(store.body_text, k, ri, col, v);
   store.SetBodyText(nb);
-  }
 
-  emit('TableCell', i, ri, col, v)
+  emit('TableCell', k, ri, col, v)
 }
 
-async function TableRowAdd(i: any): Promise<void> {
-  let k: string = '';
-  let j: number = 0;
-  for (const x of store.entry_keys) {if (j == i) {k = x;
-  }j = j + 1;
-  }
-  if (k != '') {let nb = await tableAddRowText(store.body_text, k);
+async function TableRowAdd(k: any): Promise<void> {
+  let nb = await tableAddRowText(store.body_text, k);
   store.SetBodyText(nb);
-  }
 
-  emit('TableRowAdd', i)
+  emit('TableRowAdd', k)
 }
 
-async function TableRowRemove(i: any, ri: any): Promise<void> {
-  let k: string = '';
-  let j: number = 0;
-  for (const x of store.entry_keys) {if (j == i) {k = x;
-  }j = j + 1;
-  }
-  if (k != '') {let nb = await tableRemoveRowText(store.body_text, k, ri);
+async function TableRowRemove(k: any, ri: any): Promise<void> {
+  let nb = await tableRemoveRowText(store.body_text, k, ri);
   store.SetBodyText(nb);
-  }
 
-  emit('TableRowRemove', i, ri)
+  emit('TableRowRemove', k, ri)
 }
 
-function TagAdd(i: any): void {
-  let k: string = '';
-  let j: number = 0;
-  for (const x of store.entry_keys) {if (j == i) {k = x;
-  }j = j + 1;
-  }
-  if (draft.value != '' && k != '') {store.TagField(k, draft.value);
+function TagAdd(k: any): void {
+  if (draft.value != '') {store.TagField(k, draft.value);
   draft.value = '';
   }
 
-  emit('TagAdd', i)
+  emit('TagAdd', k)
 }
 
-function TagRemove(i: any, t: any): void {
-  let k: string = '';
-  let j: number = 0;
-  for (const x of store.entry_keys) {if (j == i) {k = x;
-  }j = j + 1;
-  }
-  if (k != '') {store.TagRemove(k, t);
-  }
+function TagRemove(k: any, t: any): void {
+  store.TagRemove(k, t);
 
-  emit('TagRemove', i, t)
+  emit('TagRemove', k, t)
 }
 
-function Toggle(i: any, on: any): void {
-  let k: string = '';
-  let j: number = 0;
-  for (const x of store.entry_keys) {if (j == i) {k = x;
-  }j = j + 1;
-  }
+function Toggle(k: any, on: any): void {
   let nv: string = 'false';
   if (on) {nv = 'true';
   }
-  if (k != '') {store.FieldEdited({ path: k, value: nv });
-  }
+  store.FieldEdited({ path: k, value: nv });
 
-  emit('Toggle', i, on)
+  emit('Toggle', k, on)
 }
 
 function ToggleCreate(): void {
@@ -280,12 +235,12 @@ onMounted(() => {
         </template>
         <template v-if="store.list_loading == false">
           <template v-if="store.view_entities.length == 0">
-            <template v-if="store.names.length == 0">
+            <template v-if="store.list.length == 0">
               <div class="list-msg empty">
                 <span>No entities.</span>
               </div>
             </template>
-            <template v-if="store.names.length > 0">
+            <template v-if="store.list.length > 0">
               <div class="list-msg empty">
                 <span>No match.</span>
               </div>
@@ -408,7 +363,7 @@ onMounted(() => {
           </template>
           <template v-if="store.is_read_only == false">
             <div class="fields gap-[0px]">
-              <div class="contents" :key="e.key" v-for="(e, i) in store.entries">
+              <div class="contents" :key="e.key" v-for="e in store.entries">
                 <template v-if="e.is_table">
                   <div class="field-row">
                     <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
@@ -424,20 +379,20 @@ onMounted(() => {
                           <tr v-for="(r, ri) in e.t_rows" :key="(((r as any)?.id ?? r))">
                             <td v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">
                               <template v-if="c.kind == 'select'">
-                                <select class="cell-select" :value="r[c.name]" @change="TableCell(i, ri, c.name, ($event.target as HTMLInputElement).value)">
+                                <select class="cell-select" :value="r[c.name]" @change="TableCell(e.key, ri, c.name, ($event.target as HTMLInputElement).value)">
                                   <option :value="o.value" v-for="o in c.options" :key="(((o as any)?.id ?? o))">{{ o.label }}</option>
                                   <option :value="r[c.name]">{{ r[c.name] }}</option>
                                 </select>
                               </template>
                               <template v-if="c.kind == 'number'">
-                                <input class="cell-input" :type="'number'" v-model="r[c.name]" @change="TableCell(i, ri, c.name, ($event.target as HTMLInputElement).value)" />
+                                <input class="cell-input" :type="'number'" v-model="r[c.name]" @change="TableCell(e.key, ri, c.name, ($event.target as HTMLInputElement).value)" />
                               </template>
                               <template v-if="c.kind != 'select' && c.kind != 'number'">
-                                <input class="cell-input" :type="'text'" v-model="r[c.name]" @change="TableCell(i, ri, c.name, ($event.target as HTMLInputElement).value)" />
+                                <input class="cell-input" :type="'text'" v-model="r[c.name]" @change="TableCell(e.key, ri, c.name, ($event.target as HTMLInputElement).value)" />
                               </template>
                             </td>
                             <td class="row-act">
-                              <button class="del-row" @click="TableRowRemove(i, ri)">×</button>
+                              <button class="del-row" @click="TableRowRemove(e.key, ri)">×</button>
                             </td>
                           </tr>
                           <template v-if="e.t_rows.length == 0">
@@ -447,7 +402,7 @@ onMounted(() => {
                           </template>
                         </tbody>
                       </table>
-                      <button class="add-row" @click="TableRowAdd(i)">+ Row</button>
+                      <button class="add-row" @click="TableRowAdd(e.key)">+ Row</button>
                     </div>
                   </div>
                 </template>
@@ -455,7 +410,7 @@ onMounted(() => {
                   <div class="field-row">
                     <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
                     <label class="toggle gap-[0px]">
-                      <input :checked="e.value == 'true'" :type="'checkbox'" @change="Toggle(i, ($event.target as HTMLInputElement).checked)" />
+                      <input :checked="e.value == 'true'" :type="'checkbox'" @change="Toggle(e.key, ($event.target as HTMLInputElement).checked)" />
                       <span class="toggle-track">
                         <span class="toggle-thumb" />
                       </span>
@@ -473,7 +428,7 @@ onMounted(() => {
                 <template v-if="e.is_table == false && e.kind == 'number'">
                   <div class="field-row">
                     <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
-                    <input class="input" :type="'number'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                    <input class="input" :type="'number'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                   </div>
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'password'">
@@ -481,26 +436,26 @@ onMounted(() => {
                     <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
                     <div class="secret gap-[0px]">
                       <template v-if="pw_show">
-                        <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                       </template>
                       <template v-if="pw_show == false">
-                        <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                       </template>
-                      <button class="reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto" @click="PwToggle(i)">👁</button>
+                      <button class="reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto" @click="PwToggle(e)">👁</button>
                     </div>
                   </div>
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'text'">
                   <div class="field-row">
                     <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
-                    <input class="input text-[#1a1a1a] h-auto" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                    <input class="input text-[#1a1a1a] h-auto" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                   </div>
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'select'">
                   <div class="field-row">
                     <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
                     <template v-if="e.options.length > 0">
-                      <select class="input" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)">
+                      <select class="input" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)">
                         <option :value="o.value" v-for="o in e.options" :key="(((o as any)?.id ?? o))">{{ o.label }}</option>
                         <template v-if="e.has_current">
                           <option :value="e.value">{{ e.value + ' (current)' }}</option>
@@ -509,7 +464,7 @@ onMounted(() => {
                     </template>
                     <template v-if="e.options.length == 0">
                       <div class="fallback-text gap-[0px]">
-                        <input class="input text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(i, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <input class="input text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                         <span class="fallback-hint">no options available (e.g. builtin-only) — type freely</span>
                       </div>
                     </template>
@@ -521,9 +476,9 @@ onMounted(() => {
                     <div class="tags">
                       <span class="tag" v-for="t in e.items" :key="(((t as any)?.id ?? t))">
                         <span>{{ t }}</span>
-                        <button class="tag-x" @click="TagRemove(i, t)">×</button>
+                        <button class="tag-x" @click="TagRemove(e.key, t)">×</button>
                       </span>
-                      <input class="tag-input" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" @keydown.enter="TagAdd(i)" />
+                      <input class="tag-input" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" @keydown.enter="TagAdd(e.key)" />
                     </div>
                   </div>
                 </template>
@@ -532,7 +487,7 @@ onMounted(() => {
                     <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">{{ e.label }}</label>
                     <div class="multiselect">
                       <label class="ms-item" v-for="(o, oi) in e.options" :key="(((o as any)?.id ?? o))">
-                        <input :checked="e.ms_checked[oi]" :type="'checkbox'" @change="MsToggle(i, o.value, ($event.target as HTMLInputElement).checked)" />
+                        <input :checked="e.ms_checked[oi]" :type="'checkbox'" @change="MsToggle(e.key, o.value, ($event.target as HTMLInputElement).checked)" />
                         <span>{{ o.label }}</span>
                       </label>
                       <template v-if="e.options.length == 0">
