@@ -9,7 +9,9 @@
 // dark/indigo defaults). Declare both here so the light UI gets a light
 // theme and swatch clicks actually recolor `primary`. `current` stays for
 // the existing theme_picker/store consumers.
-use back.api: loadAccent, applyAccent
+// 446 前置修复：applyAccent 改名 saveAccent（上游 Plan 409/458 注入的内嵌
+// applyAccent 助手与 use back.api 导入撞名，TS2440）。
+use back.api: loadAccent, saveAccent
 
 store Theme {
     model {
@@ -30,7 +32,7 @@ store Theme {
         .SetAccent(name) -> {
             .current = name
             .accent_color = name
-            applyAccent(name)
+            saveAccent(name)
         }
     }
 }

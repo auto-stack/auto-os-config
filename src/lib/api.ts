@@ -236,8 +236,11 @@ export function loadAccent(): string {
   return initial
 }
 
-/** Set + persist + apply (the store SetAccent side effect). */
-export function applyAccent(name: string): void {
+/** Set + persist + apply (the store SetAccent side effect).
+ * 446 前置修复：改名 applyAccent → saveAccent——上游 Plan 409/458 codegen 对
+ * accent_color/dark_mode store 注入内嵌 applyAccent 助手，与 use back.api
+ * 导入同名即 TS2440；本文件不再导出 applyAccent。 */
+export function saveAccent(name: string): void {
   if (!ACCENT_OPTIONS.some((o) => o.name === name)) return
   try {
     localStorage.setItem(STORAGE_KEY, name)

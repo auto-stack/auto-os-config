@@ -1,6 +1,6 @@
 import { useCollectionStore } from './useCollectionStore'
 import { ref } from 'vue'
-import { fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, selectInfo, groupOfModule, getHash } from '../../lib/api'
+import { fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, groupOfModule, getHash } from '../../lib/api'
 
 const modules = ref<any>([])
 const groups = ref<any>([])
@@ -75,11 +75,11 @@ expanded.value = out;
 }}
 
 let h = await getHash();
-if (h != '') {let si2 = await selectInfo(raw.value, h);
-if (si2.found) {active_id.value = si2.id;
-active_kind.value = si2.kind;
-read_only.value = si2.read_only;
-title.value = si2.name;
+if (h != '') {let hit = modules.value.find((x: any) => x.id == h);
+if (hit != null) {active_id.value = hit.id;
+active_kind.value = hit.kind;
+read_only.value = hit.format == 'frontmatter-md';
+title.value = hit.name;
 let gid = await groupOfModule(raw.value, h);
 if (gid != '') {let has2: boolean = false;
 for (const x of expanded.value) {if (x == gid) {has2 = true;
@@ -181,16 +181,16 @@ any_hit = true;
 view_standalone.value = vs;
 has_results.value = any_hit;
  }
-    const Select = async (id: string) => { let si = await selectInfo(raw.value, id);
-if (si.found) {active_id.value = si.id;
-active_kind.value = si.kind;
-read_only.value = si.read_only;
-title.value = si.name;
+    const Select = async (id: string) => { let hit = modules.value.find((x: any) => x.id == id);
+if (hit != null) {active_id.value = hit.id;
+active_kind.value = hit.kind;
+read_only.value = hit.format == 'frontmatter-md';
+title.value = hit.name;
 
 
 
 
-if (si.kind == 'collection') {useCollectionStore().Open(si.id);
+if (hit.kind == 'collection') {useCollectionStore().Open(hit.id);
 }let gid = await groupOfModule(raw.value, id);
 if (gid != '') {let has: boolean = false;
 for (const x of expanded.value) {if (x == gid) {has = true;

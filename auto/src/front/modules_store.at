@@ -8,10 +8,13 @@
 //
 // Plan 007: handlers use the flat api surface (text + per-item getters,
 // VG12/VG13-safe): NO nested reads of returned maps, NO array fn args, NO
-// find-closures (VG14), NO concat (VG5). `raw` keeps the authoritative text
-// so Select never re-fetches. The MODEL shape is unchanged — vue widgets and
-// the sidebar ext facade are untouched.
-use back.api: fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, selectInfo, groupOfModule, getHash
+// concat (VG5). `raw` keeps the authoritative text so Select never re-fetches.
+// The MODEL shape is unchanged — vue widgets and the sidebar ext facade are
+// untouched.
+// 446 撤绕行（VG14/VG4）：find 闭包与 handler 两跳读修后（D4/D2），模块选择
+// 回归 `.modules.find(...)` 直选（miss 判 == None），api 侧 selectInfo 沉降
+// fn 已删。
+use back.api: fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, groupOfModule, getHash
 // plan010 R10: Select 命中集合时预载 Collection store（见 .Select 注）
 use collection_store: Collection
 
@@ -118,12 +121,12 @@ store Modules {
                 // always "" so this branch skips naturally).
                 var h = getHash()
                 if h != "" {
-                    var si2 = selectInfo(.raw, h)
-                    if si2.found {
-                        .active_id = si2.id
-                        .active_kind = si2.kind
-                        .read_only = si2.read_only
-                        .title = si2.name
+                    let hit = .modules.find(x => x.id == h)
+                    if hit != None {
+                        .active_id = hit.id
+                        .active_kind = hit.kind
+                        .read_only = hit.format == "frontmatter-md"
+                        .title = hit.name
                         var gid = groupOfModule(.raw, h)
                         if gid != "" {
                             var has2 = false
@@ -232,18 +235,18 @@ store Modules {
         }
 
         .Select(id) -> {
-            var si = selectInfo(.raw, id)
-            if si.found {
-                .active_id = si.id
-                .active_kind = si.kind
-                .read_only = si.read_only
-                .title = si.name
+            let hit = .modules.find(x => x.id == id)
+            if hit != None {
+                .active_id = hit.id
+                .active_kind = hit.kind
+                .read_only = hit.format == "frontmatter-md"
+                .title = hit.name
                 // plan010 R10（复审退回项）: read_only 集合在 vm 无任何加载入口
                 // （无 Load 按钮 + 子 widget 无 auto-Init，列表永远空）。Select
                 // 命中集合时预载 Collection store——CollectionBrowser 实例重建
                 // 即有数据。vue 端幂等（mount Init 再 Open 同 id，覆盖无害）。
-                if si.kind == "collection" {
-                    Collection.Open(si.id)
+                if hit.kind == "collection" {
+                    Collection.Open(hit.id)
                 }
                 var gid = groupOfModule(.raw, id)
                 if gid != "" {

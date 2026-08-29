@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { loadAccent, applyAccent } from '../../lib/api'
+import { loadAccent, saveAccent } from '../../lib/api'
 
 const current = ref<string>('indigo')
 const dark_mode = ref<boolean>(false)
@@ -12,7 +12,7 @@ accent_color.value = current.value;
  }
     const SetAccent = async (name: string) => { current.value = name;
 accent_color.value = name;
-await applyAccent(name);
+await saveAccent(name);
 ; applyAccent(accent_color.value, dark_mode.value) }
     return {
         current,
