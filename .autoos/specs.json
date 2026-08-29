@@ -1,0 +1,218 @@
+{
+  "project": "auto-os-config",
+  "version": 1,
+  "sections": [
+    {
+      "id": "goals",
+      "section_type": "goals",
+      "title": "🎯 Goals",
+      "items": [
+        {
+          "id": "P011-2",
+          "title": "os-config-daemon Auto 版——外部 back 形态改造 — 目标",
+          "content": "1. **Auto 版 daemon**（外部 back 项目 `auto-os-config-back/`）：契约层 `api.at`（与前端\n   `use back.api:` 对接）+ 端点实现（Auto + `use.rust` 桥）；\n2. **system_info 新端点**（OS 版本 / 设备名 / CPU / 内存 / 存储）——plan010 T18 概要页数据源；\n3. **存量 11 端点分组移植**（config get/put、collection CRUD、enums、test-daemon、\n   health、modules）——auto-ai-daemon 同款混编模式（逻辑 `.at` 化，Rust 能力 `use.rust` 桥）；\n4. **pac.at 接线 + 双模式启动**：vue 模式 = 后端起 Rust 版 HTTP 服务（等价现 daemon）；\n   vm 模式（merged）= 前端进程内直调后端代码（零 HTTP）；\n5. **Rust daemon 退役**：os-config 双轨 e2e 全链在新后端绿后归档 `backend/`。",
+          "status": "Proposed",
+          "depends_on": [],
+          "related": [
+            "PLAN-011"
+          ],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/011-daemon-auto-back.md",
+          "milestone": null,
+          "module": null,
+          "tags": [],
+          "created_at": 1787983382,
+          "modified_at": 1787983382,
+          "completed_at": null
+        }
+      ],
+      "status": "Proposed",
+      "content": "",
+      "depends_on": [],
+      "last_modified": 1787983382,
+      "last_verified": null
+    },
+    {
+      "id": "architecture",
+      "section_type": "architecture",
+      "title": "🏗️ Architecture",
+      "items": [
+        {
+          "id": "P011-3",
+          "title": "os-config-daemon Auto 版——外部 back 形态改造 — 架构方案",
+          "content": "```\nos-config-front/ (现 auto/)                      auto-os-config-back/ (新)\n  pac.at ── back: { project } ──────────────▶     pac.at\n  use back.api: fns ──契约──▶  api.at（契约层）      api.at（#[api] 端点实现）\n  vue 模式：back 起为 Rust HTTP 服务（axum，等价现 daemon :17701）\n  vm  模式：merged——前端进程内直调 api.at fn（零 HTTP）\n```\n\n- 架构参考（按证据强度）:\n  - `auto-ai/crates/auto-ai-daemon`：Rust daemon + `.at` 混编移植（config.at 头注\n    \"Auto port of src/config.rs\"）；`use.rust std::path::PathBuf / dirs` 直桥 Rust；\n  - `auto-lang/examples/ui/015-notes/src/back/api.at`：`#[api(method, path)] pub fn`\n    端点 + `db.at` 逻辑层（Auto 写后端的完例）;\n  - `auto-lang/examples/rust-workspace/015-notes-back`：axum + AUTO_HTTP_PORT 的\n    Rust HTTP 服务形态（vue 模式的服务化参考）;\n  - Plan 061（auto-lang lib.rs:2347）：pac.at `back: { project }` 外部后端根，\n    `back.*` 模块解析映射到后端项目（契约与桩由后端项目拥有，链接式引用）。\n- 形态抉择（T1 POC 定）：a) `#[api]` 端点自动路由（015-notes 式）vs b) axum main +\n  `.at` 逻辑（auto-ai-daemon 式）——裁决标准：「pac.at back: 接线 + vue 模式 HTTP +\n  vm merged 直调」三条路径在最小端点上的实证结果。",
+          "status": "Stable",
+          "depends_on": [],
+          "related": [
+            "PLAN-011"
+          ],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/011-daemon-auto-back.md",
+          "milestone": null,
+          "module": null,
+          "tags": [],
+          "created_at": 1787983382,
+          "modified_at": 1787983382,
+          "completed_at": null
+        }
+      ],
+      "status": "Stable",
+      "content": "",
+      "depends_on": [],
+      "last_modified": 1787983382,
+      "last_verified": null
+    },
+    {
+      "id": "designs",
+      "section_type": "designs",
+      "title": "🎨 Designs",
+      "items": [
+        {
+          "id": "P011-4",
+          "title": "os-config-daemon Auto 版——外部 back 形态改造 — 详细设计",
+          "content": "### 阶段 0 · 形态 POC（T1，裁决 a/b）\n\n最小端点（`hello` + 文件读一个）分别在两形态落地，各验证三条路径（back: 接线、\nvue 模式 HTTP、vm merged 直调）。POC 产物即 T2 骨架的模板。\n\n### 阶段 1 · 骨架与 system_info（T2/T3）\n\n`auto-os-config-back/`：Cargo crate（auto-ai-daemon 布局）+ `pac.at` + `api.at`\n（契约层：**从前端 api.at 的 56 fn 反向提取签名**，先只实现 system_info + health，\n其余端点 stub 返回 `{\"error\":\"not-migrated\"}`）；`system_info` 用 sys.at/env.at\nnative 取数（OS/主机名/CPU env 变量 + sys native；MEM/存储按 sys.at 能力定，\n缺则登记）。\n\n### 阶段 2 · 契约对接（T8 前置）\n\nos-config 前端 `auto/pac.at` 增 `back: { project }` 指向新后端;`use back.api:` 解析\n切换到外部 back（本地 `auto/src/back/api.at` 的 HTTP 配方层**退役**——它的存在理由\n就是等这一刻）。\n\n### 阶段 3 · 端点分组移植（T4-T7）\n\n顺序按依赖与风险:**registry/modules（只读）→ config get/put → collection CRUD →\nenums/action**。每 fn 的移植模式:逻辑 `.at` 化（auto-ai-daemon config.at 同款），\nRust 依赖 `use.rust` 桥;文件 IO 保持 `~/.config/autoos` 根（config_root 21 行随之移植）。\n每组移植 = fn 实现 + 前端回归（`use back.api:` 零改动 = 契约稳定的直接证据）。\n\n### 阶段 4 · 双模式与切换（T9/T10/T11）\n\nvue 模式:后端起 Rust HTTP 服务（端口策略:沿用 17701 或 AUTO_HTTP_PORT，T9 定）;\nvm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 断言）全链在新\n后端绿 → `backend/` 归档退役。",
+          "status": "Stable",
+          "depends_on": [],
+          "related": [
+            "PLAN-011"
+          ],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/011-daemon-auto-back.md",
+          "milestone": null,
+          "module": null,
+          "tags": [],
+          "created_at": 1787983382,
+          "modified_at": 1787983382,
+          "completed_at": null
+        }
+      ],
+      "status": "Stable",
+      "content": "",
+      "depends_on": [],
+      "last_modified": 1787983382,
+      "last_verified": null
+    },
+    {
+      "id": "tests",
+      "section_type": "tests",
+      "title": "🧪 Tests",
+      "items": [
+        {
+          "id": "P011-5",
+          "title": "os-config-daemon Auto 版——外部 back 形态改造 — 测试设计",
+          "content": "- 既有回归即迁移判据:scripts/e2e.sh（vue 28 断言）+ e2e-vm（15 断言）——前端\n  零改动通过 = 契约稳定;\n- system_info 端点:单测（字段齐全/类型）+ 概要页渲染对照;\n- 每组端点移植后跑对应前端套件（test-generic-editor/test-collection-editor/\n  test-theme-switch 对应 config/collection/theme 面）。",
+          "status": "Verified",
+          "depends_on": [],
+          "related": [
+            "PLAN-011"
+          ],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/011-daemon-auto-back.md",
+          "milestone": null,
+          "module": null,
+          "tags": [],
+          "created_at": 1787983382,
+          "modified_at": 1787983382,
+          "completed_at": null
+        }
+      ],
+      "status": "Verified",
+      "content": "",
+      "depends_on": [],
+      "last_modified": 1787983382,
+      "last_verified": null
+    },
+    {
+      "id": "reviews",
+      "section_type": "reviews",
+      "title": "🔍 Reviews",
+      "items": [
+        {
+          "id": "P011-6",
+          "title": "os-config-daemon Auto 版——外部 back 形态改造 — 验收标准",
+          "content": "- G1:形态 POC 三路径实证通过（形态 a/b 裁决有据）;\n- G2:`system_info` 端点在双模式下返回真实系统信息，plan010 T18 概要页渲染;\n- G3:11 端点全部在新后端实现，前端 `use back.api:` 导出行与 `src/lib/api.ts`\n  语义零改动，e2e 双门禁全绿;\n- G4:双模式启动可用（vue=HTTP 服务 / vm=merged），pac.at `back:` 接线生效;\n- G5:`backend/` 退役归档，README/KNOWN-DEBT 同步。",
+          "status": "Published",
+          "depends_on": [],
+          "related": [
+            "PLAN-011"
+          ],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/011-daemon-auto-back.md",
+          "milestone": null,
+          "module": null,
+          "tags": [],
+          "created_at": 1787983382,
+          "modified_at": 1787983382,
+          "completed_at": null
+        },
+        {
+          "id": "P011-7",
+          "title": "os-config-daemon Auto 版——外部 back 形态改造 — 复审记录",
+          "content": "（/auto-plan:review 回填）\n\n### 独立复审记录(/auto-plan:review,2026-08-29)\n\n- 复审人:zcode(/auto-plan:review);对象:main d951a8b(分支 plan-011-dev\n  已折叠,按规则在默认 checkout 验证)。\n- 验收标准逐项复核:\n  - G1 形态 POC 三路径实证:PASS。裁决记录在册(复审记录 §T1,采形态 b);\n    载具提交(examples/poc-hello + poc-t1-verify.mjs + auto-os-config-back)。\n    注:③ 相关的「collapse RED」后续被上游定性反转(判定假阳性,见\n    ba0416d15),不影响形态裁决结论。\n  - G2 system_info 双模式真数据 + 概要页渲染:PASS。cargo test 39/39;\n    curl /api/system-info 全字段实值;vm MCP 实测(auto-os-config 仓探针);\n    vue Playwright 四面板真值;④ 修复后本仓复验浮点读恢复真值(51.2588)。\n  - G3 11 端点实现 + 契约稳定 + 双门禁全绿:PASS。14 个 #[api] 注解齐\n    (11 端点族 + loadEnum + system_info,health 为纯路由);git diff 证明\n    use back.api: 导出行仅新增 system_info、api.ts 纯新增 export;终验\n    e2e.sh ALL PASS + e2e-vm 17/17(见下)。\n  - G4 双模式启动 + back: 接线:PASS。pac.at back: 在位;e2e.sh 服务源 =\n    新 back(冷起自建自启);vm merged 链接+cdylib 装载多轮实证。\n  - G5 backend/ 退役 + 文档同步:PASS。archive/backend/ 7 文件 R100;\n    README 架构表/.gitignore/capture.mjs/test-generic-editor.mjs/\n    KNOWN-DEBT-AND-RISKS 五处同步;活引用清零(tmp/css-era 历史基线与\n    归档位置说明除外)。\n- 终验(复审门禁,本次重跑):e2e.sh ALL PASS(32 断言)+ e2e-vm 17/17\n  EXIT 0。\n- 债候选(均非阻塞):\n  1. 测试隔离:core::tests 的 put_creates_bak 与 config_get_put_roundtrip\n     并发竞争真实 ~/.config/autoos/ai-daemon.at(.bak)——cargo test 并行\n     调度下间歇红(复跑即绿,产品代码无恙)。建议后续 #[serial] 或临时\n     config root 隔离。\n  2. api.at 死文本:12 个已迁移 fn 的函数体仍保留 not-migrated 桩文本\n     (merged 模式经宿主桥旁路、HTTP 面不走 api.at,无行为影响)——建议\n     后续清理为注释或空实现。\n  3. cdylib 孤儿注册:lib.rs 仍注册 hello/config_probe(POC 遗留,api.at\n     已无对应契约 fn,宿主桥冗余项无害)——建议随下次触达清理。\n- 延后项(经用户可见记录,非门禁):vue 端 CSS 图表增强(当前双端文本条\n  一致,已在计划记录为可选项)。\n- 结论:全部验收通过,无阻塞债。status → reviewed,移交 /auto-plan:merge。\n\n### 收口移交注记(执行结束,2026-08-29)\n\n- 12/12 任务完成;双门禁终态:scripts/e2e.sh 三套件 ALL PASS(32 断言)+\n  e2e-vm 17/17 全绿(历史首次;④ 修复后二进制 da505ab69)。\n- 上游联动:①char boundary 修复已折叠 auto-lang master(82a6664b4);③定性\n  反转收口(判定假阳性,os-config 2b37af2 计数断言);④ Plan 474 修复\n  (da505ab69);ObjectData 双同名结构陷阱债登记(35312a509)。\n- 后续可选项(非门禁):④ 修复后浮点字段可安全消费,展示串(display/\n  memory_bar)保留为演示层;Vue 端可另行增强为 CSS 图表(L2 差异台账归因)。\n\n### T1 形态裁决记录(执行期产出,2026-08-28)\n\n**裁决:采形态 b(axum main + .at 混编桥,auto-ai-daemon/musk 式)。** 待澄清事项 1 的\n默认采 a 条款不触发——形态 a 三路径未全通(HTTP 面失败,证据见下)。\n\n三路径 × 两形态对照表:\n\n| 路径 | 形态 a(#[api] 自动路由,015-notes 式) | 形态 b(axum main + 桥,auto-ai-daemon 式) |\n|---|---|---|\n| 1. pac.at `back:` 接线 | ✅ `external backend linked + loaded`(cdylib 空注册) | ✅ 同左(cdylib 注册 hello/config_probe) |\n| 2. vue 模式 HTTP | ❌ `auto run --no-merge --server=rust` 生成 `poc-hello-back`:无 db.at 时只出骨架 stub(`// TODO: Implement`)且 main.rs 硬编码 `use api::Db` 编译失败;生成物落 auto-lang 共享 workspace(跨仓耦合) | ✅ crate 自带 axum bin,AUTOOS_BACK_PORT=17901 curl `/api/hello`→`\"poc-hello\"`、`/api/config-probe`→`\"ai-daemon.at:ok\"` |\n| 3. vm merged 直调 | ✅ AUTOOS_BACK_BRIDGE=0 空注册 → has_host_calls()=false → #[api] 裸调用 VM 解释函数体(Env.get/File.read_text natives),零 HTTP | ✅ 桥注册 → #[api] 裸调用改写 auto.host.call → cdylib Rust 实现,零 HTTP |\n\n证据(均可复跑):\n\n- `node scripts/poc-t1-verify.mjs`(AUTOOS_BACK_BRIDGE=0/1 双态):MCP 读探针模型\n  `hello_val=\"poc-hello\"`、`probe_val=\"ai-daemon.at:ok\"`,PASS;\n  boot proof 行:external backend linked/loaded + cdylib 注册日志。\n- 形态 a HTTP 失败现场:`/tmp` 已弃,生成物在\n  `auto-lang/examples/rust-workspace/poc-hello-back/`(api.rs 全 TODO handler,\n  cargo build E0432 unresolved import `api::Db`)。\n\n裁决依据(超出三路径表的机制面):\n\n1. **vue 轨的服务形态不变**:os-config vue 轨是仓内 npm/vite + 手写 `src/lib/api.ts`\n   → HTTP :17701,`auto run` 的生成式编排(start_api_server → auto-lang 共享\n   workspace)不在其启动模型内;新后端必须是一个可 `cargo run` 的自治 daemon——\n   即形态 b 的 crate 形态(等价现 backend/,e2e.sh 无缝换源)。\n2. **单实现双传输**:形态 b 中 axum bin 与 cdylib 桥共享同一 Rust 端点核心,\n   vue(HTTP)与 vm(进程内)语义天然一致;形态 a 的 .at 函数体与 HTTP 实现是\n   两份逻辑,漂移风险高。\n3. **#[api] 注解保留但职责变为机器可读契约**:注解驱动桥注册名与未来工具链\n   (a2r/LSP),不再承诺「自动路由出生产服务器」。\n4. **形态 a 的解释路径不废弃**:未注解的纯 .at 辅助 fn 在 merged 模式恒走 VM 解释\n   (codegen 只改写 #[api] 裸调用),「逻辑 .at 化」按 fn 逐个推进;涉 Rust 能力\n   (auto-atom 解析 .at 配置)的端点经桥进入 Rust。\n5. 残差:路径 2 的「前端拿到值」本次以 HTTP 契约层(curl)为证;真实前端全链\n   (api.ts → 新后端)由 T8/T10 的 e2e 双门禁闭合——与计划分阶一致。\n\nPOC 产物(commit 于 plan-011-dev):`auto-os-config-back/`(pac.at + api.at 契约 +\nCargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路径\n探针,T2 骨架模板)、`scripts/poc-t1-verify.mjs`(merged 轨验证器)。",
+          "status": "Published",
+          "depends_on": [],
+          "related": [
+            "PLAN-011"
+          ],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/011-daemon-auto-back.md",
+          "milestone": null,
+          "module": null,
+          "tags": [],
+          "created_at": 1787983382,
+          "modified_at": 1787983382,
+          "completed_at": null
+        }
+      ],
+      "status": "Published",
+      "content": "",
+      "depends_on": [],
+      "last_modified": 1787983382,
+      "last_verified": null
+    },
+    {
+      "id": "reports",
+      "section_type": "reports",
+      "title": "📊 Reports",
+      "items": [
+        {
+          "id": "P011-1",
+          "title": "os-config-daemon Auto 版——外部 back 形态改造 — 变更摘要",
+          "content": "把 Rust 版 os-config-daemon（`backend/`，axum :17701，2173 行 / 11 端点 / 5 模块文件）改造成\n**Auto 版外部 back**：Auto 语言写后端（`#[api]` 端点 + Rust 桥），作为 os-config 前端的\n外部 back 项目（pac.at `back: { project }`，Plan 061 外部后端根）。承接 plan010 G 相方案\n与 T18 概要页的 `system_info` 数据源。架构参考 `auto-ai` 仓 `crates/auto-ai-daemon`\n（Rust daemon + `.at` 混编移植 + `use.rust` 桥的同款架构）。",
+          "status": "Published",
+          "depends_on": [],
+          "related": [
+            "PLAN-011"
+          ],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/011-daemon-auto-back.md",
+          "milestone": null,
+          "module": null,
+          "tags": [],
+          "created_at": 1787983382,
+          "modified_at": 1787983382,
+          "completed_at": null
+        }
+      ],
+      "status": "Published",
+      "content": "",
+      "depends_on": [],
+      "last_modified": 1787983382,
+      "last_verified": null
+    }
+  ]
+}
