@@ -93,7 +93,7 @@ widget Sidebar {
                                     if g.open == false {
                                         text (text: "▸", style: "text-[11px] text-[#8a8a8a] w-[14px] shrink-0") {}
                                     }
-                                    text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a] h-[50px]") {}
+                                    text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a] h-[50px] leading-[50px]") {}
                                 }
                             }
                         }

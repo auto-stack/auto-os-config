@@ -94,7 +94,7 @@ function ToggleGroup(gid: any): void {
                 <template v-if="g.open == false">
                   <span class="text-[11px] text-[#8a8a8a] w-[14px] shrink-0">▸</span>
                 </template>
-                <span class="text-sm font-semibold text-[#1a1a1a] h-[50px]">{{ g.label }}</span>
+                <span class="text-sm font-semibold text-[#1a1a1a] h-[50px] leading-[50px]">{{ g.label }}</span>
               </div>
             </button>
           </template>
