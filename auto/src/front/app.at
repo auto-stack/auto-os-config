@@ -24,7 +24,7 @@ use daemon_view: DaemonView
 use config_editor: ConfigEditor
 use collection_browser: CollectionBrowser
 use theme_store: Theme
-use back.api: system_info
+use back.api: system_info, fetchModulesRaw, modulesCount, moduleAt
 
 widget App {
     msg Msg { Init, SelectModule(str) }
@@ -32,15 +32,28 @@ widget App {
     model {
         // Plan 011 T9/T12:概要页 Dashboard(system_info 真数据;App 直调形态,
         // 015-notes App handler 直调 back.api 先例——免三 store 消歧)。
+        // 概要页二期(本次):软件信息面(os_edition/kernel/arch/uptime,
+        // 后端同批新增)+ 图形化(SVG donut/进度条/icon,442 A4 直通)。
         var sys_host str = ""
-        var sys_os str = ""
+        var sys_os_edition str = ""
+        var sys_os_build str = ""
+        var sys_kernel str = ""
+        var sys_arch str = ""
+        var sys_uptime str = ""
         var sys_cpu str = ""
         var sys_cpu_name str = ""
         var sys_cpu_cores str = ""
-        var sys_mem_bar str = ""
+        var sys_mem_used str = ""
+        var sys_mem_dash str = "0 100"
         var sys_mem_display str = ""
         var disks Array<any> = []
         var gpus Array<str> = []
+        // Managed Modules 卡:独立 fetch 计数(不经 Modules store,免
+        // fire-and-forget Init 的时序竞态;原语与 modules_store 同款)。
+        // int 形态:modulesCount() 契约返回 number,生成 TS 直配。
+        var sys_mod_total int = 0
+        var sys_mod_files int = 0
+        var sys_mod_coll int = 0
     }
 
     view {
@@ -63,36 +76,188 @@ widget App {
                     }
                     if .store.loading == false && .store.error == "" {
                         if .store.active_kind == "" {
-                            // T18/T12: 默认落地页 = 系统信息 Dashboard(仅系统信息,
-                            // 模块导航由左侧栏承担)。面板化:CPU / GPU / 内存 / 存储。
+                            // T18/T12: 默认落地页 = 系统信息 Dashboard。二期重设计
+                            // (参考 Win11 设置·关于/任务管理器性能页):Hero(设备+
+                            // 系统+uptime)→ Hardware(CPU/GPU/Memory donut/Storage
+                            // 进度条)→ Software(OS 版本面 + Managed Modules 计数)。
+                            // 图形元素走 SVG 直通(442 A4);accent 只经 primary
+                            // token;概要页不出现任何 button(446 note:概要页卡片
+                            // 文案曾误配 nav 断言——新版无按钮且文案避开导航名)。
                             col (style: "overview flex-1 flex flex-col gap-[0px] overflow-auto p-8 bg-white") {
-                                text (text: "System Overview", style: "text-2xl font-semibold text-[#1a1a1a] pb-1") {}
-                                text (text: .sys_host + " · " + .sys_os, style: "text-sm text-[#616161] pb-4") {}
-                                row (style: "w-full flex flex-row gap-3 pb-3") {
-                                    col (style: "ov-panel flex-1 flex flex-col gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3") {
-                                        text (text: "CPU", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                text (text: "System Overview", style: "text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-3") {}
+                                row (style: "w-full flex flex-row items-center gap-5 pb-6") {
+                                    col (style: "device-tile h-16 w-16 rounded-2xl bg-primary/10 flex flex-row items-center justify-center gap-[0px] shrink-0") {
+                                        svg (viewBox: "0 0 24 24", style: "h-8 w-8 text-primary") {
+                                            rect (x: "2", y: "3", width: "20", height: "14", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                            line (x1: "8", y1: "21", x2: "16", y2: "21", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                            line (x1: "12", y1: "17", x2: "12", y2: "21", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                        }
+                                    }
+                                    col (style: "flex flex-col gap-[2px] min-w-0") {
+                                        text (text: .sys_host, style: "text-2xl font-semibold text-[#1a1a1a]") {}
+                                        text (text: .sys_os_edition + " · " + .sys_os_build + " · " + .sys_arch, style: "text-sm text-[#616161]") {}
+                                    }
+                                    col (style: "flex-1 flex flex-col gap-[0px]") {}
+                                    col (style: "flex flex-col items-end gap-[2px] shrink-0") {
+                                        row (style: "flex flex-row items-center gap-1") {
+                                            svg (viewBox: "0 0 24 24", style: "h-[14px] w-[14px] text-[#8a8a8a]") {
+                                                circle (cx: "12", cy: "12", r: "10", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                polyline (points: "12 6 12 12 16 14", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                            }
+                                            text (text: "Uptime", style: "text-xs text-[#8a8a8a]") {}
+                                        }
+                                        text (text: .sys_uptime, style: "text-sm font-medium text-[#1a1a1a]") {}
+                                    }
+                                }
+                                text (text: "Hardware", style: "text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2") {}
+                                row (style: "w-full flex flex-row gap-4 pb-4") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                        row (style: "flex flex-row items-center gap-2") {
+                                            svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
+                                                rect (x: "4", y: "4", width: "16", height: "16", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                rect (x: "9", y: "9", width: "6", height: "6", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                line (x1: "9", y1: "2", x2: "9", y2: "4", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "15", y1: "2", x2: "15", y2: "4", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "9", y1: "20", x2: "9", y2: "22", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "15", y1: "20", x2: "15", y2: "22", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "2", y1: "9", x2: "4", y2: "9", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "2", y1: "15", x2: "4", y2: "15", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "20", y1: "9", x2: "22", y2: "9", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "20", y1: "15", x2: "22", y2: "15", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                            }
+                                            text (text: "Processor", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        }
                                         text (text: .sys_cpu_name, style: "text-sm text-[#1a1a1a]") {}
-                                        text (text: .sys_cpu_cores + " logical cores", style: "text-xs text-[#616161]") {}
+                                        text (text: .sys_cpu_cores + " logical cores", style: "text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px] w-fit") {}
                                         text (text: .sys_cpu, style: "text-xs text-[#8a8a8a]") {}
                                     }
-                                    col (style: "ov-panel flex-1 flex flex-col gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3") {
-                                        text (text: "GPU", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                        row (style: "flex flex-row items-center gap-2") {
+                                            svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
+                                                rect (x: "2", y: "3", width: "20", height: "14", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                line (x1: "8", y1: "21", x2: "16", y2: "21", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "12", y1: "17", x2: "12", y2: "21", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                            }
+                                            text (text: "Graphics", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        }
                                         for gpu in .gpus {
-                                            text (text: gpu, style: "text-sm text-[#1a1a1a]") {}
+                                            row (style: "flex flex-row items-center gap-2") {
+                                                col (style: "h-[6px] w-[6px] rounded-full bg-primary shrink-0") {}
+                                                text (text: gpu, style: "text-sm text-[#1a1a1a]") {}
+                                            }
+                                        }
+                                        if .gpus.len() == 0 {
+                                            text (text: "No GPU detected", style: "text-sm text-[#8a8a8a]") {}
                                         }
                                     }
                                 }
-                                row (style: "w-full flex flex-row gap-3") {
-                                    col (style: "ov-panel flex-1 flex flex-col gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3") {
-                                        text (text: "Memory", style: "text-sm font-semibold text-[#1a1a1a]") {}
-                                        text (text: .sys_mem_bar, style: "text-sm text-[#1a1a1a]") {}
-                                        text (text: .sys_mem_display, style: "text-xs text-[#616161]") {}
-                                    }
-                                    col (style: "ov-panel flex-1 flex flex-col gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3") {
-                                        text (text: "Storage", style: "text-sm font-semibold text-[#1a1a1a]") {}
-                                        for dsk in .disks {
-                                            text (text: dsk.display, style: "text-xs text-[#616161]") {}
+                                row (style: "w-full flex flex-row gap-4 pb-6") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                        row (style: "flex flex-row items-center gap-2") {
+                                            svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
+                                                rect (x: "2", y: "6", width: "20", height: "8", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                line (x1: "8", y1: "9", x2: "8", y2: "11", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "12", y1: "9", x2: "12", y2: "11", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "16", y1: "9", x2: "16", y2: "11", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "6", y1: "14", x2: "6", y2: "17", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "10", y1: "14", x2: "10", y2: "17", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "14", y1: "14", x2: "14", y2: "17", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "18", y1: "14", x2: "18", y2: "17", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                            }
+                                            text (text: "Memory", style: "text-sm font-semibold text-[#1a1a1a]") {}
                                         }
+                                        row (style: "flex flex-row items-center gap-5") {
+                                            svg (viewBox: "0 0 36 36", style: "mem-donut h-[96px] w-[96px] shrink-0") {
+                                                circle (cx: "18", cy: "18", r: "15.9155", fill: "none", stroke: "#e5e7eb", stroke-width: "5") {}
+                                                circle (cx: "18", cy: "18", r: "15.9155", fill: "none", stroke: "currentColor", stroke-width: "5", stroke-linecap: "round", stroke-dasharray: .sys_mem_dash, stroke-dashoffset: "25", style: "text-primary") {}
+                                            }
+                                            col (style: "flex flex-col gap-[2px]") {
+                                                row (style: "flex flex-row items-baseline gap-[6px]") {
+                                                    text (text: .sys_mem_used + "%", style: "text-2xl font-semibold text-[#1a1a1a]") {}
+                                                    text (text: "used", style: "text-xs text-[#8a8a8a]") {}
+                                                }
+                                                text (text: .sys_mem_display, style: "text-xs text-[#616161]") {}
+                                            }
+                                        }
+                                    }
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                        row (style: "flex flex-row items-center gap-2") {
+                                            svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
+                                                line (x1: "22", y1: "12", x2: "2", y2: "12", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                path (d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                line (x1: "6", y1: "16", x2: "6.01", y2: "16", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "10", y1: "16", x2: "10.01", y2: "16", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                            }
+                                            text (text: "Storage", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        }
+                                        col (style: "flex flex-col gap-[10px]") {
+                                            for dsk in .disks {
+                                                col (style: "flex flex-col gap-[4px]") {
+                                                    row (style: "w-full flex flex-row items-center justify-between") {
+                                                        row (style: "flex flex-row items-center gap-2") {
+                                                            text (text: dsk.drive, style: "text-xs font-semibold text-[#1a1a1a]") {}
+                                                            text (text: dsk.pct + "%", style: "text-xs text-[#616161]") {}
+                                                        }
+                                                        text (text: dsk.free + " / " + dsk.total + " GB free", style: "text-xs text-[#8a8a8a]") {}
+                                                    }
+                                                    col (style: "w-full h-2 rounded-full bg-[#e5e7eb] overflow-hidden") {
+                                                        col (style: "height: 8px; width: " + dsk.pct + "%; background: " + dsk.color + "; border-radius: 9999px") {}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                text (text: "Software", style: "text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2") {}
+                                row (style: "w-full flex flex-row gap-4") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                        row (style: "flex flex-row items-center gap-2") {
+                                            svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
+                                                rect (x: "2", y: "4", width: "20", height: "16", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                line (x1: "2", y1: "8", x2: "22", y2: "8", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "6", y1: "4", x2: "6", y2: "8", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                                line (x1: "10", y1: "4", x2: "10", y2: "8", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
+                                            }
+                                            text (text: "Operating System", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        }
+                                        col (style: "flex flex-col gap-[6px]") {
+                                            row (style: "flex flex-row gap-3") {
+                                                text (text: "Edition", style: "text-xs text-[#8a8a8a] w-24 shrink-0") {}
+                                                text (text: .sys_os_edition, style: "text-sm text-[#1a1a1a]") {}
+                                            }
+                                            row (style: "flex flex-row gap-3") {
+                                                text (text: "Kernel", style: "text-xs text-[#8a8a8a] w-24 shrink-0") {}
+                                                text (text: .sys_kernel, style: "text-sm text-[#1a1a1a]") {}
+                                            }
+                                            row (style: "flex flex-row gap-3") {
+                                                text (text: "OS build", style: "text-xs text-[#8a8a8a] w-24 shrink-0") {}
+                                                text (text: .sys_os_build, style: "text-sm text-[#1a1a1a]") {}
+                                            }
+                                            row (style: "flex flex-row gap-3") {
+                                                text (text: "Architecture", style: "text-xs text-[#8a8a8a] w-24 shrink-0") {}
+                                                text (text: .sys_arch, style: "text-sm text-[#1a1a1a]") {}
+                                            }
+                                        }
+                                    }
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                        row (style: "flex flex-row items-center gap-2") {
+                                            svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
+                                                rect (x: "3", y: "3", width: "7", height: "7", rx: "1", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                rect (x: "14", y: "3", width: "7", height: "7", rx: "1", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                rect (x: "14", y: "14", width: "7", height: "7", rx: "1", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                                rect (x: "3", y: "14", width: "7", height: "7", rx: "1", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
+                                            }
+                                            text (text: "Managed Modules", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        }
+                                        row (style: "flex flex-row items-baseline gap-2") {
+                                            text (text: .sys_mod_total, style: "text-2xl font-semibold text-[#1a1a1a]") {}
+                                            text (text: "modules under management", style: "text-sm text-[#616161]") {}
+                                        }
+                                        row (style: "flex flex-row gap-2") {
+                                            text (text: .sys_mod_files + " config files", style: "text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px]") {}
+                                            text (text: .sys_mod_coll + " collections", style: "text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px]") {}
+                                        }
+                                        text (text: "Served by the unified AutoOS config daemon", style: "text-xs text-[#8a8a8a]") {}
                                     }
                                 }
                             }
@@ -130,57 +295,87 @@ widget App {
             Theme.Init()
             // Plan 011 T9/T12:概要页 Dashboard 真数据(back.api 桥/HTTP 双传输)。
             // 上游④已修复(Plan 474):payload 恢复原始数值(浮点),视图侧
-            // floor 取整 + ASCII 条构建(规避 aavm VBool 字形 parity 债)。
+            // floor 取整 + 图形化构建(SVG donut / :style 进度条,442 A4)。
             var r = system_info()
             .sys_host = r.hostname
-            .sys_os = r.os_name + " " + r.os_version
+            .sys_os_edition = r.os_edition
+            .sys_os_build = r.os_version
+            .sys_kernel = r.kernel
+            .sys_arch = r.arch
             .sys_cpu = r.cpu
             .sys_cpu_name = r.cpu_name
             .sys_cpu_cores = r.cpu_cores
-            var mp = r.memory_used_percent
-            var mbar = ""
-            var mi = 0
-            loop {
-                if mi >= 10 {
-                    break
-                }
-                var filled = mp / 10
-                if mi < filled {
-                    mbar = mbar + "#"
-                }
-                if mi >= filled {
-                    mbar = mbar + "-"
-                }
-                mi = mi + 1
+            // 系统开机时长(秒 → "1d 6h 32m" / "6h 32m" / "32m";`/` 是真除法
+            // 产浮点(实测 1.2757d),display 前必须 math.floor(vm native
+            // 1710,双轨可用)。
+            var us = r.uptime_s
+            var ud = math.floor(us / 86400)
+            var uh = math.floor((us - ud * 86400) / 3600)
+            var um = math.floor((us - ud * 86400 - uh * 3600) / 60)
+            if ud > 0 {
+                .sys_uptime = ud + "d " + uh + "h " + um + "m"
             }
-            .sys_mem_bar = mbar
-            var mf = r.memory_free_mb
-            var mt = r.memory_total_mb
+            if ud == 0 && uh > 0 {
+                .sys_uptime = uh + "h " + um + "m"
+            }
+            if ud == 0 && uh == 0 {
+                .sys_uptime = um + "m"
+            }
+            // 内存 donut:stroke-dasharray "used rest"(r=15.9155 → 周长 100,
+            // 百分比即段长;dashoffset 25 = 12 点起笔)。展示行沿用 free 语义。
+            var mp = r.memory_used_percent
+            .sys_mem_used = mp
+            var mrest = 100 - mp
+            .sys_mem_dash = mp + " " + mrest
             .sys_mem_display = r.memory_free_mb + " / " + r.memory_total_mb + " MB free"
-                var dl = []
+            // 存储:每盘 { drive, pct, free, total, color }——进度条填充宽度/颜色
+            // 在视图侧以 :style 内联绑定(pct 动态值,Tailwind 静态类表达不了);
+            // 颜色分级 <70 accent 蓝系 / ≥70 琥珀 / ≥90 红。数字文本保持 vm 轨
+            // 降级可读(内联样式若被 aavm 忽略,条形消失但数值仍在)。
+            var dl = []
             for d in r.disks {
                 var p = d.used_percent
-                var bar = ""
-                var bi = 0
-                loop {
-                    if bi >= 10 {
-                        break
-                    }
-                    var filled = p / 10
-                    if bi < filled {
-                        bar = bar + "#"
-                    }
-                    if bi >= filled {
-                        bar = bar + "-"
-                    }
-                    bi = bi + 1
+                var color = "#4f46e5"
+                if p >= 70 {
+                    color = "#d97706"
                 }
-                var df = d.free_gb
-                var dt = d.total_gb
-                var line = d.drive + " " + bar + " " + p + "% · " + df + " / " + dt + " GB free"
-                dl.push({ drive: d.drive, display: line })
+                if p >= 90 {
+                    color = "#dc2626"
+                }
+                dl.push({ drive: d.drive, pct: p, free: d.free_gb, total: d.total_gb, color: color })
             }
             .disks = dl
+            // GPU 名单(修 T12 遗留:gpus 声明后从未填充,面板恒空)。
+            var gl = []
+            for g in r.gpus {
+                gl.push(g)
+            }
+            .gpus = gl
+            // Managed Modules 计数:独立 fetch(原语与 modules_store.Init 同款),
+            // file/collection 二分。
+            var mr = fetchModulesRaw()
+            if mr.ok {
+                var mn = modulesCount(mr.text)
+                .sys_mod_total = mn
+                var files = 0
+                var colls = 0
+                var i = 0
+                loop {
+                    if i >= mn {
+                        break
+                    }
+                    var m = moduleAt(mr.text, i)
+                    if m.kind == "file" {
+                        files = files + 1
+                    }
+                    if m.kind != "file" {
+                        colls = colls + 1
+                    }
+                    i = i + 1
+                }
+                .sys_mod_files = files
+                .sys_mod_coll = colls
+            }
         }
         // T18: 概要页卡片点击 → 模块跳转（sidebar 同款 Select 链）
         // 446 撤绕行 VG16/A1：Collection.Select 回归后同名，须显式限定。

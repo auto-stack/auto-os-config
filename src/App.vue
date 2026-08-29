@@ -6,17 +6,25 @@ import ConfigEditor from './components/ConfigEditor.vue'
 import DaemonView from './components/DaemonView.vue'
 import Sidebar from './components/Sidebar.vue'
 
-import { system_info } from '@/lib/api'
+import { fetchModulesRaw, moduleAt, modulesCount, system_info } from '@/lib/api'
 
 const sys_host = ref<string>('')
-const sys_os = ref<string>('')
+const sys_os_edition = ref<string>('')
+const sys_os_build = ref<string>('')
+const sys_kernel = ref<string>('')
+const sys_arch = ref<string>('')
+const sys_uptime = ref<string>('')
 const sys_cpu = ref<string>('')
 const sys_cpu_name = ref<string>('')
 const sys_cpu_cores = ref<string>('')
-const sys_mem_bar = ref<string>('')
+const sys_mem_used = ref<string>('')
+const sys_mem_dash = ref<string>('0 100')
 const sys_mem_display = ref<string>('')
 const disks = ref<any[]>([])
 const gpus = ref<any[]>([])
+const sys_mod_total = ref<number>(0)
+const sys_mod_files = ref<number>(0)
+const sys_mod_coll = ref<number>(0)
 
 const emit = defineEmits<{
   Init: []
@@ -46,41 +54,68 @@ onMounted(async () => {
 
   let r = await system_info();
   sys_host.value = r.hostname;
-  sys_os.value = r.os_name + ' ' + r.os_version;
+  sys_os_edition.value = r.os_edition;
+  sys_os_build.value = r.os_version;
+  sys_kernel.value = r.kernel;
+  sys_arch.value = r.arch;
   sys_cpu.value = r.cpu;
   sys_cpu_name.value = r.cpu_name;
   sys_cpu_cores.value = r.cpu_cores;
-  let mp = r.memory_used_percent;
-  let mbar: string = '';
-  let mi: number = 0;
-  while (true) {
-  if (mi >= 10) {break;
-  }let filled: number = mp / 10;
-  if (mi < filled) {mbar = mbar + '#';
-  }if (mi >= filled) {mbar = mbar + '-';
-  }mi = mi + 1;
+
+
+
+  let us = r.uptime_s;
+  let ud = Math.floor(us / 86400);
+  let uh = Math.floor((us - ud * 86400) / 3600);
+  let um = Math.floor((us - ud * 86400 - uh * 3600) / 60);
+  if (ud > 0) {sys_uptime.value = ud + 'd ' + uh + 'h ' + um + 'm';
   }
-  sys_mem_bar.value = mbar;
-  let mf = r.memory_free_mb;
-  let mt = r.memory_total_mb;
+  if (ud == 0 && uh > 0) {sys_uptime.value = uh + 'h ' + um + 'm';
+  }
+  if (ud == 0 && uh == 0) {sys_uptime.value = um + 'm';
+  }
+
+
+  let mp = r.memory_used_percent;
+  sys_mem_used.value = mp;
+  let mrest: number = 100 - mp;
+  sys_mem_dash.value = mp + ' ' + mrest;
   sys_mem_display.value = r.memory_free_mb + ' / ' + r.memory_total_mb + ' MB free';
+
+
+
+
   let dl = [];
   for (const d of r.disks) {let p = d.used_percent;
-  let bar: string = '';
-  let bi: number = 0;
-  while (true) {
-  if (bi >= 10) {break;
-  }let filled: number = p / 10;
-  if (bi < filled) {bar = bar + '#';
-  }if (bi >= filled) {bar = bar + '-';
-  }bi = bi + 1;
-  }
-  let df = d.free_gb;
-  let dt = d.total_gb;
-  let line: string = d.drive + ' ' + bar + ' ' + p + '% · ' + df + ' / ' + dt + ' GB free';
-  dl.push({ drive: d.drive, display: line });
+  let color: string = '#4f46e5';
+  if (p >= 70) {color = '#d97706';
+  }if (p >= 90) {color = '#dc2626';
+  }dl.push({ drive: d.drive, pct: p, free: d.free_gb, total: d.total_gb, color: color });
   }
   disks.value = dl;
+
+  let gl = [];
+  for (const g of r.gpus) {gl.push(g);
+  }
+  gpus.value = gl;
+
+
+  let mr = await fetchModulesRaw();
+  if (mr.ok) {let mn = await modulesCount(mr.text);
+  sys_mod_total.value = mn;
+  let files: number = 0;
+  let colls: number = 0;
+  let i: number = 0;
+  while (true) {
+  if (i >= mn) {break;
+  }let m = await moduleAt(mr.text, i);
+  if (m.kind == 'file') {files = files + 1;
+  }if (m.kind != 'file') {colls = colls + 1;
+  }i = i + 1;
+  }
+  sys_mod_files.value = files;
+  sys_mod_coll.value = colls;
+  }
 })
 
 
@@ -107,29 +142,176 @@ onMounted(async () => {
           <template v-if="store.loading == false && store.error == ''">
             <template v-if="store.active_kind == ''">
               <div class="flex flex-col overview flex-1 gap-[0px] overflow-auto p-8 bg-white">
-                <span class="text-2xl font-semibold text-[#1a1a1a] pb-1">System Overview</span>
-                <span class="text-sm text-[#616161] pb-4">{{ sys_host + ' · ' + sys_os }}</span>
-                <div class="flex flex-row w-full gap-3 pb-3">
-                  <div class="flex flex-col ov-panel flex-1 gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3">
-                    <span class="text-sm font-semibold text-[#1a1a1a]">CPU</span>
-                    <span class="text-sm text-[#1a1a1a]">{{ sys_cpu_name }}</span>
-                    <span class="text-xs text-[#616161]">{{ sys_cpu_cores + ' logical cores' }}</span>
-                    <span class="text-xs text-[#8a8a8a]">{{ sys_cpu }}</span>
+                <span class="text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-3">System Overview</span>
+                <div class="flex flex-row w-full items-center gap-5 pb-6">
+                  <div class="flex flex-col device-tile h-16 w-16 rounded-2xl bg-primary/10 flex-row items-center justify-center gap-[0px] shrink-0">
+                    <svg class="h-8 w-8 text-primary" viewBox="0 0 24 24">
+                      <rect fill="none" height="14" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="3" />
+                      <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="8" x2="16" y1="21" y2="21" />
+                      <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="12" x2="12" y1="17" y2="21" />
+                    </svg>
                   </div>
-                  <div class="flex flex-col ov-panel flex-1 gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3">
-                    <span class="text-sm font-semibold text-[#1a1a1a]">GPU</span>
-                    <span class="text-sm text-[#1a1a1a]" v-for="gpu in gpus" :key="(((gpu as any)?.id ?? gpu))">{{ gpu }}</span>
+                  <div class="flex flex-col gap-[2px] min-w-0">
+                    <span class="text-2xl font-semibold text-[#1a1a1a]">{{ sys_host }}</span>
+                    <span class="text-sm text-[#616161]">{{ sys_os_edition + ' · ' + sys_os_build + ' · ' + sys_arch }}</span>
+                  </div>
+                  <div class="flex flex-col flex-1 gap-[0px]" />
+                  <div class="flex flex-col items-end gap-[2px] shrink-0">
+                    <div class="flex flex-row items-center gap-1">
+                      <svg class="h-[14px] w-[14px] text-[#8a8a8a]" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" fill="none" r="10" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+                        <polyline fill="none" points="12 6 12 12 16 14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+                      </svg>
+                      <span class="text-xs text-[#8a8a8a]">Uptime</span>
+                    </div>
+                    <span class="text-sm font-medium text-[#1a1a1a]">{{ sys_uptime }}</span>
                   </div>
                 </div>
-                <div class="flex flex-row w-full gap-3">
-                  <div class="flex flex-col ov-panel flex-1 gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3">
-                    <span class="text-sm font-semibold text-[#1a1a1a]">Memory</span>
-                    <span class="text-sm text-[#1a1a1a]">{{ sys_mem_bar }}</span>
-                    <span class="text-xs text-[#616161]">{{ sys_mem_display }}</span>
+                <span class="text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2">Hardware</span>
+                <div class="flex flex-row w-full gap-4 pb-4">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                    <div class="flex flex-row items-center gap-2">
+                      <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
+                        <rect fill="none" height="16" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="16" x="4" y="4" />
+                        <rect fill="none" height="6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="6" x="9" y="9" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="9" x2="9" y1="2" y2="4" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="15" x2="15" y1="2" y2="4" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="9" x2="9" y1="20" y2="22" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="15" x2="15" y1="20" y2="22" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="2" x2="4" y1="9" y2="9" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="2" x2="4" y1="15" y2="15" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="20" x2="22" y1="9" y2="9" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="20" x2="22" y1="15" y2="15" />
+                      </svg>
+                      <span class="text-sm font-semibold text-[#1a1a1a]">Processor</span>
+                    </div>
+                    <span class="text-sm text-[#1a1a1a]">{{ sys_cpu_name }}</span>
+                    <span class="text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px] w-fit">{{ sys_cpu_cores + ' logical cores' }}</span>
+                    <span class="text-xs text-[#8a8a8a]">{{ sys_cpu }}</span>
                   </div>
-                  <div class="flex flex-col ov-panel flex-1 gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3">
-                    <span class="text-sm font-semibold text-[#1a1a1a]">Storage</span>
-                    <span class="text-xs text-[#616161]" v-for="dsk in disks" :key="(((dsk as any)?.id ?? dsk))">{{ dsk.display }}</span>
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                    <div class="flex flex-row items-center gap-2">
+                      <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
+                        <rect fill="none" height="14" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="3" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="8" x2="16" y1="21" y2="21" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="12" x2="12" y1="17" y2="21" />
+                      </svg>
+                      <span class="text-sm font-semibold text-[#1a1a1a]">Graphics</span>
+                    </div>
+                    <div class="flex flex-row items-center gap-2" v-for="gpu in gpus" :key="(((gpu as any)?.id ?? gpu))">
+                      <div class="flex flex-col gap-4 h-[6px] w-[6px] rounded-full bg-primary shrink-0" />
+                      <span class="text-sm text-[#1a1a1a]">{{ gpu }}</span>
+                    </div>
+                    <template v-if="gpus.length == 0">
+                      <span class="text-sm text-[#8a8a8a]">No GPU detected</span>
+                    </template>
+                  </div>
+                </div>
+                <div class="flex flex-row w-full gap-4 pb-6">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                    <div class="flex flex-row items-center gap-2">
+                      <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
+                        <rect fill="none" height="8" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="6" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="8" x2="8" y1="9" y2="11" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="12" x2="12" y1="9" y2="11" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="16" x2="16" y1="9" y2="11" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="6" x2="6" y1="14" y2="17" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="10" x2="10" y1="14" y2="17" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="14" x2="14" y1="14" y2="17" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="18" x2="18" y1="14" y2="17" />
+                      </svg>
+                      <span class="text-sm font-semibold text-[#1a1a1a]">Memory</span>
+                    </div>
+                    <div class="flex flex-row items-center gap-5">
+                      <svg class="mem-donut h-[96px] w-[96px] shrink-0" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" fill="none" r="15.9155" stroke="#e5e7eb" stroke-width="5" />
+                        <circle class="text-primary" cx="18" cy="18" fill="none" r="15.9155" stroke="currentColor" :stroke-dasharray="sys_mem_dash" stroke-dashoffset="25" stroke-linecap="round" stroke-width="5" />
+                      </svg>
+                      <div class="flex flex-col gap-[2px]">
+                        <div class="flex flex-row items-baseline gap-[6px]">
+                          <span class="text-2xl font-semibold text-[#1a1a1a]">{{ sys_mem_used + '%' }}</span>
+                          <span class="text-xs text-[#8a8a8a]">used</span>
+                        </div>
+                        <span class="text-xs text-[#616161]">{{ sys_mem_display }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                    <div class="flex flex-row items-center gap-2">
+                      <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="22" x2="2" y1="12" y2="12" />
+                        <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="6" x2="6.01" y1="16" y2="16" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="10" x2="10.01" y1="16" y2="16" />
+                      </svg>
+                      <span class="text-sm font-semibold text-[#1a1a1a]">Storage</span>
+                    </div>
+                    <div class="flex flex-col gap-[10px]">
+                      <div class="flex flex-col gap-[4px]" v-for="dsk in disks" :key="(((dsk as any)?.id ?? dsk))">
+                        <div class="flex flex-row gap-4 w-full items-center justify-between">
+                          <div class="flex flex-row items-center gap-2">
+                            <span class="text-xs font-semibold text-[#1a1a1a]">{{ dsk.drive }}</span>
+                            <span class="text-xs text-[#616161]">{{ dsk.pct + '%' }}</span>
+                          </div>
+                          <span class="text-xs text-[#8a8a8a]">{{ dsk.free + ' / ' + dsk.total + ' GB free' }}</span>
+                        </div>
+                        <div class="flex flex-col gap-4 w-full h-2 rounded-full bg-[#e5e7eb] overflow-hidden">
+                          <div class="flex flex-col gap-4" :style="'height: 8px; width: ' + dsk.pct + '%; background: ' + dsk.color + '; border-radius: 9999px'" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <span class="text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2">Software</span>
+                <div class="flex flex-row w-full gap-4">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                    <div class="flex flex-row items-center gap-2">
+                      <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
+                        <rect fill="none" height="16" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="4" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="2" x2="22" y1="8" y2="8" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="6" x2="6" y1="4" y2="8" />
+                        <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="10" x2="10" y1="4" y2="8" />
+                      </svg>
+                      <span class="text-sm font-semibold text-[#1a1a1a]">Operating System</span>
+                    </div>
+                    <div class="flex flex-col gap-[6px]">
+                      <div class="flex flex-row gap-3">
+                        <span class="text-xs text-[#8a8a8a] w-24 shrink-0">Edition</span>
+                        <span class="text-sm text-[#1a1a1a]">{{ sys_os_edition }}</span>
+                      </div>
+                      <div class="flex flex-row gap-3">
+                        <span class="text-xs text-[#8a8a8a] w-24 shrink-0">Kernel</span>
+                        <span class="text-sm text-[#1a1a1a]">{{ sys_kernel }}</span>
+                      </div>
+                      <div class="flex flex-row gap-3">
+                        <span class="text-xs text-[#8a8a8a] w-24 shrink-0">OS build</span>
+                        <span class="text-sm text-[#1a1a1a]">{{ sys_os_build }}</span>
+                      </div>
+                      <div class="flex flex-row gap-3">
+                        <span class="text-xs text-[#8a8a8a] w-24 shrink-0">Architecture</span>
+                        <span class="text-sm text-[#1a1a1a]">{{ sys_arch }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                    <div class="flex flex-row items-center gap-2">
+                      <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
+                        <rect fill="none" height="7" rx="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="7" x="3" y="3" />
+                        <rect fill="none" height="7" rx="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="7" x="14" y="3" />
+                        <rect fill="none" height="7" rx="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="7" x="14" y="14" />
+                        <rect fill="none" height="7" rx="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="7" x="3" y="14" />
+                      </svg>
+                      <span class="text-sm font-semibold text-[#1a1a1a]">Managed Modules</span>
+                    </div>
+                    <div class="flex flex-row items-baseline gap-2">
+                      <span class="text-2xl font-semibold text-[#1a1a1a]">{{ sys_mod_total }}</span>
+                      <span class="text-sm text-[#616161]">modules under management</span>
+                    </div>
+                    <div class="flex flex-row gap-2">
+                      <span class="text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px]">{{ sys_mod_files + ' config files' }}</span>
+                      <span class="text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px]">{{ sys_mod_coll + ' collections' }}</span>
+                    </div>
+                    <span class="text-xs text-[#8a8a8a]">Served by the unified AutoOS config daemon</span>
                   </div>
                 </div>
               </div>

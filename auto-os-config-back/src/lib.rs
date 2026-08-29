@@ -168,20 +168,39 @@ fn config_probe_rs() -> String {
 /// system_info 的唯一实现:返回扁平 JSON 对象(VM 侧单跳字段读,VG12/13)。
 pub fn system_info_json() -> serde_json::Value {
     let na = serde_json::Value::String("n/a".to_string());
-    let (os_version, memory_total_mb, memory_free_mb, storage_total_gb, storage_free_gb) =
+    // 软件信息(plan011 概要页二期):RtlGetVersion 一次读取派生
+    // os_version/os_edition(≥22000 = Windows 11)/kernel(NT 内核版本即
+    // 主.minor 号);arch 取 rustc 目标三元组;uptime 取系统级
+    // GetTickCount64(非进程存活时长)。
+    let os_info = if cfg!(windows) { windows_os_version_info() } else { None };
+    let os_version = os_info
+        .as_ref()
+        .map(|(maj, min, build)| format!("{}.{}.{}", maj, min, build))
+        .map(serde_json::Value::from)
+        .unwrap_or(na.clone());
+    let os_edition = os_info
+        .as_ref()
+        .map(|(_, _, build)| if *build >= 22000 { "Windows 11" } else { "Windows 10" })
+        .map(serde_json::Value::from)
+        .unwrap_or(na.clone());
+    let kernel = os_info
+        .as_ref()
+        .map(|(maj, min, _)| format!("Windows NT {}.{}", maj, min))
+        .map(serde_json::Value::from)
+        .unwrap_or(na.clone());
+    let uptime_s: i64 = if cfg!(windows) { windows_uptime_s() } else { 0 };
+    let (memory_total_mb, memory_free_mb, storage_total_gb, storage_free_gb) =
         if cfg!(windows) {
-            let v = windows_os_version().map(serde_json::Value::from).unwrap_or(na.clone());
             let (mt, mf) = windows_memory_mb();
             let (st, sf) = windows_storage_gb();
             (
-                v,
                 mt.map(serde_json::Value::from).unwrap_or(na.clone()),
                 mf.map(serde_json::Value::from).unwrap_or(na.clone()),
                 st.map(serde_json::Value::from).unwrap_or(na.clone()),
                 sf.map(serde_json::Value::from).unwrap_or(na),
             )
         } else {
-            (na.clone(), na.clone(), na.clone(), na.clone(), na)
+            (na.clone(), na.clone(), na.clone(), na)
         };
     let hostname = env_or_na("COMPUTERNAME")
         .or_else(|| env_or_na("HOSTNAME"))
@@ -217,6 +236,10 @@ pub fn system_info_json() -> serde_json::Value {
     serde_json::json!({
         "os_name": std::env::consts::OS,
         "os_version": os_version,
+        "os_edition": os_edition,
+        "kernel": kernel,
+        "arch": std::env::consts::ARCH,
+        "uptime_s": uptime_s,
         "hostname": hostname,
         "cpu": cpu,
         "cpu_name": cpu_name,
@@ -332,15 +355,16 @@ fn env_or_na(key: &str) -> Option<String> {
     }
 }
 
+/// (major, minor, build) 一次读取,派生 os_version/os_edition/kernel。
 #[cfg(windows)]
-fn windows_os_version() -> Option<String> {
+fn windows_os_version_info() -> Option<(u32, u32, u32)> {
     use windows_sys::Wdk::System::SystemServices::RtlGetVersion;
     type OsVersionInfo = windows_sys::Win32::System::SystemInformation::OSVERSIONINFOW;
     unsafe {
         let mut v: OsVersionInfo = std::mem::zeroed();
         v.dwOSVersionInfoSize = std::mem::size_of::<OsVersionInfo>() as u32;
         if RtlGetVersion(&mut v) == 0 {
-            Some(format!("{}.{}.{}", v.dwMajorVersion, v.dwMinorVersion, v.dwBuildNumber))
+            Some((v.dwMajorVersion, v.dwMinorVersion, v.dwBuildNumber))
         } else {
             None
         }
@@ -348,9 +372,19 @@ fn windows_os_version() -> Option<String> {
 }
 
 #[cfg(not(windows))]
-fn windows_os_version() -> Option<String> {
+fn windows_os_version_info() -> Option<(u32, u32, u32)> {
     None
 }
+
+/// 系统开机时长(秒,GetTickCount64;非进程存活时长)。
+#[cfg(windows)]
+fn windows_uptime_s() -> i64 {
+    use windows_sys::Win32::System::SystemInformation::GetTickCount64;
+    (unsafe { GetTickCount64() } / 1000) as i64
+}
+
+#[cfg(not(windows))]
+fn windows_uptime_s() -> i64 { 0 }
 
 #[cfg(windows)]
 fn windows_memory_mb() -> (Option<f64>, Option<f64>) {
