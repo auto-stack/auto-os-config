@@ -1,6 +1,6 @@
 // End-to-end verification of the unified daemon + generic config editor
 // (Plan 002, Phase 2). Requires:
-//   - backend daemon running on :17701  (cargo run --manifest-path backend/Cargo.toml)
+//   - backend daemon running on :17701  (Plan 011: auto-os-config-back-server,端口 17701)
 //   - vite dev server on :17700         (npm run dev)
 //
 // Verifies:

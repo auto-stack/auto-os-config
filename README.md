@@ -30,9 +30,9 @@ Three pillars:
 
 | Pillar | Role | Location |
 |---|---|---|
-| **① Unified daemon** | The only config read/write service. URL → file path by convention (`~/.config/autoos/`). Replaces each module shipping its own config API. | `backend/` |
+| **① Unified daemon** | The only config read/write service. URL → file path by convention (`~/.config/autoos/`). Replaces each module shipping its own config API. **Plan 011: Auto 版外部 back**（`#[api]` 契约 + cdylib 桥 + axum 双传输；旧 Rust daemon 已归档 `archive/backend/`）。 | `auto-os-config-back/` |
 | **② Generic editor** | Renders a form from the `.at` data *shape* + a few key-name conventions. New module = zero frontend work. | `auto/src/front/config_editor.at` (→ `src/components/ConfigEditor.vue`) |
-| **③ Module registry** | Declares each module's id + file/dir. | `backend/src/registry.rs`, `auto/src/front/modules_store.at` |
+| **③ Module registry** | Declares each module's id + file/dir. | `auto-os-config-back/src/registry.rs`, `auto/src/front/modules_store.at` |
 
 See [`docs/designs/config-plugin-architecture.md`](docs/designs/config-plugin-architecture.md) for
 the architecture design, and [`docs/plans/archive/002-unified-config-daemon.md`](docs/plans/archive/002-unified-config-daemon.md)
