@@ -766,7 +766,10 @@ pub fn loadAccent() str {
     return "indigo"
 }
 
-pub fn applyAccent(name str) {
+// 446 前置修复：与 auto/src/back/api.at 同步改名（上游 Plan 409/458 codegen
+// 注入内嵌 applyAccent 助手撞名 TS2440/链接 Undefined symbol）。merged 模式
+// 链接面以本文件导出为准——两份 api.at 的签名必须同步改。
+pub fn saveAccent(name str) {
     let t = File.read_text(ui_state_path())
     var next = "{\"accent\":" + quote_json(name) + "}"
     if json.type_of(t) == "object" {
