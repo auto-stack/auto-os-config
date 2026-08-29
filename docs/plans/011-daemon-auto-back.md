@@ -349,8 +349,12 @@ Cargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路
      `vm::object_data::ObjectData` 恒 miss(同结构双同名,已修正探针)。
      注意:④「与③同根源」的假设随本定性**不成立**,④浮点误读独立存在
      (见下条)。
-   - 上游 worktree:auto-lang/.worktrees/auto-os-config-dev(保留;含①提交
-     与③定性 ba0416d15;[P011] 系探针暂留,随 plan011 收口移除)。
+   - 上游 worktree 收口(2026-08-29):auto-os-config-dev 分支已折叠
+     auto-lang master(merge 25a333ddc,含①char boundary/③定性/p1 canary
+     绿色回归金样/🟡ObjectData 债登记),[P011] 系临时探针随折叠摘除
+     (stderr 零残留),worktree 与分支已清理。后续上游会话可直接在
+     auto-lang master 作业,或 `git worktree add
+     .worktrees/auto-os-config-dev -b auto-os-config-dev` 重建。
    - 处置(2026-08-28 修订):本计划代码(POC 为纯新增目录)不触前端/旧
      backend,失败可于 pristine main 复现——登记为上游漂移问题。原定 Phase 0
      不折叠、改按 T8/T10 汇合点重试;现按用户指示于 T5 后提前合并入 main
