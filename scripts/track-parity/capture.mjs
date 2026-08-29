@@ -47,7 +47,7 @@ function normalizeSize(file) {
 }
 
 const VIEWS = [
-  // [侧栏显示名, 产物文件名, 模块 id（backend/src/registry.rs 注册表）]
+  // [侧栏显示名, 产物文件名, 模块 id（auto-os-config-back/src/registry.rs 注册表）]
   ['AI Daemon', '01-ai-daemon', 'ai-daemon'],
   ['Auto Musk', '02-auto-musk', 'auto-musk'],
   ['Roles', '03-roles', 'roles'],
