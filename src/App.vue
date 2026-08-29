@@ -83,14 +83,8 @@ onMounted(async () => {
   sys_mem_display.value = r.memory_free_mb + ' / ' + r.memory_total_mb + ' MB free';
 
 
-
-
   let dl = [];
-  for (const d of r.disks) {let p = d.used_percent;
-  let color: string = '#4f46e5';
-  if (p >= 70) {color = '#d97706';
-  }if (p >= 90) {color = '#dc2626';
-  }dl.push({ drive: d.drive, pct: p, free: d.free_gb, total: d.total_gb, color: color });
+  for (const d of r.disks) {dl.push({ drive: d.drive, pct: d.used_percent, free: d.free_gb, total: d.total_gb });
   }
   disks.value = dl;
 
@@ -169,7 +163,7 @@ onMounted(async () => {
                 </div>
                 <span class="text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2">Hardware</span>
                 <div class="flex flex-row w-full gap-4 pb-4">
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[144px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="16" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="16" x="4" y="4" />
@@ -189,7 +183,7 @@ onMounted(async () => {
                     <span class="text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px] w-fit">{{ sys_cpu_cores + ' logical cores' }}</span>
                     <span class="text-xs text-[#8a8a8a]">{{ sys_cpu }}</span>
                   </div>
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[144px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="14" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="3" />
@@ -208,7 +202,7 @@ onMounted(async () => {
                   </div>
                 </div>
                 <div class="flex flex-row w-full gap-4 pb-6">
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[207px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="8" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="6" />
@@ -223,7 +217,7 @@ onMounted(async () => {
                       <span class="text-sm font-semibold text-[#1a1a1a]">Memory</span>
                     </div>
                     <div class="flex flex-row items-center gap-5">
-                      <svg class="mem-donut h-[96px] w-[96px] shrink-0" viewBox="0 0 36 36">
+                      <svg class="mem-donut h-[96px] w-[96px] shrink-0 text-primary" viewBox="0 0 36 36">
                         <circle cx="18" cy="18" fill="none" r="15.9155" stroke="#e5e7eb" stroke-width="5" />
                         <circle class="text-primary" cx="18" cy="18" fill="none" r="15.9155" stroke="currentColor" :stroke-dasharray="sys_mem_dash" stroke-dashoffset="25" stroke-linecap="round" stroke-width="5" />
                       </svg>
@@ -236,7 +230,7 @@ onMounted(async () => {
                       </div>
                     </div>
                   </div>
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[207px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="22" x2="2" y1="12" y2="12" />
@@ -255,16 +249,14 @@ onMounted(async () => {
                           </div>
                           <span class="text-xs text-[#8a8a8a]">{{ dsk.free + ' / ' + dsk.total + ' GB free' }}</span>
                         </div>
-                        <div class="flex flex-col gap-4 w-full h-2 rounded-full bg-[#e5e7eb] overflow-hidden">
-                          <div class="flex flex-col gap-4" :style="'height: 8px; width: ' + dsk.pct + '%; background: ' + dsk.color + '; border-radius: 9999px'" />
-                        </div>
+                        <progress class="w-full h-2" :max="100" :value="dsk.pct" />
                       </div>
                     </div>
                   </div>
                 </div>
                 <span class="text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2">Software</span>
                 <div class="flex flex-row w-full gap-4">
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[159px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="16" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="4" />
@@ -293,7 +285,7 @@ onMounted(async () => {
                       </div>
                     </div>
                   </div>
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[159px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="7" rx="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="7" x="3" y="3" />

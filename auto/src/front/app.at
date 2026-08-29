@@ -111,7 +111,7 @@ widget App {
                                 }
                                 text (text: "Hardware", style: "text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2") {}
                                 row (style: "w-full flex flex-row gap-4 pb-4") {
-                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[144px]") {
                                         row (style: "flex flex-row items-center gap-2") {
                                             svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
                                                 rect (x: "4", y: "4", width: "16", height: "16", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
@@ -131,7 +131,7 @@ widget App {
                                         text (text: .sys_cpu_cores + " logical cores", style: "text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px] w-fit") {}
                                         text (text: .sys_cpu, style: "text-xs text-[#8a8a8a]") {}
                                     }
-                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[144px]") {
                                         row (style: "flex flex-row items-center gap-2") {
                                             svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
                                                 rect (x: "2", y: "3", width: "20", height: "14", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
@@ -152,7 +152,7 @@ widget App {
                                     }
                                 }
                                 row (style: "w-full flex flex-row gap-4 pb-6") {
-                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[207px]") {
                                         row (style: "flex flex-row items-center gap-2") {
                                             svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
                                                 rect (x: "2", y: "6", width: "20", height: "8", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
@@ -167,7 +167,7 @@ widget App {
                                             text (text: "Memory", style: "text-sm font-semibold text-[#1a1a1a]") {}
                                         }
                                         row (style: "flex flex-row items-center gap-5") {
-                                            svg (viewBox: "0 0 36 36", style: "mem-donut h-[96px] w-[96px] shrink-0") {
+                                            svg (viewBox: "0 0 36 36", style: "mem-donut h-[96px] w-[96px] shrink-0 text-primary") {
                                                 circle (cx: "18", cy: "18", r: "15.9155", fill: "none", stroke: "#e5e7eb", stroke-width: "5") {}
                                                 circle (cx: "18", cy: "18", r: "15.9155", fill: "none", stroke: "currentColor", stroke-width: "5", stroke-linecap: "round", stroke-dasharray: .sys_mem_dash, stroke-dashoffset: "25", style: "text-primary") {}
                                             }
@@ -180,7 +180,7 @@ widget App {
                                             }
                                         }
                                     }
-                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[207px]") {
                                         row (style: "flex flex-row items-center gap-2") {
                                             svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
                                                 line (x1: "22", y1: "12", x2: "2", y2: "12", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round") {}
@@ -200,9 +200,12 @@ widget App {
                                                         }
                                                         text (text: dsk.free + " / " + dsk.total + " GB free", style: "text-xs text-[#8a8a8a]") {}
                                                     }
-                                                    col (style: "w-full h-2 rounded-full bg-[#e5e7eb] overflow-hidden") {
-                                                        col (style: "height: 8px; width: " + dsk.pct + "%; background: " + dsk.color + "; border-radius: 9999px") {}
-                                                    }
+                                                    // 概要页三期(2026-08-29):内联 style 进度条(条形在
+                                                    // vm 轨被 aavm 忽略,恒灰底无比例) → AutoUI progress
+                                                    // 组件(双端原生:vue shadcn Progress / vm
+                                                    // ProgressBar;上游同期修复 convert_progress 循环
+                                                    // bindings——空 bindings 版循环内 value 恒 0)。
+                                                    progress (value: dsk.pct, max: 100, style: "w-full h-2") {}
                                                 }
                                             }
                                         }
@@ -210,7 +213,7 @@ widget App {
                                 }
                                 text (text: "Software", style: "text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2") {}
                                 row (style: "w-full flex flex-row gap-4") {
-                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[159px]") {
                                         row (style: "flex flex-row items-center gap-2") {
                                             svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
                                                 rect (x: "2", y: "4", width: "20", height: "16", rx: "2", ry: "2", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
@@ -239,7 +242,7 @@ widget App {
                                             }
                                         }
                                     }
-                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[159px]") {
                                         row (style: "flex flex-row items-center gap-2") {
                                             svg (viewBox: "0 0 24 24", style: "h-4 w-4 text-primary shrink-0") {
                                                 rect (x: "3", y: "3", width: "7", height: "7", rx: "1", fill: "none", stroke: "currentColor", stroke-width: "2", stroke-linecap: "round", stroke-linejoin: "round") {}
@@ -328,21 +331,11 @@ widget App {
             var mrest = 100 - mp
             .sys_mem_dash = mp + " " + mrest
             .sys_mem_display = r.memory_free_mb + " / " + r.memory_total_mb + " MB free"
-            // 存储:每盘 { drive, pct, free, total, color }——进度条填充宽度/颜色
-            // 在视图侧以 :style 内联绑定(pct 动态值,Tailwind 静态类表达不了);
-            // 颜色分级 <70 accent 蓝系 / ≥70 琥珀 / ≥90 红。数字文本保持 vm 轨
-            // 降级可读(内联样式若被 aavm 忽略,条形消失但数值仍在)。
+            // 存储:每盘 { drive, pct, free, total }——进度条视图侧用 AutoUI
+            // progress 组件(value/max 双端原生,三期弃内联 :style 与分级色)。
             var dl = []
             for d in r.disks {
-                var p = d.used_percent
-                var color = "#4f46e5"
-                if p >= 70 {
-                    color = "#d97706"
-                }
-                if p >= 90 {
-                    color = "#dc2626"
-                }
-                dl.push({ drive: d.drive, pct: p, free: d.free_gb, total: d.total_gb, color: color })
+                dl.push({ drive: d.drive, pct: d.used_percent, free: d.free_gb, total: d.total_gb })
             }
             .disks = dl
             // GPU 名单(修 T12 遗留:gpus 声明后从未填充,面板恒空)。

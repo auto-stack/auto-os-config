@@ -1032,3 +1032,23 @@ input:focus, select:focus {
     max-width: 720px;
     overflow: hidden;
 }
+
+/* 原生 <progress> 主题化（概要页三期 progress 组件，shadcn:off 走原生标签；
+   填充色跟随 --primary accent，与 vm 轨 ProgressBar 同语义）。 */
+progress {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+}
+progress::-webkit-progress-bar {
+  background: #e5e7eb;
+  border-radius: 9999px;
+}
+progress::-webkit-progress-value {
+  background: hsl(var(--primary));
+  border-radius: 9999px;
+}
+progress::-moz-progress-bar {
+  background: hsl(var(--primary));
+  border-radius: 9999px;
+}
