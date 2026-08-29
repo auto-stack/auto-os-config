@@ -74,6 +74,13 @@ for f in gen/front/vue/src/components/*.vue; do
       -e "s|\$event\.target\.checked|($event.target as HTMLInputElement).checked|g" \
       "$f" > "../src/components/${base}"
 done
+# plan446 撤绕行 C1: 确认层迁回 popover 后,上游 vue codegen 对 popover 是惰性
+# div 透传(:open 属性无效 → 面板常显;@dismiss 不接线)——部署侧补偿为 v-if 门控
+# (行为与旧 if 块等价)。VM 轨走真 popover。上游 vue 半缺口已登记回传。
+for f in ../src/components/CollectionBrowser.vue; do
+  sed -i -e 's| :open="confirm_open"| v-if="confirm_open"|'          -e 's| :x="620"||' -e 's| :y="300"||'          -e 's| @dismiss="ConfirmDeleteNo"||' "$f"
+done
+
 # Root App.vue (batch 6): the codegen emits it at the scaffold root position
 # (gen/front/vue/src/App.vue), not in components/ — deploy to src/ with the
 # root-depth import rewrites (batch 6: the shared root from app.at).

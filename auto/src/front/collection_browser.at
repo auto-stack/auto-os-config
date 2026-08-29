@@ -185,29 +185,27 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                             }
                         }
                     }
-                    if .confirm_open {
-                        div (style: "modal-backdrop gap-[0px]") {
-                            div (style: "modal gap-[0px]") {
-                                p {
-                                    text (text: "Delete ") {}
-                                    span (style: "strong", text: .store.selected_name) {}
-                                    text (text: "?") {}
-                                }
-                                p (style: "modal-hint") {
-                                    text (text: "This removes the ") {}
-                                    span (style: "inline-code", text: ".at") {}
-                                    text (text: " file and its sidecar. A ") {}
-                                    span (style: "inline-code", text: ".bak") {}
-                                    text (text: " is kept.") {}
-                                }
-                                div (style: "modal-actions gap-[8px]") {
-                                    button (text: "Cancel", style: "btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto") {
-                                        onclick: .ConfirmDeleteNo
-                                    }
-                                    button (text: "Delete", style: "btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto") {
-                                        onclick: .ConfirmDeleteYes
-                                    }
-                                }
+                    // 446 撤绕行 C1：确认层迁回 popover（上游 plan446_c1_popover
+                    // 常驻锁形态：点锚 + ondismiss + class 面板），if 块模拟弹层已删。
+                    popover (open: .confirm_open, x: 620.0, y: 300.0, ondismiss: .ConfirmDeleteNo, class: "w-72 bg-white border border-[#e0e0e0] rounded-lg p-4 gap-2") {
+                        p {
+                            text (text: "Delete ") {}
+                            span (style: "strong", text: .store.selected_name) {}
+                            text (text: "?") {}
+                        }
+                        p (style: "modal-hint") {
+                            text (text: "This removes the ") {}
+                            span (style: "inline-code", text: ".at") {}
+                            text (text: " file and its sidecar. A ") {}
+                            span (style: "inline-code", text: ".bak") {}
+                            text (text: " is kept.") {}
+                        }
+                        div (style: "modal-actions gap-[8px]") {
+                            button (text: "Cancel", style: "btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto") {
+                                onclick: .ConfirmDeleteNo
+                            }
+                            button (text: "Delete", style: "btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto") {
+                                onclick: .ConfirmDeleteYes
                             }
                         }
                     }

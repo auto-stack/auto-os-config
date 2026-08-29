@@ -317,28 +317,24 @@ onMounted(() => {
               </template>
             </div>
           </div>
-          <template v-if="confirm_open">
-            <div class="modal-backdrop gap-[0px]">
-              <div class="modal gap-[0px]">
-                <p>
-                  <span>Delete </span>
-                  <span class="strong">{{ store.selected_name }}</span>
-                  <span>?</span>
-                </p>
-                <p class="modal-hint">
-                  <span>This removes the </span>
-                  <span class="inline-code">.at</span>
-                  <span> file and its sidecar. A </span>
-                  <span class="inline-code">.bak</span>
-                  <span> is kept.</span>
-                </p>
-                <div class="modal-actions gap-[8px]">
-                  <button class="btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto" @click="ConfirmDeleteNo">Cancel</button>
-                  <button class="btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto" @click="ConfirmDeleteYes">Delete</button>
-                </div>
-              </div>
+          <div class="w-72 bg-white border border-[#e0e0e0] rounded-lg p-4 gap-2" v-if="confirm_open">
+            <p>
+              <span>Delete </span>
+              <span class="strong">{{ store.selected_name }}</span>
+              <span>?</span>
+            </p>
+            <p class="modal-hint">
+              <span>This removes the </span>
+              <span class="inline-code">.at</span>
+              <span> file and its sidecar. A </span>
+              <span class="inline-code">.bak</span>
+              <span> is kept.</span>
+            </p>
+            <div class="modal-actions gap-[8px]">
+              <button class="btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto" @click="ConfirmDeleteNo">Cancel</button>
+              <button class="btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto" @click="ConfirmDeleteYes">Delete</button>
             </div>
-          </template>
+          </div>
           <template v-if="store.error != ''">
             <div class="state-msg error">
               <span>{{ '✗ ' + store.error }}</span>
