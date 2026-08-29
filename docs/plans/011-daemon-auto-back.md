@@ -1,15 +1,24 @@
 ---
 plan_id: PLAN-011
-status: execution_done
+status: reviewed
 feature_name: os-config-daemon Auto 版——外部 back 形态改造
 author: [zcode]
 created_at: 2026-08-28T18:30:00+08:00
 updated_at: 2026-08-29T15:30:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
-supersedes_spec_components: []
-new_spec_components: []
-touched_goals: []
+supersedes_spec_components:
+  - "backend/ (Rust 统一配置 daemon): 已取代,源码归档 archive/backend/"
+new_spec_components:
+  - "auto-os-config-back/: Auto 版外部 back —— api.at 契约层 + Plan 061 cdylib 桥 + axum 双传输(registry/project/collection/core 移植)"
+  - "auto/src/front/app.at: 概要页 System Dashboard(四面板)+ 侧栏首页入口"
+  - "examples/poc-hello/ + scripts/poc-t1-verify.mjs: 外部 back 三路径验证载具"
+touched_goals:
+  - "goal-001: Auto 版外部 back daemon(#[api] 契约层 + 端点实现)"
+  - "goal-002: system_info 端点与概要页真数据"
+  - "goal-003: 存量 11 端点分组移植(前端契约零改动)"
+  - "goal-004: pac.at back 接线 + 双模式启动(vue=HTTP / vm=merged)"
+  - "goal-005: backend/ 退役归档 + 文档同步"
 
 current_step: 12/12(全部完成)
 total_steps: 12
@@ -245,6 +254,44 @@ vm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 �
 ## 复审记录
 
 （/auto-plan:review 回填）
+
+### 独立复审记录(/auto-plan:review,2026-08-29)
+
+- 复审人:zcode(/auto-plan:review);对象:main d951a8b(分支 plan-011-dev
+  已折叠,按规则在默认 checkout 验证)。
+- 验收标准逐项复核:
+  - G1 形态 POC 三路径实证:PASS。裁决记录在册(复审记录 §T1,采形态 b);
+    载具提交(examples/poc-hello + poc-t1-verify.mjs + auto-os-config-back)。
+    注:③ 相关的「collapse RED」后续被上游定性反转(判定假阳性,见
+    ba0416d15),不影响形态裁决结论。
+  - G2 system_info 双模式真数据 + 概要页渲染:PASS。cargo test 39/39;
+    curl /api/system-info 全字段实值;vm MCP 实测(auto-os-config 仓探针);
+    vue Playwright 四面板真值;④ 修复后本仓复验浮点读恢复真值(51.2588)。
+  - G3 11 端点实现 + 契约稳定 + 双门禁全绿:PASS。14 个 #[api] 注解齐
+    (11 端点族 + loadEnum + system_info,health 为纯路由);git diff 证明
+    use back.api: 导出行仅新增 system_info、api.ts 纯新增 export;终验
+    e2e.sh ALL PASS + e2e-vm 17/17(见下)。
+  - G4 双模式启动 + back: 接线:PASS。pac.at back: 在位;e2e.sh 服务源 =
+    新 back(冷起自建自启);vm merged 链接+cdylib 装载多轮实证。
+  - G5 backend/ 退役 + 文档同步:PASS。archive/backend/ 7 文件 R100;
+    README 架构表/.gitignore/capture.mjs/test-generic-editor.mjs/
+    KNOWN-DEBT-AND-RISKS 五处同步;活引用清零(tmp/css-era 历史基线与
+    归档位置说明除外)。
+- 终验(复审门禁,本次重跑):e2e.sh ALL PASS(32 断言)+ e2e-vm 17/17
+  EXIT 0。
+- 债候选(均非阻塞):
+  1. 测试隔离:core::tests 的 put_creates_bak 与 config_get_put_roundtrip
+     并发竞争真实 ~/.config/autoos/ai-daemon.at(.bak)——cargo test 并行
+     调度下间歇红(复跑即绿,产品代码无恙)。建议后续 #[serial] 或临时
+     config root 隔离。
+  2. api.at 死文本:12 个已迁移 fn 的函数体仍保留 not-migrated 桩文本
+     (merged 模式经宿主桥旁路、HTTP 面不走 api.at,无行为影响)——建议
+     后续清理为注释或空实现。
+  3. cdylib 孤儿注册:lib.rs 仍注册 hello/config_probe(POC 遗留,api.at
+     已无对应契约 fn,宿主桥冗余项无害)——建议随下次触达清理。
+- 延后项(经用户可见记录,非门禁):vue 端 CSS 图表增强(当前双端文本条
+  一致,已在计划记录为可选项)。
+- 结论:全部验收通过,无阻塞债。status → reviewed,移交 /auto-plan:merge。
 
 ### 收口移交注记(执行结束,2026-08-29)
 
