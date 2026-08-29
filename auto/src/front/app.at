@@ -129,18 +129,58 @@ widget App {
             // Init 链上显式触发（vue 端 useTheme onMounted 同源，幂等）。
             Theme.Init()
             // Plan 011 T9/T12:概要页 Dashboard 真数据(back.api 桥/HTTP 双传输)。
-            // 展示串/条形图由 Rust 侧预制(VM __json_object 浮点 Dot 读有上游
-            // 缺陷④,数值字段全部整数化,视图只消费字符串与整数)。
+            // 上游④已修复(Plan 474):payload 恢复原始数值(浮点),视图侧
+            // floor 取整 + ASCII 条构建(规避 aavm VBool 字形 parity 债)。
             var r = system_info()
             .sys_host = r.hostname
             .sys_os = r.os_name + " " + r.os_version
             .sys_cpu = r.cpu
             .sys_cpu_name = r.cpu_name
             .sys_cpu_cores = r.cpu_cores
-            .sys_mem_bar = r.memory_bar
-            .sys_mem_display = r.memory_display
-            .disks = r.disks
-            .gpus = r.gpus
+            var mp = r.memory_used_percent
+            var mbar = ""
+            var mi = 0
+            loop {
+                if mi >= 10 {
+                    break
+                }
+                var filled = mp / 10
+                if mi < filled {
+                    mbar = mbar + "#"
+                }
+                if mi >= filled {
+                    mbar = mbar + "-"
+                }
+                mi = mi + 1
+            }
+            .sys_mem_bar = mbar
+            var mf = r.memory_free_mb
+            var mt = r.memory_total_mb
+            .sys_mem_display = r.memory_free_mb + " / " + r.memory_total_mb + " MB free"
+                var dl = []
+            for d in r.disks {
+                var p = d.used_percent
+                var bar = ""
+                var bi = 0
+                loop {
+                    if bi >= 10 {
+                        break
+                    }
+                    var filled = p / 10
+                    if bi < filled {
+                        bar = bar + "#"
+                    }
+                    if bi >= filled {
+                        bar = bar + "-"
+                    }
+                    bi = bi + 1
+                }
+                var df = d.free_gb
+                var dt = d.total_gb
+                var line = d.drive + " " + bar + " " + p + "% · " + df + " / " + dt + " GB free"
+                dl.push({ drive: d.drive, display: line })
+            }
+            .disks = dl
         }
         // T18: 概要页卡片点击 → 模块跳转（sidebar 同款 Select 链）
         .SelectModule(mid) -> {

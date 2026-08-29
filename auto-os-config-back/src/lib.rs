@@ -203,26 +203,17 @@ pub fn system_info_json() -> serde_json::Value {
             None => "n/a".to_string(),
         }
     };
-    // T12 Dashboard:数值一律整数(VM __json_object 浮点 Dot 读有上游缺陷④,
-    // Int 走 as_i64 路径安全);条形图 10 格文本条 Rust 侧预制,双端直用。
-    let mem_total_i = memory_total_mb.as_f64().unwrap_or(0.0) as i64;
-    let mem_free_i = memory_free_mb.as_f64().unwrap_or(0.0) as i64;
+    // T12 后续(上游回执):④ 已修复(Plan 474),撤整数化/展示串绕法,
+    // 恢复原始数值字段(浮点);used_percent 为整数派生指标(视图直用)。
+    // 内存/磁盘数值取整(MB/GB 粒度):vm 视图 concat 整数可靠;浮点在
+    // concat 表达式求值仍有缺陷(④ 家族,另行上报),故仪表盘数值走整数。
+    let mem_total_i = memory_total_mb.as_f64().unwrap_or(0.0).round() as i64;
+    let mem_free_i = memory_free_mb.as_f64().unwrap_or(0.0).round() as i64;
     let mem_used_pct = if mem_total_i > 0 {
         ((mem_total_i - mem_free_i) * 100 / mem_total_i) as i64
     } else { 0 };
-    let memory_display = format!(
-        "{} / {} MB free",
-        fmt(&memory_free_mb),
-        fmt(&memory_total_mb)
-    );
-    let memory_bar = bar10(mem_used_pct);
     let disks = if cfg!(windows) { windows_disks() } else { Vec::new() };
     let gpus = if cfg!(windows) { windows_gpus() } else { Vec::new() };
-    let storage_display = format!(
-        "{} / {} GB",
-        fmt(&storage_free_gb),
-        fmt(&storage_total_gb)
-    );
     serde_json::json!({
         "os_name": std::env::consts::OS,
         "os_version": os_version,
@@ -233,24 +224,11 @@ pub fn system_info_json() -> serde_json::Value {
         "memory_total_mb": mem_total_i,
         "memory_free_mb": mem_free_i,
         "memory_used_percent": mem_used_pct,
-        "memory_bar": memory_bar,
-        "memory_display": memory_display,
         "disks": disks,
         "storage_total_gb": storage_total_gb,
         "storage_free_gb": storage_free_gb,
-        "storage_display": storage_display,
         "gpus": gpus,
     })
-}
-
-/// 10 格文本条(filled = 已用量格数)。
-fn bar10(used_percent: i64) -> String {
-    let used = (used_percent.clamp(0, 100) / 10) as usize;
-    let mut s = String::new();
-    for i in 0..10usize {
-        if i < used { s.push('\u{2588}'); } else { s.push('\u{2591}'); }
-    }
-    s
 }
 
 /// 固定硬盘枚举:每个盘 {drive, total_gb, free_gb, used_percent, bar}(全整数)。
@@ -282,11 +260,6 @@ fn windows_disks() -> Vec<serde_json::Value> {
                 "total_gb": tg,
                 "free_gb": fg,
                 "used_percent": used_pct,
-                "bar": bar10(used_pct),
-                "display": format!(
-                    "{} {} {}% \u{b7} {} / {} GB free",
-                    letter, bar10(used_pct), used_pct, fg, tg
-                ),
             }));
         }
     }
@@ -720,12 +693,10 @@ mod tests {
     #[test]
     fn system_info_dashboard_fields() {
         let v = system_info_json();
-        assert!(v["memory_total_mb"].is_i64(), "memory ints are vm-safe");
+        assert!(v["memory_total_mb"].is_i64(), "dashboard MB granularity (int)");
         let pct = v["memory_used_percent"].as_i64().unwrap();
         assert!((0..=100).contains(&pct));
-        let bar = v["memory_bar"].as_str().unwrap();
-        assert_eq!(bar.chars().count(), 10);
-        assert!(bar.chars().all(|c| c == '█' || c == '░'));
+        // bar 字段已撤(上游回执:撤整数化绕法)
         let disks = v["disks"].as_array().expect("disks array");
         assert!(!disks.is_empty(), "at least the system drive is present");
         for d in disks {
@@ -734,8 +705,6 @@ mod tests {
             assert!(d["free_gb"].is_i64());
             let p = d["used_percent"].as_i64().unwrap();
             assert!((0..=100).contains(&p));
-            assert_eq!(d["bar"].as_str().unwrap().chars().count(), 10);
-            assert!(d["display"].as_str().map(|s| s.contains("GB free")).unwrap_or(false), "display carries the usage summary");
         }
         assert!(v["cpu_name"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
         assert!(v["cpu_cores"].as_i64().unwrap_or(0) > 0);

@@ -50,10 +50,37 @@ onMounted(async () => {
   sys_cpu.value = r.cpu;
   sys_cpu_name.value = r.cpu_name;
   sys_cpu_cores.value = r.cpu_cores;
-  sys_mem_bar.value = r.memory_bar;
-  sys_mem_display.value = r.memory_display;
-  disks.value = r.disks;
-  gpus.value = r.gpus;
+  let mp = r.memory_used_percent;
+  let mbar: string = '';
+  let mi: number = 0;
+  while (true) {
+  if (mi >= 10) {break;
+  }let filled: number = mp / 10;
+  if (mi < filled) {mbar = mbar + '#';
+  }if (mi >= filled) {mbar = mbar + '-';
+  }mi = mi + 1;
+  }
+  sys_mem_bar.value = mbar;
+  let mf = r.memory_free_mb;
+  let mt = r.memory_total_mb;
+  sys_mem_display.value = r.memory_free_mb + ' / ' + r.memory_total_mb + ' MB free';
+  let dl = [];
+  for (const d of r.disks) {let p = d.used_percent;
+  let bar: string = '';
+  let bi: number = 0;
+  while (true) {
+  if (bi >= 10) {break;
+  }let filled: number = p / 10;
+  if (bi < filled) {bar = bar + '#';
+  }if (bi >= filled) {bar = bar + '-';
+  }bi = bi + 1;
+  }
+  let df = d.free_gb;
+  let dt = d.total_gb;
+  let line: string = d.drive + ' ' + bar + ' ' + p + '% · ' + df + ' / ' + dt + ' GB free';
+  dl.push({ drive: d.drive, display: line });
+  }
+  disks.value = dl;
 })
 
 
