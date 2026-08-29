@@ -326,6 +326,14 @@ Cargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路
      (-D 无错误)。修复需 renderer 插桩(DynamicComponent::update/view 链
      路),canary README 已打包全部二分数据;os-config 侧缓解案 = 概要卡
      换独立投影数组(未采用,待上游修复)。
+   - ③ 插桩追查(2026-08-29 第二轮,分支 auto-os-config-dev 含证据链提交):
+     实证排除 dirty/重建缺失/读缓存三假设——press 后 handler 执行、dirty 置
+     位、丢弃式+正式重建均发生;builder 每帧重读 view_groups(App=root,
+     SidePanel=child-first 回退 root),两侧同一 elems id(列表同步)。引擎 SET
+     view_groups 确认执行且携带新堆列表 id。剩余未知:新列表元素(组对象)
+     的堆表示非 GenericInstanceData/ObjectData(未知变体),其 open 的读取
+     结果决定条件渲染。下一步:弄清对象字面量堆类型与 builder Dot 求值
+     (与④浮点误读同根源区)。插桩([P011] 系)保留在分支,定位后移除。
    - 上游 worktree:auto-lang/.worktrees/auto-os-config-dev(保留;含①提交)。
    - 处置(2026-08-28 修订):本计划代码(POC 为纯新增目录)不触前端/旧
      backend,失败可于 pristine main 复现——登记为上游漂移问题。原定 Phase 0
