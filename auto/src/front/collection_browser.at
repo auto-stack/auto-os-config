@@ -449,10 +449,10 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
 
     on {
         .Init -> {
-            store.Open(.module_id)
+            Collection.Init(.module_id)
         }
         .Load -> {
-            store.Open(.module_id)
+            Collection.Init(.module_id)
         }
         .SetFilter(q) -> {
             store.SetFilter(q)
@@ -466,7 +466,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
         .DoCreate -> {
             var name = .new_name.trim()
             if name != "" {
-                store.NewEntity(name)
+                store.Create(name)
                 .creating = false
                 .new_name = ""
             }
@@ -476,7 +476,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
             .new_name = ""
         }
         .Pick(n) -> {
-            store.Pick(n)
+            Collection.Select(n)
             .sidecar_draft = .store.sidecar
             .draft = ""
         }
@@ -485,14 +485,14 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
         }
         .Save -> {
             store.SetSidecar(.sidecar_draft)
-            store.SaveEntity()
+            store.Save()
         }
         .AskDelete -> {
             .confirm_open = true
         }
         .ConfirmDeleteYes -> {
             .confirm_open = false
-            store.DelEntity(.store.selected_name)
+            store.Remove(.store.selected_name)
         }
         .ConfirmDeleteNo -> {
             .confirm_open = false

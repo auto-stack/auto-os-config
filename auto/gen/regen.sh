@@ -36,14 +36,21 @@ for f in gen/front/vue/src/stores/use*Store.ts; do
       "$f" > "../src/stores/auto/${base}"
 done
 
-# plan010 R10: store-to-store call — codegen emits a bare `Collection.Open(...)`
+# plan010 R10: store-to-store call — codegen emits a bare `Collection.Init(...)`
 # inside useModulesStore (no import/facade for cross-store refs, same family as
 # the multi-store facade gap). Rewrite to the composable call + import; the
 # module-level refs are singletons so state is shared.
-if [ -f "../src/stores/auto/useModulesStore.ts" ] && grep -q "Collection\.Open(" "../src/stores/auto/useModulesStore.ts"; then
+# (446 撤绕行 VG16: Collection.Open 已回归自然名 Init。)
+if [ -f "../src/stores/auto/useModulesStore.ts" ] && grep -q "Collection.Init(" "../src/stores/auto/useModulesStore.ts"; then
   grep -q "^import { useCollectionStore }" "../src/stores/auto/useModulesStore.ts" || \
     sed -i "1i import { useCollectionStore } from './useCollectionStore'" "../src/stores/auto/useModulesStore.ts"
-  sed -i "s|Collection\.Open(|useCollectionStore().Open(|g" "../src/stores/auto/useModulesStore.ts"
+  sed -i "s|Collection\.Init(|useCollectionStore().Init(|g" "../src/stores/auto/useModulesStore.ts"
+fi
+
+# plan446 撤绕行 VG16/A1: collection_store 内部自限定调用 `Collection.Select(name)`
+# (vm 侧 A1 要求同名 msg 显式限定)——codegen 原样带进 TS,composable 内本地直调即可。
+if [ -f "../src/stores/auto/useCollectionStore.ts" ] && grep -q "Collection\.Select(" "../src/stores/auto/useCollectionStore.ts"; then
+  sed -i "s|Collection\.Select(|Select(|g" "../src/stores/auto/useCollectionStore.ts"
 fi
 
 # Deploy components: rewrite the codegen's @/ext/... imports to point into

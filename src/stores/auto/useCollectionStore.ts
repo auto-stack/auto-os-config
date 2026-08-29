@@ -23,62 +23,7 @@ const error = ref<string>('')
 const dirty = ref<boolean>(false)
 
 export function useCollectionStore(): any {
-    const DelEntity = async (name: string) => { error.value = '';
-let r = await deleteEntitySafe(module_id.value, name);
-if (r.ok) {if (selected_name.value == name) {selected_name.value = null;
-entries.value = [];
-body_text.value = '';
-}list_loading.value = true;
-let lr = await fetchCollectionListRaw(module_id.value);
-if (lr.ok) {let items = [];
-let nm = [];
-let n = await collectionCount(lr.text);
-let i: number = 0;
-while (true) {
-if (i >= n) {break;
-}let e = await collectionAt(lr.text, i);
-items.push({ name: e.name, description: e.description });
-nm.push(e.name);
-i = i + 1;
-}
-list.value = items;
-names.value = nm;
-
-let vn = [];
-let ve = [];
-let fq = name_filter.value.toLowerCase();
-for (const e of list.value) {let hit: boolean = true;
-if (fq != '') {hit = e.name.toLowerCase().includes(fq);
-}if (hit) {ve.push({ name: e.name, description: e.description });
-vn.push(e.name);
-}}
-view_entities.value = ve;
-view_names.value = vn;
-}list_loading.value = false;
-}
-if (r.ok == false) {error.value = r.error;
-}
- }
-    const FieldEdited = async (args: any) => { body_text.value = await editField(body_text.value, args.path, args.value);
-let w = await warmEnumsText(body_text.value, module_id.value);
-let es = [];
-let ek = [];
-let n = await entriesCount(body_text.value);
-let i: number = 0;
-while (true) {
-if (i >= n) {break;
-}let d = await entryAt(body_text.value, i, module_id.value);
-es.push(d);
-ek.push(d.key);
-i = i + 1;
-}
-entries.value = es;
-entry_keys.value = ek;
-dirty.value = true;
- }
-    const MarkDirty = () => { dirty.value = true;
- }
-    const NewEntity = async (name: string) => { saving.value = true;
+    const Create = async (name: string) => { saving.value = true;
 error.value = '';
 let r = await createEntitySafe(module_id.value, name);
 if (r.ok) {list_loading.value = true;
@@ -108,13 +53,30 @@ vn.push(e.name);
 view_entities.value = ve;
 view_names.value = vn;
 }list_loading.value = false;
-Pick(name);
+Select(name);
 }
 if (r.ok == false) {error.value = r.error;
 }
 saving.value = false;
  }
-    const Open = async (mid: string) => { module_id.value = mid;
+    const FieldEdited = async (args: any) => { body_text.value = await editField(body_text.value, args.path, args.value);
+let w = await warmEnumsText(body_text.value, module_id.value);
+let es = [];
+let ek = [];
+let n = await entriesCount(body_text.value);
+let i: number = 0;
+while (true) {
+if (i >= n) {break;
+}let d = await entryAt(body_text.value, i, module_id.value);
+es.push(d);
+ek.push(d.key);
+i = i + 1;
+}
+entries.value = es;
+entry_keys.value = ek;
+dirty.value = true;
+ }
+    const Init = async (mid: string) => { module_id.value = mid;
 error.value = '';
 list_loading.value = true;
 let r = await fetchCollectionListRaw(mid);
@@ -149,44 +111,7 @@ names.value = [];
 }
 list_loading.value = false;
  }
-    const Pick = async (name: string) => { selected_name.value = name;
-loading.value = true;
-error.value = '';
-entries.value = [];
-sidecar.value = '';
-body_text.value = '';
-fm_name.value = '';
-fm_description.value = '';
-fm_body.value = '';
-dirty.value = false;
-let r = await fetchEntityFlat(module_id.value, name);
-if (r.ok) {if (r.is_atom) {
-is_read_only.value = false;
-body_text.value = r.value;
-sidecar.value = r.sidecar;
-let w = await warmEnumsText(body_text.value, module_id.value);
-let es = [];
-let ek = [];
-let n = await entriesCount(r.value);
-let i: number = 0;
-while (true) {
-if (i >= n) {break;
-}let d = await entryAt(r.value, i, module_id.value);
-es.push(d);
-ek.push(d.key);
-i = i + 1;
-}
-entries.value = es;
-entry_keys.value = ek;
-}if (r.is_atom == false) {
-is_read_only.value = true;
-fm_name.value = r.fm_name;
-fm_description.value = r.fm_description;
-fm_body.value = r.fm_body;
-}}
-if (r.ok == false) {error.value = r.error;
-}
-loading.value = false;
+    const MarkDirty = () => { dirty.value = true;
  }
     const Reload = async () => { list_loading.value = true;
 let r = await fetchCollectionListRaw(module_id.value);
@@ -246,7 +171,43 @@ fm_body.value = e.fm_body;
 }loading.value = false;
 }
  }
-    const SaveEntity = async () => { if (selected_name.value != null && body_text.value != '') {saving.value = true;
+    const Remove = async (name: string) => { error.value = '';
+let r = await deleteEntitySafe(module_id.value, name);
+if (r.ok) {if (selected_name.value == name) {selected_name.value = null;
+entries.value = [];
+body_text.value = '';
+}list_loading.value = true;
+let lr = await fetchCollectionListRaw(module_id.value);
+if (lr.ok) {let items = [];
+let nm = [];
+let n = await collectionCount(lr.text);
+let i: number = 0;
+while (true) {
+if (i >= n) {break;
+}let e = await collectionAt(lr.text, i);
+items.push({ name: e.name, description: e.description });
+nm.push(e.name);
+i = i + 1;
+}
+list.value = items;
+names.value = nm;
+
+let vn = [];
+let ve = [];
+let fq = name_filter.value.toLowerCase();
+for (const e of list.value) {let hit: boolean = true;
+if (fq != '') {hit = e.name.toLowerCase().includes(fq);
+}if (hit) {ve.push({ name: e.name, description: e.description });
+vn.push(e.name);
+}}
+view_entities.value = ve;
+view_names.value = vn;
+}list_loading.value = false;
+}
+if (r.ok == false) {error.value = r.error;
+}
+ }
+    const Save = async () => { if (selected_name.value != null && body_text.value != '') {saving.value = true;
 error.value = '';
 let r = await putEntitySafe(module_id.value, selected_name.value, body_text.value, sidecar.value);
 if (r.ok) {dirty.value = false;
@@ -280,6 +241,45 @@ view_names.value = vn;
 }if (r.ok == false) {error.value = r.error;
 }saving.value = false;
 }
+ }
+    const Select = async (name: string) => { selected_name.value = name;
+loading.value = true;
+error.value = '';
+entries.value = [];
+sidecar.value = '';
+body_text.value = '';
+fm_name.value = '';
+fm_description.value = '';
+fm_body.value = '';
+dirty.value = false;
+let r = await fetchEntityFlat(module_id.value, name);
+if (r.ok) {if (r.is_atom) {
+is_read_only.value = false;
+body_text.value = r.value;
+sidecar.value = r.sidecar;
+let w = await warmEnumsText(body_text.value, module_id.value);
+let es = [];
+let ek = [];
+let n = await entriesCount(r.value);
+let i: number = 0;
+while (true) {
+if (i >= n) {break;
+}let d = await entryAt(r.value, i, module_id.value);
+es.push(d);
+ek.push(d.key);
+i = i + 1;
+}
+entries.value = es;
+entry_keys.value = ek;
+}if (r.is_atom == false) {
+is_read_only.value = true;
+fm_name.value = r.fm_name;
+fm_description.value = r.fm_description;
+fm_body.value = r.fm_body;
+}}
+if (r.ok == false) {error.value = r.error;
+}
+loading.value = false;
  }
     const SetBodyText = async (nb: string) => { body_text.value = nb;
 let es = [];
@@ -364,14 +364,14 @@ entry_keys.value = ek;
         saving,
         error,
         dirty,
-        DelEntity,
+        Create,
         FieldEdited,
+        Init,
         MarkDirty,
-        NewEntity,
-        Open,
-        Pick,
         Reload,
-        SaveEntity,
+        Remove,
+        Save,
+        Select,
         SetBodyText,
         SetFilter,
         SetSidecar,

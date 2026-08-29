@@ -191,7 +191,7 @@ widget Sidebar {
 
     on {
         .SearchChanged(q) -> { store.Search(q) }
-        .SelectModule(mid) -> { store.Select(mid) }
+        .SelectModule(mid) -> { Modules.Select(mid) }
         .ToggleGroup(gid) -> { store.ToggleGroup(gid) }
         .SelectOverview -> { store.Overview() }
     }

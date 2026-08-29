@@ -183,8 +183,9 @@ widget App {
             .disks = dl
         }
         // T18: 概要页卡片点击 → 模块跳转（sidebar 同款 Select 链）
+        // 446 撤绕行 VG16/A1：Collection.Select 回归后同名，须显式限定。
         .SelectModule(mid) -> {
-            store.Select(mid)
+            Modules.Select(mid)
         }
     }
 }

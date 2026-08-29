@@ -244,9 +244,9 @@ store Modules {
                 // plan010 R10（复审退回项）: read_only 集合在 vm 无任何加载入口
                 // （无 Load 按钮 + 子 widget 无 auto-Init，列表永远空）。Select
                 // 命中集合时预载 Collection store——CollectionBrowser 实例重建
-                // 即有数据。vue 端幂等（mount Init 再 Open 同 id，覆盖无害）。
+                // 即有数据。vue 端幂等（mount Init 再 Init 同 id，覆盖无害）。
                 if hit.kind == "collection" {
-                    Collection.Open(hit.id)
+                    Collection.Init(hit.id)
                 }
                 var gid = groupOfModule(.raw, id)
                 if gid != "" {

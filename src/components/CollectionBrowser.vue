@@ -80,14 +80,14 @@ function ConfirmDeleteNo(): void {
 
 function ConfirmDeleteYes(): void {
   confirm_open.value = false;
-  store.DelEntity(store.selected_name);
+  store.Remove(store.selected_name);
 
   emit('ConfirmDeleteYes')
 }
 
 function DoCreate(): void {
   let name = new_name.value.trim();
-  if (name != '') {store.NewEntity(name);
+  if (name != '') {store.Create(name);
   creating.value = false;
   new_name.value = '';
   }
@@ -102,7 +102,7 @@ function Draft(v: any): void {
 }
 
 function Load(): void {
-  store.Open(props.module_id);
+  store.Init(props.module_id);
 
   emit('Load')
 }
@@ -127,7 +127,7 @@ function NewName(v: any): void {
 }
 
 function Pick(n: any): void {
-  store.Pick(n);
+  store.Select(n);
   sidecar_draft.value = store.sidecar;
   draft.value = '';
 
@@ -148,7 +148,7 @@ function Reload(): void {
 
 function Save(): void {
   store.SetSidecar(sidecar_draft.value);
-  store.SaveEntity();
+  store.Save();
 
   emit('Save')
 }
@@ -251,7 +251,7 @@ function ToggleCreate(): void {
 }
 
 onMounted(() => {
-  store.Open(props.module_id);
+  store.Init(props.module_id);
 })
 
 

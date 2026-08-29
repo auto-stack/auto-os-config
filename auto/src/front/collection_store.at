@@ -46,11 +46,11 @@ store Collection {
     }
 
     msg Msg {
-        Open(str),
-        Pick(str),
-        NewEntity(str),
-        SaveEntity,
-        DelEntity(str),
+        Init(str),
+        Select(str),
+        Create(str),
+        Save,
+        Remove(str),
         FieldEdited(map),
         SetBodyText(str),
         TagRemove(str, str),
@@ -63,7 +63,7 @@ store Collection {
     }
 
     on {
-        .Open(mid) -> {
+        .Init(mid) -> {
             .module_id = mid
             .error = ""
             .list_loading = true
@@ -189,7 +189,7 @@ store Collection {
             }
         }
 
-        .Pick(name) -> {
+        .Select(name) -> {
             .selected_name = name
             .loading = true
             .error = ""
@@ -238,7 +238,7 @@ store Collection {
             .loading = false
         }
 
-        .NewEntity(name) -> {
+        .Create(name) -> {
             .saving = true
             .error = ""
             var r = createEntitySafe(.module_id, name)
@@ -279,7 +279,7 @@ store Collection {
                     .view_names = vn
                 }
                 .list_loading = false
-                .Pick(name)
+                Collection.Select(name)
             }
             if r.ok == false {
                 .error = r.error
@@ -287,7 +287,7 @@ store Collection {
             .saving = false
         }
 
-        .SaveEntity -> {
+        .Save -> {
             if .selected_name != nil && .body_text != "" {
                 .saving = true
                 .error = ""
@@ -338,7 +338,7 @@ store Collection {
             }
         }
 
-        .DelEntity(name) -> {
+        .Remove(name) -> {
             .error = ""
             var r = deleteEntitySafe(.module_id, name)
             if r.ok {

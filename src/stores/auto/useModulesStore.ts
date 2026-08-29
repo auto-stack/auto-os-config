@@ -190,7 +190,7 @@ title.value = hit.name;
 
 
 
-if (hit.kind == 'collection') {useCollectionStore().Open(hit.id);
+if (hit.kind == 'collection') {useCollectionStore().Init(hit.id);
 }let gid = await groupOfModule(raw.value, id);
 if (gid != '') {let has: boolean = false;
 for (const x of expanded.value) {if (x == gid) {has = true;
