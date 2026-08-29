@@ -1,6 +1,6 @@
 ---
 plan_id: PLAN-011
-status: reviewed
+status: archived
 feature_name: os-config-daemon Auto 版——外部 back 形态改造
 author: [zcode]
 created_at: 2026-08-28T18:30:00+08:00
