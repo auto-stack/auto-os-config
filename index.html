@@ -14,6 +14,8 @@
         var s = localStorage.getItem('autoos-accent-color');
         var h = m[s] || m.indigo;
         document.documentElement.style.setProperty('--primary', h);
+        var t = localStorage.getItem('autoos-theme');
+        if (t === 'dark') document.documentElement.classList.add('dark');
       } catch (e) { /* ignore — styles.css has a sensible default */ }
     })();
   </script>

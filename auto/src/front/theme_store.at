@@ -1,17 +1,22 @@
-// theme_store.at — accent color state (Plan 006 Phase 2). Port of the
-// hand-written composables/useTheme.ts; the palette/DOM/localStorage live in
-// src/lib/api.ts (stores only support the `use back.api:` import form).
+// theme_store.at — accent + theme mode state (Plan 006 Phase 2 → 概要页四期
+// 深/浅色切换). Port of the hand-written composables/useTheme.ts; the
+// palette/DOM/localStorage live in src/lib/api.ts (stores only support the
+// `use back.api:` import form).
 //
 // plan010 T15/T16: the vm renderer resolves theme mode + primary per frame
 // from root state fields named EXACTLY `dark_mode` / `accent_color`
 // (renderer.rs sync block: read_state("dark_mode") → set_dark_mode,
 // read_state("accent_color") → set_accent_name; missing fields keep the
-// dark/indigo defaults). Declare both here so the light UI gets a light
-// theme and swatch clicks actually recolor `primary`. `current` stays for
-// the existing theme_picker/store consumers.
+// dark/indigo defaults). Declare both here so swatch clicks actually recolor
+// `primary` and SetMode actually flips the semantic palette + iced window
+// theme. `current` stays for the existing theme_picker/store consumers.
 // 446 前置修复：applyAccent 改名 saveAccent（上游 Plan 409/458 注入的内嵌
 // applyAccent 助手与 use back.api 导入撞名，TS2440）。
-use back.api: loadAccent, saveAccent
+// 概要页四期(2026-08-29)：mode("light"/"dark") 为主题偏好真源，
+// dark_mode 是 renderer 同步派生字段；持久化与 accent 同文件(autoos-ui.json
+// 的 "mode" 字段，back api loadMode/saveMode)。vue 端 dark 类切换由部署侧
+// 注入（regen.sh sed → useThemeStore.ts，DOM 是 vue 部署细节，不进 .at）。
+use back.api: loadAccent, saveAccent, loadMode, saveMode
 
 store Theme {
     model {
@@ -19,20 +24,29 @@ store Theme {
         // renderer 同步字段（见头注）:false=浅色主题(本 UI 的既定配色)
         var dark_mode bool = false
         var accent_color str = "indigo"
+        // 主题偏好真源("light"/"dark");auto(跟随系统)登记后续(vm 无系统
+        // 主题变化监听通道)。
+        var mode str = "light"
     }
 
-    msg Msg { Init, SetAccent(str) }
+    msg Msg { Init, SetAccent(str), SetMode(str) }
 
     on {
         .Init -> {
             .current = loadAccent()
-            .dark_mode = false
             .accent_color = .current
+            .mode = loadMode()
+            .dark_mode = .mode == "dark"
         }
         .SetAccent(name) -> {
             .current = name
             .accent_color = name
             saveAccent(name)
+        }
+        .SetMode(m) -> {
+            .mode = m
+            .dark_mode = m == "dark"
+            saveMode(m)
         }
     }
 }

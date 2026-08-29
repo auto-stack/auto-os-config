@@ -218,14 +218,14 @@ onMounted(() => {
         <div class="list-head gap-[6px]">
           <input class="filter-input" :placeholder="'Filter…'" :value="store.name_filter" @input="SetFilter(($event.target as HTMLInputElement).value)" />
           <template v-if="read_only == false">
-            <button class="btn icon bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-base text-[#1a1a1a] h-auto" @click="ToggleCreate">+</button>
+            <button class="btn icon bg-background border border-border rounded px-[10px] py-1 text-base text-foreground h-auto" @click="ToggleCreate">+</button>
           </template>
         </div>
         <template v-if="creating">
           <div class="create-row gap-[4px]">
             <input class="name-input" :placeholder="'entity-name'" v-model="new_name" @input="NewName(($event.target as HTMLInputElement).value)" @keydown.enter="DoCreate" />
-            <button class="btn small bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-xs text-[#1a1a1a] h-auto" :disabled="store.saving || new_name.trim() == ''" @click="DoCreate">Add</button>
-            <button class="btn small bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-xs text-[#1a1a1a] h-auto" @click="CancelCreate">✕</button>
+            <button class="btn small bg-background border border-border rounded px-[10px] py-1 text-xs text-foreground h-auto" :disabled="store.saving || new_name.trim() == ''" @click="DoCreate">Add</button>
+            <button class="btn small bg-background border border-border rounded px-[10px] py-1 text-xs text-foreground h-auto" @click="CancelCreate">✕</button>
           </div>
         </template>
         <template v-if="store.list_loading">
@@ -304,7 +304,7 @@ onMounted(() => {
             </div>
             <div class="actions gap-[0px]">
               <template v-if="read_only == false && store.is_read_only == false">
-                <button class="btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto" :disabled="store.saving" @click="Reload">Reload</button>
+                <button class="btn bg-background border border-border rounded px-[14px] py-[5px] text-xs text-foreground h-auto" :disabled="store.saving" @click="Reload">Reload</button>
                 <button class="btn primary" :disabled="store.saving || store.dirty == false" @click="Save">
                   <template v-if="store.saving">
                     <span>Saving…</span>
@@ -317,7 +317,7 @@ onMounted(() => {
               </template>
             </div>
           </div>
-          <div class="w-72 bg-white border border-[#e0e0e0] rounded-lg p-4 gap-2" v-if="confirm_open">
+          <div class="w-72 bg-background border border-border rounded-lg p-4 gap-2" v-if="confirm_open">
             <p>
               <span>Delete </span>
               <span class="strong">{{ store.selected_name }}</span>
@@ -331,7 +331,7 @@ onMounted(() => {
               <span> is kept.</span>
             </p>
             <div class="modal-actions gap-[8px]">
-              <button class="btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto" @click="ConfirmDeleteNo">Cancel</button>
+              <button class="btn bg-background border border-border rounded px-[14px] py-[5px] text-xs text-foreground h-auto" @click="ConfirmDeleteNo">Cancel</button>
               <button class="btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto" @click="ConfirmDeleteYes">Delete</button>
             </div>
           </div>
@@ -343,7 +343,7 @@ onMounted(() => {
           <template v-if="store.is_read_only">
             <div class="flex flex-col fm-view gap-[0px]">
               <div class="field-row">
-                <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                   <span>Name</span>
                 </label>
                 <div class="readonly-val mono">
@@ -351,7 +351,7 @@ onMounted(() => {
                 </div>
               </div>
               <div class="field-row">
-                <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                   <span>Description</span>
                 </label>
                 <div class="readonly-val">
@@ -366,14 +366,14 @@ onMounted(() => {
               <div class="contents" :key="e.key" v-for="e in store.entries">
                 <template v-if="e.is_table">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
                     <div class="table-wrap gap-[0px]">
                       <table class="tbl">
                         <thead>
                           <tr>
-                            <th class="bg-[#ededed] text-[#616161] text-xs font-semibold h-auto" v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">{{ c.name }}</th>
+                            <th class="bg-secondary text-muted-foreground text-xs font-semibold h-auto" v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">{{ c.name }}</th>
                             <th class="row-act" />
                           </tr>
                         </thead>
@@ -410,7 +410,7 @@ onMounted(() => {
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'toggle'">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
                     <label class="toggle gap-[0px]">
@@ -431,7 +431,7 @@ onMounted(() => {
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'number'">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
                     <input class="input" :type="'number'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
@@ -439,31 +439,31 @@ onMounted(() => {
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'password'">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
                     <div class="secret gap-[0px]">
                       <template v-if="pw_show">
-                        <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <input class="input pw text-foreground h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                       </template>
                       <template v-if="pw_show == false">
-                        <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <input class="input pw text-foreground h-auto" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                       </template>
-                      <button class="reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto" @click="PwToggle(e)">👁</button>
+                      <button class="reveal bg-background border border-border rounded px-2 py-1 text-sm text-foreground h-auto" @click="PwToggle(e)">👁</button>
                     </div>
                   </div>
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'text'">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
-                    <input class="input text-[#1a1a1a] h-auto" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                    <input class="input text-foreground h-auto" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                   </div>
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'select'">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
                     <template v-if="e.options.length > 0">
@@ -476,7 +476,7 @@ onMounted(() => {
                     </template>
                     <template v-if="e.options.length == 0">
                       <div class="fallback-text gap-[0px]">
-                        <input class="input text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                        <input class="input text-foreground h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="ApplyEntry(e.key, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                         <span class="fallback-hint">no options available (e.g. builtin-only) — type freely</span>
                       </div>
                     </template>
@@ -484,7 +484,7 @@ onMounted(() => {
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'tags'">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
                     <div class="tags">
@@ -498,7 +498,7 @@ onMounted(() => {
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'multiselect'">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
                     <div class="multiselect">
@@ -514,17 +514,17 @@ onMounted(() => {
                 </template>
                 <template v-if="e.is_table == false && e.kind == 'subform'">
                   <div class="field-row">
-                    <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                    <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                       <span>{{ e.label }}</span>
                     </label>
                     <div class="table-readonly">
-                      <span class="font-mono text-xs text-[#616161] whitespace-pre-wrap break-all">{{ e.frag }}</span>
+                      <span class="font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all">{{ e.frag }}</span>
                     </div>
                   </div>
                 </template>
               </div>
               <div class="field-row sidecar-row">
-                <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                   <span>Soul </span>
                   <span class="hint">(markdown sidecar)</span>
                 </label>

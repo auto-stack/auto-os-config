@@ -47,6 +47,32 @@ if [ -f "../src/stores/auto/useModulesStore.ts" ] && grep -q "Collection.Init(" 
   sed -i "s|Collection\.Init(|useCollectionStore().Init(|g" "../src/stores/auto/useModulesStore.ts"
 fi
 
+# 概要页四期:dark 类 DOM 同步——theme_store.at 的 SetMode 无 DOM 通道(.at
+# 不持 DOM),部署侧给 useThemeStore 追加模块级 watcher:dark_mode ref →
+# documentElement.classList('dark') + localStorage('autoos-theme')。vm 端
+# 无需此步(dark_mode 字段每帧直驱 renderer)。index.html bootstrap 防首帧
+# 闪烁;三处 keep-in-sync:index.html / 此注入 / styles.css .dark 令牌。
+THEME_TS=../src/stores/auto/useThemeStore.ts
+if [ -f "$THEME_TS" ] && ! grep -q "autoos-theme" "$THEME_TS"; then
+  cat >> "$THEME_TS" <<'TS'
+
+// [deploy-injected 概要页四期] dark 类 DOM 同步(源:theme_store.at dark_mode;
+// 本注入由 regen.sh 追加,勿手编)。
+import { watch as _watch } from 'vue'
+{
+  const _s = useThemeStore()
+  let _firstDarkSync = true
+  _watch(() => _s.dark_mode.value, (d) => {
+    document.documentElement.classList.toggle('dark', !!d)
+    // 首拍(immediate)只同步 class 不落盘——此时 dark_mode 还是声明初值,
+    // 先落盘会用 false 覆盖 Init 即将读到的持久化偏好(实测回归)。
+    if (!_firstDarkSync) { try { localStorage.setItem('autoos-theme', d ? 'dark' : 'light') } catch {} }
+    _firstDarkSync = false
+  }, { immediate: true })
+}
+TS
+fi
+
 # plan446 撤绕行 VG16/A1: collection_store 内部自限定调用 `Collection.Select(name)`
 # (vm 侧 A1 要求同名 msg 显式限定)——codegen 原样带进 TS,composable 内本地直调即可。
 if [ -f "../src/stores/auto/useCollectionStore.ts" ] && grep -q "Collection\.Select(" "../src/stores/auto/useCollectionStore.ts"; then
@@ -79,6 +105,15 @@ done
 # (行为与旧 if 块等价)。VM 轨走真 popover。上游 vue 半缺口已登记回传。
 for f in ../src/components/CollectionBrowser.vue; do
   sed -i -e 's| :open="confirm_open"| v-if="confirm_open"|'          -e 's| :x="620"||' -e 's| :y="300"||'          -e 's| @dismiss="ConfirmDeleteNo"||' "$f"
+done
+
+# 概要页四期:ThemePicker settings 弹窗的 popover 部署侧补偿(非 shadcn
+# popover 惰性 div 透传,C1 同款家族,另含 popover_trigger 子树 onclick 丢失):
+# ①trigger button 注入 @click="Toggle"(codegen 丢 popover_trigger 内
+#   onclick);②:open/@dismiss/:placement 剥除(无效属性);③panel div 注入
+#   v-if="open" 门控(:open 无效则面板常显)。vm 轨走真 popover 不受影响。
+for f in ../src/components/ThemePicker.vue; do
+  sed -i -e 's| class="settings-trigger | @click="Toggle" class="settings-trigger |'          -e 's| :open="open"||'          -e 's| :placement=."top-start".||'          -e 's| @dismiss="Close"||'          -e 's|<div class="flex flex-col settings-panel|<div v-if="open" class="flex flex-col settings-panel|' "$f"
 done
 
 # plan011 后续: 侧栏 nav item 长描述截断悬停提示——plain-mode button 无

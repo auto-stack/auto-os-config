@@ -63,6 +63,22 @@
   --radius-sm: 4px;
 }
 
+/* ── 深色令牌（概要页四期）——对齐上游 AutoShadcnDark 调色板（theme.rs：
+   bg #090E1A / card #0D1526 / fg #F8FAFC / muted #97A3B5），语义 class
+   （bg-card/text-foreground/…）由变量驱动随 .dark 整体翻转。 ── */
+.dark {
+  --bg-app: #090e1a;
+  --bg-sidebar: #0d1526;
+  --bg-card: #0d1526;
+  --bg-hover: #1a2338;
+  --bg-input: #101828;
+  --bg-search: #131b2e;
+  --border: #2a2f3a;
+  --text-primary: #f8fafc;
+  --text-secondary: #9ca3af;
+  --text-muted: #8b949e;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -1051,4 +1067,7 @@ progress::-webkit-progress-value {
 progress::-moz-progress-bar {
   background: hsl(var(--primary));
   border-radius: 9999px;
+}
+.dark progress::-webkit-progress-bar {
+  background: #2a2f3a;
 }

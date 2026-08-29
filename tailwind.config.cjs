@@ -5,8 +5,8 @@
 //   - accent family ONLY via the semantic `primary` token (driven by the
 //     --primary HSL triplet that useTheme rewrites at runtime) — the vm
 //     renderer resolves the same token from its accent thread-local;
-//   - neutrals use deterministic classes (bg-[#f3f3f3], text-gray-500 …),
-//     never mode-adaptive tokens (vm DARK_MODE drift, Plan 008 P4);
+//   - neutrals: 概要页四期起改语义 token(bg-card/text-foreground/…,CSS 变
+//     量双盘)——vm DARK_MODE 漂移已由 plan010 T15/T16 根状态字段收口;
 //   - `hover:` variants are web-only enhancement (vm silently skips unknown
 //     classes) — core states must not depend on them.
 module.exports = {
@@ -28,6 +28,16 @@ module.exports = {
           DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
           foreground: 'hsl(var(--primary-foreground) / <alpha-value>)',
         },
+        // 概要页四期:语义中性色——vm 端同名 class 走 resolve_semantic_rgb
+        // 双盘(theme.rs,light 盘已对齐下列浅色值);.dark 类切深色令牌
+        // (styles.css)。命名对齐 shadcn(bg-card/text-foreground/...)。
+        background: 'var(--bg-app)',
+        card: 'var(--bg-card)',
+        secondary: 'var(--bg-search)',
+        foreground: 'var(--text-primary)',
+        'muted-foreground': 'var(--text-secondary)',
+        muted: 'var(--text-muted)',
+        border: 'var(--border)',
       },
       fontFamily: {
         // 像素对拍基准（2026-08-27）：CSS 原版渲染字体 = Segoe UI（styles.css

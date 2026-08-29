@@ -465,17 +465,17 @@ onMounted(async () => {
             <span class="block-error">{{ block_error }}</span>
           </template>
           <template v-if="adding_block">
-            <input class="block-name text-[#1a1a1a] h-auto" :placeholder="'block name'" v-model="new_block_name" @input="NameDraft(($event.target as HTMLInputElement).value)" @keydown.enter="AddBlock" />
-            <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" @click="AddBlock">Add</button>
-            <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" @click="CancelAddBlock">Cancel</button>
+            <input class="block-name text-foreground h-auto" :placeholder="'block name'" v-model="new_block_name" @input="NameDraft(($event.target as HTMLInputElement).value)" @keydown.enter="AddBlock" />
+            <button class="btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto" @click="AddBlock">Add</button>
+            <button class="btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto" @click="CancelAddBlock">Cancel</button>
           </template>
           <template v-if="adding_block == false">
             <template v-if="loaded_once">
-              <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" @click="ToggleAddBlock">＋ Add block</button>
+              <button class="btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto" @click="ToggleAddBlock">＋ Add block</button>
             </template>
           </template>
           <template v-if="loaded_once">
-            <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" :disabled="saving" @click="Load">Reload</button>
+            <button class="btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto" :disabled="saving" @click="Load">Reload</button>
             <button class="btn primary" :disabled="saving || dirty == false" @click="Save">
               <template v-if="saving">
                 <span>Saving…</span>
@@ -486,24 +486,24 @@ onMounted(async () => {
             </button>
           </template>
           <template v-if="loaded_once == false">
-            <button class="btn bg-white border border-[#e0e0e0] rounded px-4 py-1.5 text-xs text-[#1a1a1a] h-auto" @click="Load">Load</button>
+            <button class="btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto" @click="Load">Load</button>
           </template>
         </div>
       </div>
       <template v-if="confirm_save">
-        <div class="flex flex-row items-center gap-3 px-3 py-2 border border-[#e0e0e0] rounded bg-[#ededed]">
-          <span class="text-sm text-[#1a1a1a]">Save changes to disk? (.bak backup kept)</span>
+        <div class="flex flex-row items-center gap-3 px-3 py-2 border border-border rounded bg-secondary">
+          <span class="text-sm text-foreground">Save changes to disk? (.bak backup kept)</span>
           <div class="flex-1" />
           <button class="btn px-3 py-1 text-xs rounded bg-primary border-primary text-white" @click="ConfirmSaveYes">Yes, save</button>
-          <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ConfirmSaveNo">Cancel</button>
+          <button class="btn px-3 py-1 text-xs rounded border border-border bg-background" @click="ConfirmSaveNo">Cancel</button>
         </div>
       </template>
       <template v-if="confirm_del != ''">
-        <div class="flex flex-row items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-[#ededed]">
+        <div class="flex flex-row items-center gap-3 px-3 py-2 border border-[#c42b1c] rounded bg-secondary">
           <span class="text-sm text-[#c42b1c]">{{ 'Delete block ' + confirm_del + '? (.bak kept)' }}</span>
           <div class="flex-1" />
           <button class="btn px-3 py-1 text-xs rounded bg-[#c42b1c] border-[#c42b1c] text-white" @click="ConfirmDeleteYes">Yes, delete</button>
-          <button class="btn px-3 py-1 text-xs rounded border border-[#e0e0e0] bg-white" @click="ConfirmDeleteNo">Cancel</button>
+          <button class="btn px-3 py-1 text-xs rounded border border-border bg-background" @click="ConfirmDeleteNo">Cancel</button>
         </div>
       </template>
       <template v-if="body != ''">
@@ -519,7 +519,7 @@ onMounted(async () => {
             </template>
             <template v-if="e.kind != 'subform'">
               <div :class="e.box_class">
-                <label class="field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto">
+                <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                   <span>{{ e.label }}</span>
                 </label>
                 <template v-if="e.kind == 'toggle'">
@@ -539,21 +539,21 @@ onMounted(async () => {
                   </label>
                 </template>
                 <template v-if="e.kind == 'number'">
-                  <input class="input text-[#1a1a1a] h-auto" :type="'number'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                  <input class="input text-foreground h-auto" :type="'number'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                 </template>
                 <template v-if="e.kind == 'password'">
                   <div class="secret gap-[0px]">
                     <template v-if="pw_show">
-                      <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <input class="input pw text-foreground h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                     </template>
                     <template v-if="pw_show == false">
-                      <input class="input pw text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <input class="input pw text-foreground h-auto" :placeholder="'(not set)'" :type="'password'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                     </template>
-                    <button class="reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto" @click="PwToggle(e)">👁</button>
+                    <button class="reveal bg-background border border-border rounded px-2 py-1 text-sm text-foreground h-auto" @click="PwToggle(e)">👁</button>
                   </div>
                 </template>
                 <template v-if="e.kind == 'text'">
-                  <input class="input text-[#1a1a1a] h-auto" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                  <input class="input text-foreground h-auto" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                 </template>
                 <template v-if="e.kind == 'select'">
                   <template v-if="e.options.length > 0">
@@ -566,7 +566,7 @@ onMounted(async () => {
                   </template>
                   <template v-if="e.options.length == 0">
                     <div class="fallback-text gap-[0px]">
-                      <input class="input text-[#1a1a1a] h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
+                      <input class="input text-foreground h-auto" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                       <span class="fallback-hint">no options available (e.g. builtin-only) — type freely</span>
                     </div>
                   </template>
@@ -577,7 +577,7 @@ onMounted(async () => {
                       <span>{{ t }}</span>
                       <button class="tag-x" @click="TagRemove(e, t)">×</button>
                     </span>
-                    <input class="tag-input text-[#1a1a1a] h-auto" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" @keydown.enter="TagAdd(e)" />
+                    <input class="tag-input text-foreground h-auto" :placeholder="'add…'" :type="'text'" :value="''" @input="Draft(($event.target as HTMLInputElement).value)" @keydown.enter="TagAdd(e)" />
                   </div>
                 </template>
                 <template v-if="e.kind == 'multiselect'">
@@ -592,7 +592,7 @@ onMounted(async () => {
                     <table class="tbl">
                       <thead>
                         <tr>
-                          <th class="bg-[#ededed] text-[#616161] text-xs font-semibold h-auto" v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">{{ c.name }}</th>
+                          <th class="bg-secondary text-muted-foreground text-xs font-semibold h-auto" v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">{{ c.name }}</th>
                           <th class="row-act" />
                         </tr>
                       </thead>

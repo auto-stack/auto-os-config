@@ -119,13 +119,13 @@ onMounted(async () => {
     <div class="flex flex-row app-layout h-full w-full gap-[0px]">
       <Sidebar :key="'Sidebar-1'" />
       <div class="flex flex-col flex-1 gap-[0px]">
-        <div class="flex flex-row content-header h-[48px] w-full shrink-0 items-center gap-[0px] px-6 border-b border-[#e0e0e0] bg-white">
-          <span class="text-xl font-semibold text-[#1a1a1a]">{{ store.title }}</span>
+        <div class="flex flex-row content-header h-[48px] w-full shrink-0 items-center gap-[0px] px-6 border-b border-border bg-background">
+          <span class="text-xl font-semibold text-foreground">{{ store.title }}</span>
         </div>
-        <div class="flex flex-col content-body flex-1 gap-[0px] overflow-auto p-6 bg-white">
+        <div class="flex flex-col content-body flex-1 gap-[0px] overflow-auto p-6 bg-background">
           <template v-if="store.loading">
             <div class="flex flex-col state-msg flex-1 items-center justify-center gap-[0px]">
-              <span class="text-base text-[#8a8a8a]">Loading configuration...</span>
+              <span class="text-base text-muted">Loading configuration...</span>
             </div>
           </template>
           <template v-if="store.loading == false && store.error != ''">
@@ -135,8 +135,8 @@ onMounted(async () => {
           </template>
           <template v-if="store.loading == false && store.error == ''">
             <template v-if="store.active_kind == ''">
-              <div class="flex flex-col overview flex-1 gap-[0px] overflow-auto p-8 bg-white">
-                <span class="text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-3">System Overview</span>
+              <div class="flex flex-col overview flex-1 gap-[0px] overflow-auto p-8 bg-background">
+                <span class="text-xs font-semibold text-muted tracking-wider uppercase pb-3">System Overview</span>
                 <div class="flex flex-row w-full items-center gap-5 pb-6">
                   <div class="flex flex-col device-tile h-16 w-16 rounded-2xl bg-primary/10 flex-row items-center justify-center gap-[0px] shrink-0">
                     <svg class="h-8 w-8 text-primary" viewBox="0 0 24 24">
@@ -146,24 +146,24 @@ onMounted(async () => {
                     </svg>
                   </div>
                   <div class="flex flex-col gap-[2px] min-w-0">
-                    <span class="text-2xl font-semibold text-[#1a1a1a]">{{ sys_host }}</span>
-                    <span class="text-sm text-[#616161]">{{ sys_os_edition + ' · ' + sys_os_build + ' · ' + sys_arch }}</span>
+                    <span class="text-2xl font-semibold text-foreground">{{ sys_host }}</span>
+                    <span class="text-sm text-muted-foreground">{{ sys_os_edition + ' · ' + sys_os_build + ' · ' + sys_arch }}</span>
                   </div>
                   <div class="flex flex-col flex-1 gap-[0px]" />
                   <div class="flex flex-col items-end gap-[2px] shrink-0">
                     <div class="flex flex-row items-center gap-1">
-                      <svg class="h-[14px] w-[14px] text-[#8a8a8a]" viewBox="0 0 24 24">
+                      <svg class="h-[14px] w-[14px] text-muted" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" fill="none" r="10" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
                         <polyline fill="none" points="12 6 12 12 16 14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
                       </svg>
-                      <span class="text-xs text-[#8a8a8a]">Uptime</span>
+                      <span class="text-xs text-muted">Uptime</span>
                     </div>
-                    <span class="text-sm font-medium text-[#1a1a1a]">{{ sys_uptime }}</span>
+                    <span class="text-sm font-medium text-foreground">{{ sys_uptime }}</span>
                   </div>
                 </div>
-                <span class="text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2">Hardware</span>
+                <span class="text-xs font-semibold text-muted tracking-wider uppercase pb-2">Hardware</span>
                 <div class="flex flex-row w-full gap-4 pb-4">
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[144px]">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-border bg-card px-5 py-4 min-h-[144px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="16" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="16" x="4" y="4" />
@@ -177,32 +177,32 @@ onMounted(async () => {
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="20" x2="22" y1="9" y2="9" />
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="20" x2="22" y1="15" y2="15" />
                       </svg>
-                      <span class="text-sm font-semibold text-[#1a1a1a]">Processor</span>
+                      <span class="text-sm font-semibold text-foreground">Processor</span>
                     </div>
-                    <span class="text-sm text-[#1a1a1a]">{{ sys_cpu_name }}</span>
+                    <span class="text-sm text-foreground">{{ sys_cpu_name }}</span>
                     <span class="text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px] w-fit">{{ sys_cpu_cores + ' logical cores' }}</span>
-                    <span class="text-xs text-[#8a8a8a]">{{ sys_cpu }}</span>
+                    <span class="text-xs text-muted">{{ sys_cpu }}</span>
                   </div>
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[144px]">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-border bg-card px-5 py-4 min-h-[144px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="14" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="3" />
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="8" x2="16" y1="21" y2="21" />
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="12" x2="12" y1="17" y2="21" />
                       </svg>
-                      <span class="text-sm font-semibold text-[#1a1a1a]">Graphics</span>
+                      <span class="text-sm font-semibold text-foreground">Graphics</span>
                     </div>
                     <div class="flex flex-row items-center gap-2" v-for="gpu in gpus" :key="(((gpu as any)?.id ?? gpu))">
                       <div class="flex flex-col gap-4 h-[6px] w-[6px] rounded-full bg-primary shrink-0" />
-                      <span class="text-sm text-[#1a1a1a]">{{ gpu }}</span>
+                      <span class="text-sm text-foreground">{{ gpu }}</span>
                     </div>
                     <template v-if="gpus.length == 0">
-                      <span class="text-sm text-[#8a8a8a]">No GPU detected</span>
+                      <span class="text-sm text-muted">No GPU detected</span>
                     </template>
                   </div>
                 </div>
                 <div class="flex flex-row w-full gap-4 pb-6">
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[207px]">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-border bg-card px-5 py-4 min-h-[207px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="8" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="6" />
@@ -214,7 +214,7 @@ onMounted(async () => {
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="14" x2="14" y1="14" y2="17" />
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="18" x2="18" y1="14" y2="17" />
                       </svg>
-                      <span class="text-sm font-semibold text-[#1a1a1a]">Memory</span>
+                      <span class="text-sm font-semibold text-foreground">Memory</span>
                     </div>
                     <div class="flex flex-row items-center gap-5">
                       <svg class="mem-donut h-[96px] w-[96px] shrink-0 text-primary" viewBox="0 0 36 36">
@@ -223,14 +223,14 @@ onMounted(async () => {
                       </svg>
                       <div class="flex flex-col gap-[2px]">
                         <div class="flex flex-row items-baseline gap-[6px]">
-                          <span class="text-2xl font-semibold text-[#1a1a1a]">{{ sys_mem_used + '%' }}</span>
-                          <span class="text-xs text-[#8a8a8a]">used</span>
+                          <span class="text-2xl font-semibold text-foreground">{{ sys_mem_used + '%' }}</span>
+                          <span class="text-xs text-muted">used</span>
                         </div>
-                        <span class="text-xs text-[#616161]">{{ sys_mem_display }}</span>
+                        <span class="text-xs text-muted-foreground">{{ sys_mem_display }}</span>
                       </div>
                     </div>
                   </div>
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[207px]">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-border bg-card px-5 py-4 min-h-[207px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="22" x2="2" y1="12" y2="12" />
@@ -238,25 +238,25 @@ onMounted(async () => {
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="6" x2="6.01" y1="16" y2="16" />
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="10" x2="10.01" y1="16" y2="16" />
                       </svg>
-                      <span class="text-sm font-semibold text-[#1a1a1a]">Storage</span>
+                      <span class="text-sm font-semibold text-foreground">Storage</span>
                     </div>
                     <div class="flex flex-col gap-[10px]">
                       <div class="flex flex-col gap-[4px]" v-for="dsk in disks" :key="(((dsk as any)?.id ?? dsk))">
                         <div class="flex flex-row gap-4 w-full items-center justify-between">
                           <div class="flex flex-row items-center gap-2">
-                            <span class="text-xs font-semibold text-[#1a1a1a]">{{ dsk.drive }}</span>
-                            <span class="text-xs text-[#616161]">{{ dsk.pct + '%' }}</span>
+                            <span class="text-xs font-semibold text-foreground">{{ dsk.drive }}</span>
+                            <span class="text-xs text-muted-foreground">{{ dsk.pct + '%' }}</span>
                           </div>
-                          <span class="text-xs text-[#8a8a8a]">{{ dsk.free + ' / ' + dsk.total + ' GB free' }}</span>
+                          <span class="text-xs text-muted">{{ dsk.free + ' / ' + dsk.total + ' GB free' }}</span>
                         </div>
                         <progress class="w-full h-2" :max="100" :value="dsk.pct" />
                       </div>
                     </div>
                   </div>
                 </div>
-                <span class="text-xs font-semibold text-[#8a8a8a] tracking-wider uppercase pb-2">Software</span>
+                <span class="text-xs font-semibold text-muted tracking-wider uppercase pb-2">Software</span>
                 <div class="flex flex-row w-full gap-4">
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[159px]">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-border bg-card px-5 py-4 min-h-[159px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="16" rx="2" ry="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" x="2" y="4" />
@@ -264,28 +264,28 @@ onMounted(async () => {
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="6" x2="6" y1="4" y2="8" />
                         <line stroke="currentColor" stroke-linecap="round" stroke-width="2" x1="10" x2="10" y1="4" y2="8" />
                       </svg>
-                      <span class="text-sm font-semibold text-[#1a1a1a]">Operating System</span>
+                      <span class="text-sm font-semibold text-foreground">Operating System</span>
                     </div>
                     <div class="flex flex-col gap-[6px]">
                       <div class="flex flex-row gap-3">
-                        <span class="text-xs text-[#8a8a8a] w-24 shrink-0">Edition</span>
-                        <span class="text-sm text-[#1a1a1a]">{{ sys_os_edition }}</span>
+                        <span class="text-xs text-muted w-24 shrink-0">Edition</span>
+                        <span class="text-sm text-foreground">{{ sys_os_edition }}</span>
                       </div>
                       <div class="flex flex-row gap-3">
-                        <span class="text-xs text-[#8a8a8a] w-24 shrink-0">Kernel</span>
-                        <span class="text-sm text-[#1a1a1a]">{{ sys_kernel }}</span>
+                        <span class="text-xs text-muted w-24 shrink-0">Kernel</span>
+                        <span class="text-sm text-foreground">{{ sys_kernel }}</span>
                       </div>
                       <div class="flex flex-row gap-3">
-                        <span class="text-xs text-[#8a8a8a] w-24 shrink-0">OS build</span>
-                        <span class="text-sm text-[#1a1a1a]">{{ sys_os_build }}</span>
+                        <span class="text-xs text-muted w-24 shrink-0">OS build</span>
+                        <span class="text-sm text-foreground">{{ sys_os_build }}</span>
                       </div>
                       <div class="flex flex-row gap-3">
-                        <span class="text-xs text-[#8a8a8a] w-24 shrink-0">Architecture</span>
-                        <span class="text-sm text-[#1a1a1a]">{{ sys_arch }}</span>
+                        <span class="text-xs text-muted w-24 shrink-0">Architecture</span>
+                        <span class="text-sm text-foreground">{{ sys_arch }}</span>
                       </div>
                     </div>
                   </div>
-                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-[#e0e0e0] bg-[#f9f9f9] px-5 py-4 min-h-[159px]">
+                  <div class="flex flex-col ov-panel flex-1 gap-3 rounded-xl border border-border bg-card px-5 py-4 min-h-[159px]">
                     <div class="flex flex-row items-center gap-2">
                       <svg class="h-4 w-4 text-primary shrink-0" viewBox="0 0 24 24">
                         <rect fill="none" height="7" rx="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="7" x="3" y="3" />
@@ -293,17 +293,17 @@ onMounted(async () => {
                         <rect fill="none" height="7" rx="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="7" x="14" y="14" />
                         <rect fill="none" height="7" rx="1" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="7" x="3" y="14" />
                       </svg>
-                      <span class="text-sm font-semibold text-[#1a1a1a]">Managed Modules</span>
+                      <span class="text-sm font-semibold text-foreground">Managed Modules</span>
                     </div>
                     <div class="flex flex-row items-baseline gap-2">
-                      <span class="text-2xl font-semibold text-[#1a1a1a]">{{ sys_mod_total }}</span>
-                      <span class="text-sm text-[#616161]">modules under management</span>
+                      <span class="text-2xl font-semibold text-foreground">{{ sys_mod_total }}</span>
+                      <span class="text-sm text-muted-foreground">modules under management</span>
                     </div>
                     <div class="flex flex-row gap-2">
                       <span class="text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px]">{{ sys_mod_files + ' config files' }}</span>
                       <span class="text-xs bg-primary/10 text-primary rounded-full px-[10px] py-[2px]">{{ sys_mod_coll + ' collections' }}</span>
                     </div>
-                    <span class="text-xs text-[#8a8a8a]">Served by the unified AutoOS config daemon</span>
+                    <span class="text-xs text-muted">Served by the unified AutoOS config daemon</span>
                   </div>
                 </div>
               </div>
@@ -322,7 +322,7 @@ onMounted(async () => {
             </template>
             <template v-if="store.active_kind != '' && store.active_kind != 'file' && store.active_kind != 'collection'">
               <div class="flex flex-col state-msg flex-1 items-center justify-center gap-[0px]">
-                <span class="text-base text-[#8a8a8a]">Custom remote modules were removed in Plan 006 (createComponent(Vue) protocol retired).</span>
+                <span class="text-base text-muted">Custom remote modules were removed in Plan 006 (createComponent(Vue) protocol retired).</span>
               </div>
             </template>
           </template>

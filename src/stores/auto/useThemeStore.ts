@@ -1,25 +1,33 @@
 import { ref } from 'vue'
-import { loadAccent, saveAccent } from '../../lib/api'
+import { loadAccent, saveAccent, loadMode, saveMode } from '../../lib/api'
 
 const current = ref<string>('indigo')
 const dark_mode = ref<boolean>(false)
 const accent_color = ref<string>('indigo')
+const mode = ref<string>('light')
 
 export function useThemeStore(): any {
     const Init = async () => { current.value = await loadAccent();
-dark_mode.value = false;
 accent_color.value = current.value;
+mode.value = await loadMode();
+dark_mode.value = mode.value == 'dark';
  }
     const SetAccent = async (name: string) => { current.value = name;
 accent_color.value = name;
 await saveAccent(name);
 ; applyAccent(accent_color.value, dark_mode.value) }
+    const SetMode = async (m: string) => { mode.value = m;
+dark_mode.value = m == 'dark';
+await saveMode(m);
+ }
     return {
         current,
         dark_mode,
         accent_color,
+        mode,
         Init,
         SetAccent,
+        SetMode,
         get accent_names() {
             return getAccentNames();
         },
@@ -115,3 +123,18 @@ function getAccentNames(): string[] {
   const isDark = document.documentElement.classList.contains('dark')
   applyAccent(saved || 'indigo', isDark)
 })()
+
+// [deploy-injected 概要页四期] dark 类 DOM 同步(源:theme_store.at dark_mode;
+// 本注入由 regen.sh 追加,勿手编)。
+import { watch as _watch } from 'vue'
+{
+  const _s = useThemeStore()
+  let _firstDarkSync = true
+  _watch(() => _s.dark_mode.value, (d) => {
+    document.documentElement.classList.toggle('dark', !!d)
+    // 首拍(immediate)只同步 class 不落盘——此时 dark_mode 还是声明初值,
+    // 先落盘会用 false 覆盖 Init 即将读到的持久化偏好(实测回归)。
+    if (!_firstDarkSync) { try { localStorage.setItem('autoos-theme', d ? 'dark' : 'light') } catch {} }
+    _firstDarkSync = false
+  }, { immediate: true })
+}

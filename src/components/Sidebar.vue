@@ -42,8 +42,8 @@ function ToggleGroup(gid: any): void {
 </script>
 
 <template>
-    <aside class="sidebar flex flex-col w-[280px] shrink-0 bg-[#f9f9f9] border-r border-[#e0e0e0]">
-      <div class="flex items-center gap-2 px-5 py-4 text-base font-semibold text-[#1a1a1a] h-[50px]">
+    <aside class="sidebar flex flex-col w-[280px] shrink-0 bg-card border-r border-border">
+      <div class="flex items-center gap-2 px-5 py-4 text-base font-semibold text-foreground h-[50px]">
         <span class="text-xl">⚙️</span>
         <span>AutoOS Settings</span>
       </div>
@@ -98,12 +98,12 @@ function ToggleGroup(gid: any): void {
           </template>
         </div>
         <template v-if="store.loading">
-          <span class="block p-4 text-center text-xs text-[#8a8a8a]">Loading modules...</span>
+          <span class="block p-4 text-center text-xs text-muted">Loading modules...</span>
         </template>
         <template v-if="store.loading == false">
           <template v-if="store.search != ''">
             <template v-if="store.has_results == false">
-              <span class="block p-4 text-center text-xs text-[#8a8a8a]">No modules found.</span>
+              <span class="block p-4 text-center text-xs text-muted">No modules found.</span>
             </template>
           </template>
         </template>

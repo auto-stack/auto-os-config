@@ -65,7 +65,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                         oninput: .SetFilter
                     }
                     if read_only == false {
-                        button (text: "+", style: "btn icon bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-base text-[#1a1a1a] h-auto") {
+                        button (text: "+", style: "btn icon bg-background border border-border rounded px-[10px] py-1 text-base text-foreground h-auto") {
                             onclick: .ToggleCreate
                         }
                     }
@@ -76,10 +76,10 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                             oninput: .NewName
                             onkeydown.enter: .DoCreate
                         }
-                        button (text: "Add", style: "btn small bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-xs text-[#1a1a1a] h-auto", disabled: .store.saving || .new_name.trim() == "") {
+                        button (text: "Add", style: "btn small bg-background border border-border rounded px-[10px] py-1 text-xs text-foreground h-auto", disabled: .store.saving || .new_name.trim() == "") {
                             onclick: .DoCreate
                         }
-                        button (text: "✕", style: "btn small bg-white border border-[#e0e0e0] rounded px-[10px] py-1 text-xs text-[#1a1a1a] h-auto") {
+                        button (text: "✕", style: "btn small bg-background border border-border rounded px-[10px] py-1 text-xs text-foreground h-auto") {
                             onclick: .CancelCreate
                         }
                     }
@@ -167,7 +167,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                         }
                         div (style: "actions gap-[0px]") {
                             if read_only == false && .store.is_read_only == false {
-                                button (text: "Reload", style: "btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto", disabled: .store.saving) {
+                                button (text: "Reload", style: "btn bg-background border border-border rounded px-[14px] py-[5px] text-xs text-foreground h-auto", disabled: .store.saving) {
                                     onclick: .Reload
                                 }
                                 button (style: "btn primary", disabled: .store.saving || .store.dirty == false) {
@@ -187,7 +187,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                     }
                     // 446 撤绕行 C1：确认层迁回 popover（上游 plan446_c1_popover
                     // 常驻锁形态：点锚 + ondismiss + class 面板），if 块模拟弹层已删。
-                    popover (open: .confirm_open, x: 620.0, y: 300.0, ondismiss: .ConfirmDeleteNo, class: "w-72 bg-white border border-[#e0e0e0] rounded-lg p-4 gap-2") {
+                    popover (open: .confirm_open, x: 620.0, y: 300.0, ondismiss: .ConfirmDeleteNo, class: "w-72 bg-background border border-border rounded-lg p-4 gap-2") {
                         p {
                             text (text: "Delete ") {}
                             span (style: "strong", text: .store.selected_name) {}
@@ -201,7 +201,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                             text (text: " is kept.") {}
                         }
                         div (style: "modal-actions gap-[8px]") {
-                            button (text: "Cancel", style: "btn bg-white border border-[#e0e0e0] rounded px-[14px] py-[5px] text-xs text-[#1a1a1a] h-auto") {
+                            button (text: "Cancel", style: "btn bg-background border border-border rounded px-[14px] py-[5px] text-xs text-foreground h-auto") {
                                 onclick: .ConfirmDeleteNo
                             }
                             button (text: "Delete", style: "btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto") {
@@ -217,7 +217,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                     if .store.is_read_only {
                         col (style: "fm-view gap-[0px]") {
                             div (style: "field-row") {
-                                label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: "Name") {}
                                 }
                                 div (style: "readonly-val mono") {
@@ -225,7 +225,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                 }
                             }
                             div (style: "field-row") {
-                                label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: "Description") {}
                                 }
                                 div (style: "readonly-val") {
@@ -242,7 +242,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     key: e.key
                                     if e.is_table {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
                                             div (style: "table-wrap gap-[0px]") {
@@ -250,7 +250,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                                     thead {
                                                         tr {
                                                             for c in e.t_cols {
-                                                                th (text: c.name, style: "bg-[#ededed] text-[#616161] text-xs font-semibold h-auto") {}
+                                                                th (text: c.name, style: "bg-secondary text-muted-foreground text-xs font-semibold h-auto") {}
                                                             }
                                                             th (style: "row-act") {}
                                                         }
@@ -303,7 +303,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "toggle" {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
                                             label (style: "toggle gap-[0px]") {
@@ -326,7 +326,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "number" {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
                                             input ("type": "number", value: e.value, style: "input") {
@@ -337,23 +337,23 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "password" {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
                                             div (style: "secret gap-[0px]") {
                                                 if .pw_show {
-                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
+                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw text-foreground h-auto") {
                                                         oninput: .Draft
                                                         onchange: .ApplyEntry(e.key, $event.target.value)
                                                     }
                                                 }
                                                 if .pw_show == false {
-                                                    input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
+                                                    input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw text-foreground h-auto") {
                                                         oninput: .Draft
                                                         onchange: .ApplyEntry(e.key, $event.target.value)
                                                     }
                                                 }
-                                                button (style: "reveal bg-white border border-[#e0e0e0] rounded px-2 py-1 text-sm text-[#1a1a1a] h-auto", text: "👁") {
+                                                button (style: "reveal bg-background border border-border rounded px-2 py-1 text-sm text-foreground h-auto", text: "👁") {
                                                     onclick: .PwToggle
                                                 }
                                             }
@@ -361,10 +361,10 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "text" {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
-                                            input (value: e.value, "type": "text", placeholder: "(empty)", style: "input text-[#1a1a1a] h-auto") {
+                                            input (value: e.value, "type": "text", placeholder: "(empty)", style: "input text-foreground h-auto") {
                                                 oninput: .Draft
                                                 onchange: .ApplyEntry(e.key, $event.target.value)
                                             }
@@ -372,7 +372,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "select" {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
                                             if e.options.len() > 0 {
@@ -388,7 +388,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                             }
                                             if e.options.len() == 0 {
                                                 div (style: "fallback-text gap-[0px]") {
-                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input text-[#1a1a1a] h-auto") {
+                                                    input (value: e.value, "type": "text", placeholder: "(not set)", style: "input text-foreground h-auto") {
                                                         oninput: .Draft
                                                         onchange: .ApplyEntry(e.key, $event.target.value)
                                                     }
@@ -399,7 +399,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "tags" {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
                                             div (style: "tags") {
@@ -420,7 +420,7 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "multiselect" {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
                                             div (style: "multiselect") {
@@ -440,18 +440,18 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "subform" {
                                         div (style: "field-row") {
-                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
                                 }
                                             div (style: "table-readonly") {
-                                                text (text: e.frag, style: "font-mono text-xs text-[#616161] whitespace-pre-wrap break-all") {}
+                                                text (text: e.frag, style: "font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all") {}
                                             }
                                         }
                                     }
                                 }
                             }
                             div (style: "field-row sidecar-row") {
-                                label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: "Soul ") {}
                                     span (style: "hint", text: "(markdown sidecar)") {}
                                 }

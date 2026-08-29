@@ -250,6 +250,36 @@ export function saveAccent(name: string): void {
   applyAccentToDom(name)
 }
 
+// ── theme mode（概要页四期：深/浅色切换；theme_store.at 经 use back.api 导入）
+// 与 accent 同为 localStorage 通道；dark 类落 documentElement（styles.css
+// .dark 令牌随类翻转）。key 与 index.html 防闪烁脚本、useThemeStore 部署
+// 注入 watcher 三处 keep-in-sync。
+const THEME_STORAGE_KEY = 'autoos-theme'
+
+/** Persisted theme mode or 'light' (also applies the dark class — store Init side effect). */
+export function loadMode(): string {
+  let stored: string | null = null
+  try {
+    stored = localStorage.getItem(THEME_STORAGE_KEY)
+  } catch {
+    stored = null
+  }
+  const mode = stored === 'dark' ? 'dark' : 'light'
+  document.documentElement.classList.toggle('dark', mode === 'dark')
+  return mode
+}
+
+/** Set + persist + apply (the store SetMode side effect). */
+export function saveMode(mode: string): void {
+  const m = mode === 'dark' ? 'dark' : 'light'
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, m)
+  } catch {
+    /* private mode etc. — still apply in-memory */
+  }
+  document.documentElement.classList.toggle('dark', m === 'dark')
+}
+
 // ── daemon connection test (was DaemonView) ────────────────────────────────
 
 export interface TestResult {

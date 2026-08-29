@@ -21,8 +21,12 @@ await page.waitForTimeout(800);
 
 // Plan 012:nav-item 组件化——.active 标记随预计算串移除,选中项改 data-active
 // 锚(契约组件内建);.nav-name 语义锚保留(组件 label span 内建),色断言不变。
-const navNameColor = () =>
-  page.$eval('.nav-item[data-active="true"] .nav-name', el => getComputedStyle(el).color);
+// 概要页四期:改为等待式取色——弹窗引入后偶发 Vue 响应式更新竞态(点击后
+// data-active 短暂未就绪),裸 $eval 会 throw。语义不变,仅加 5s 就绪等待。
+const navNameColor = async () => {
+  await page.waitForSelector('.nav-item[data-active="true"] .nav-name', { timeout: 5000 });
+  return page.$eval('.nav-item[data-active="true"] .nav-name', el => getComputedStyle(el).color);
+};
 
 console.log('=== default (indigo) — click AI Daemon ===');
 await page.click('.nav-item:has-text("AI Daemon")');
@@ -40,6 +44,10 @@ console.log(`  save button bg   = ${btnBefore}`);
 await page.screenshot({ path: 'screenshot-theme-daemon-indigo.png', fullPage: true });
 
 console.log('\n=== switch to Coral (2nd swatch) ===');
+// 概要页四期:accent 圆点迁入 settings 弹窗(v-if 默认收起)——先点齿轮展开;
+// 弹窗状态跨导航保留,后续 swatch 点击无需再开。
+await page.click('.settings-trigger');
+await page.waitForSelector('.theme-picker .swatch', { timeout: 5000 });
 await page.$$eval('.theme-picker .swatch', (els, i) => els[i].click(), 1);
 await page.waitForTimeout(400);
 const navAfter = await navNameColor();

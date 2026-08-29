@@ -810,6 +810,28 @@ pub fn saveAccent(name str) {
     File.write_text(ui_state_path(), next)
 }
 
+// ─── theme mode (概要页四期:深/浅色切换,与 accent 同文件字段共存) ────────────
+
+pub fn loadMode() str {
+    let t = File.read_text(ui_state_path())
+    if json.type_of(t) == "object" {
+        let v = unquote(json.get(t, "mode"))
+        if v == "light" || v == "dark" {
+            return v
+        }
+    }
+    return "light"
+}
+
+pub fn saveMode(mode str) {
+    let t = File.read_text(ui_state_path())
+    var next = "{\"mode\":" + quote_json(mode) + "}"
+    if json.type_of(t) == "object" {
+        next = set_obj_field(t, "mode", quote_json(mode))
+    }
+    File.write_text(ui_state_path(), next)
+}
+
 // ─── daemon connection test (DaemonView surface) ────────────────────────────
 
 pub fn testDaemon() any {

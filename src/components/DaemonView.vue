@@ -35,23 +35,23 @@ async function Test(): Promise<void> {
         <span class="test-label">Daemon connection</span>
         <span class="test-status">
           <template v-if="conn_state == 'idle'">
-            <span class="text-[#8a8a8a]">not tested</span>
+            <span class="text-muted">not tested</span>
           </template>
           <template v-if="conn_state == 'checking'">
-            <span class="text-[#8a8a8a]">testing…</span>
+            <span class="text-muted">testing…</span>
           </template>
           <template v-if="conn_state == 'ok'">
             <span class="font-medium text-[#107c10]">{{ '✓ online (' + latency + 'ms)' }}</span>
           </template>
           <template v-if="conn_state == 'unreachable'">
-            <span class="italic text-[#8a8a8a]">offline</span>
+            <span class="italic text-muted">offline</span>
           </template>
           <template v-if="conn_state == 'fail'">
             <span class="font-medium text-[#c42b1c]">✗ failed</span>
           </template>
         </span>
         <div class="flex-1" />
-        <button class="btn bg-white border border-[#e0e0e0] rounded px-5 py-2 text-sm text-[#1a1a1a] h-auto" :disabled="conn_state == 'checking'" @click="Test">Test</button>
+        <button class="btn bg-background border border-border rounded px-5 py-2 text-sm text-foreground h-auto" :disabled="conn_state == 'checking'" @click="Test">Test</button>
       </div>
       <template v-if="conn_state == 'fail' && test_error != ''">
         <p class="test-err">{{ test_error }}</p>
