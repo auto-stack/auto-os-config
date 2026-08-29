@@ -52,33 +52,31 @@ AUTOUI_MCP_PORT=9320 auto run -r vm   # 自定 MCP 通道（调试用，端点 /
 上游锚定：auto-lang master `1487b5c5d`（2026-08-28 观察基线；rebuild 后先
 vue regen+e2e 再 vm 冒烟；漂移处置惯例见 plans/010 复审记录）。
 
-### vm 编码规范（VG 清单，Phase 1/2/4 实证）
+### vm 编码规范（VG 清单，Phase 1/2/4 实证；2026-08-29 撤绕行后余目）
+
+> 446 上游修复后已撤：VG3/4/8/11/12/13/14/16（六批提交 b1dc8f7..0875ff4）。
+> 余下条目为仍受约束的词汇。
 
 - VG1 fn 模块禁 `use auto.str`（与 http 共编 → `str.status` 链接失败）；字符串用方法调用形态
 - VG2 handler 多语句禁同行（吞链）
-- VG3 http 三不用：`res.status()`（哨兵）/builder 链（二次调用崩）/`res.body()`；写后 GET 验证
-- VG4 map 字段读取仅 fn 模块可用；handler 内对 store/返回值仅单跳链读（`r.data.x` 两跳为空）
 - VG5 禁 `concat`/handler 双变量 for/动态 map key——loop+push 重建
 - VG6 模块导入用冒号形式 `use x: fn`
 - VG7 handler 崩溃回滚整次状态写入
-- VG8 `json.parse` 是占位——全走 `json.keys/get/get_at/type_of/len` 文本工具链
 - VG9 `File.write_text` 同进程读后写延迟可见（model 权威、文件作下次启动）
-- VG11 `json.get_at` 仅接受 JSON 文本（数组用索引计数 for-in）
-- VG12/13 数组不跨 fn 边界作实参；fn 返回一律扁平（无嵌套 map/数组字段）
-- VG14 `.find(闭包)` 不可用——选择逻辑下沉 api fn（扁平返回）
-- VG16 一 widget 一 store + **store 方法名全工程唯一**（消歧按方法名，撞名落到错误 store）
 - VG17 `json.keys` 返回裸 key（输出需 quote_json 重包）
-- 事件参数只能标量/裸循环变量：store 列表循环上的字段访问/map 实参会打死 MCP——
-  store 提供平行 `names`/`entry_keys` 字符串数组，view 用 `for i, e` + 索引参数
+- 事件实参可用循环变量字段（`for e in .store.list { onclick: .F(e.name) }`，446 B1 修；
+  平行影子数组已撤）——但**纯 map 实参**仍避用；msg 声明与 handler 参数须一致，
+  输入类事件 handler 超过 1 参时运行时显式丢弃并打 `[VM-INPUT]` 诊断（446 B3）
 - msg 声明必须含全部 handler（vm 消歧表按 msg 声明匹配）
-- `popover` 在本构建为解析毒药（确认层用普通 if 块）；`substr(a,b)` 闭区间；
-  map 字面量内禁空数组/`.len()` 调用
+- `popover` 已可用（446 C1 修；确认层已迁回）——注意上游 **vue codegen** 对
+  popover 是惰性 div 透传（:open 不门控），本仓 regen.sh 部署侧补偿为 v-if；
+  `substr(a,b)` 闭区间；map 字面量内禁空数组/`.len()` 调用
+
 
 ### vm 轨已知偏差（v1，登记 KNOWN-DEBT）
 
 - 侧栏无分组折叠；集合无过滤框；select 控件为自由文本+提示；markdown sidecar 单行；
   表格/subform 以只读 JSON 文本展示；块增删（Plan 005 特性）未暴露
-- `json.keys` 字母序（serde_json 无 preserve_order）——字段顺序与 web 版不同
 
 ## 共享样式词汇（Plan 008 Phase 2 定稿，双后端单一真源）
 
