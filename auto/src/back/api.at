@@ -5,9 +5,8 @@
 //   vm interpreter → THIS file (in-process direct calls)
 //
 // Everything here follows the probe-V1/V3 text recipes:
-//   - GET via http.get_json (raw JSON text); errors judged by json.type_of
-//   - PUT/POST/DELETE via http.put/post/delete; success verified by GET
-//   - NEVER res.status() / builder chain / res.body() (VG3)
+//   - GET via http.get + res.status()/res.body()（446 E1/E2/E3 修后三 API 直用）
+//   - PUT/POST/DELETE 判 res.status()（写后 GET 验证已随 VG3 撤除）
 //   - no `use auto.str` (VG1 — string methods only)
 //   - JSON values travel as serialized text fragments; display strings unquoted
 //   - no array concat (VG5): rebuilds are loop+push
@@ -23,15 +22,13 @@ pub fn daemon_base() str {
     return "http://127.0.0.1:17701"
 }
 
-/// GET returning raw JSON text, or "" when the response is not valid JSON of
-/// any kind (daemon down returns an {"error":...} object — still text).
+/// GET returning raw JSON text, or "" on non-200 (daemon down / endpoint error).
 fn get_text(url str) str {
-    let t = http.get_json(url)
-    let ttype = json.type_of(t)
-    if ttype == "invalid" {
+    let res = http.get(url)
+    if res.status() != 200 {
         return ""
     }
-    return t
+    return res.body()
 }
 
 /// An {"error": ...} transport-failure body (daemon down) — shape-verified.
@@ -522,10 +519,9 @@ pub fn fetchConfigSafe(id str) any {
 
 pub fn putConfigSafe(id str, body str) any {
     let payload = "{\"value\":" + body + "}"
-    let put = http.put(daemon_base() + "/api/config/" + id, payload)
-    let verify = get_text(daemon_base() + "/api/config/" + id)
-    if is_transport_error(verify) {
-        return { ok: false, error: "Save failed (config unreadable after PUT)" }
+    let res = http.put(daemon_base() + "/api/config/" + id, payload)
+    if res.status() != 200 {
+        return { ok: false, error: "Save failed" }
     }
     return { ok: true }
 }
@@ -742,9 +738,8 @@ pub fn fetchEntitySafe(mid str, name str) any {
 
 pub fn createEntitySafe(mid str, name str) any {
     let payload = "{\"name\":" + quote_json(name) + "}"
-    let post = http.post(daemon_base() + "/api/collection/" + mid, payload)
-    let verify = get_text(daemon_base() + "/api/collection/" + mid + "/" + name)
-    if is_transport_error(verify) {
+    let res = http.post(daemon_base() + "/api/collection/" + mid, payload)
+    if res.status() != 200 {
         return { ok: false, error: "Create failed" }
     }
     return { ok: true }
@@ -752,18 +747,16 @@ pub fn createEntitySafe(mid str, name str) any {
 
 pub fn putEntitySafe(mid str, name str, body str, sidecar str) any {
     let payload = "{\"value\":" + body + ",\"sidecar\":" + quote_json(sidecar) + "}"
-    let put = http.put(daemon_base() + "/api/collection/" + mid + "/" + name, payload)
-    let verify = get_text(daemon_base() + "/api/collection/" + mid + "/" + name)
-    if is_transport_error(verify) {
+    let res = http.put(daemon_base() + "/api/collection/" + mid + "/" + name, payload)
+    if res.status() != 200 {
         return { ok: false, error: "Save failed" }
     }
     return { ok: true }
 }
 
 pub fn deleteEntitySafe(mid str, name str) any {
-    let del = http.delete(daemon_base() + "/api/collection/" + mid + "/" + name)
-    let verify = get_text(daemon_base() + "/api/collection/" + mid)
-    if is_transport_error(verify) {
+    let res = http.delete(daemon_base() + "/api/collection/" + mid + "/" + name)
+    if res.status() != 200 {
         return { ok: false, error: "Delete failed" }
     }
     return { ok: true }
