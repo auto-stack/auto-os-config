@@ -724,15 +724,18 @@ pub fn fetchEntitySafe(mid str, name str) any {
     }
     let value = json.get(t, "value")
     if value != "" && value != "null" {
-        return { ok: true, atom: { value: value, sidecar: unquote(json.get(t, "sidecar")) }, fm: nil }
+        // 字符串内容取点须 parse-first：json.get 对字符串值返回重转义字面量
+        // （stdlib 承载性语义），unquote 剥引号不解转义——原样存回即翻倍
+        // （446 五A soul.md 数据损坏根因）。
+        return { ok: true, atom: { value: value, sidecar: json.parse(json.get(t, "sidecar")) }, fm: nil }
     }
     return {
         ok: true,
         atom: nil,
         fm: {
-            name: unquote(json.get(t, "name")),
-            description: unquote(json.get(t, "description")),
-            body: unquote(json.get(t, "body")),
+            name: json.parse(json.get(t, "name")),
+            description: json.parse(json.get(t, "description")),
+            body: json.parse(json.get(t, "body")),
         },
     }
 }
@@ -1056,9 +1059,11 @@ pub fn fetchEntityFlat(mid str, name str) any {
     }
     let value = json.get(t, "value")
     if value != "" && value != "null" {
-        return { ok: true, error: "", is_atom: true, value: value, sidecar: unquote(json.get(t, "sidecar")), fm_name: "", fm_description: "", fm_body: "" }
+        // sidecar/fm_* parse-first（同 fetchEntitySafe 注）：unquote 对重转义
+        // 字面量只剥引号不解转义，sidecar 存回即 2^k 翻倍（446 五A）。
+        return { ok: true, error: "", is_atom: true, value: value, sidecar: json.parse(json.get(t, "sidecar")), fm_name: "", fm_description: "", fm_body: "" }
     }
-    return { ok: true, error: "", is_atom: false, value: "", sidecar: "", fm_name: unquote(json.get(t, "name")), fm_description: unquote(json.get(t, "description")), fm_body: unquote(json.get(t, "body")) }
+    return { ok: true, error: "", is_atom: false, value: "", sidecar: "", fm_name: json.parse(json.get(t, "name")), fm_description: json.parse(json.get(t, "description")), fm_body: json.parse(json.get(t, "body")) }
 }
 
 /// entries count of an atom body text.
