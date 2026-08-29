@@ -38,5 +38,7 @@ thiserror = "1"
 windows-sys = { version = "0.59", features = [
     "Win32_System_SystemInformation",
     "Win32_Storage_FileSystem",
+    "Win32_System_Registry",
+    "Win32_Graphics_Gdi",
     "Wdk_System_SystemServices",
 ] }

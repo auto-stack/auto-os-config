@@ -11,8 +11,12 @@ import { system_info } from '@/lib/api'
 const sys_host = ref<string>('')
 const sys_os = ref<string>('')
 const sys_cpu = ref<string>('')
-const sys_mem = ref<string>('')
-const sys_disk = ref<string>('')
+const sys_cpu_name = ref<string>('')
+const sys_cpu_cores = ref<string>('')
+const sys_mem_bar = ref<string>('')
+const sys_mem_display = ref<string>('')
+const disks = ref<any[]>([])
+const gpus = ref<any[]>([])
 
 const emit = defineEmits<{
   Init: []
@@ -28,8 +32,6 @@ const themeStore = reactive(useThemeStore())
 
 function SelectModule(mid: any): void {
   store.Select(mid);
-
-  emit('SelectModule', mid)
 }
 
 onMounted(async () => {
@@ -46,8 +48,12 @@ onMounted(async () => {
   sys_host.value = r.hostname;
   sys_os.value = r.os_name + ' ' + r.os_version;
   sys_cpu.value = r.cpu;
-  sys_mem.value = r.memory_display;
-  sys_disk.value = r.storage_display;
+  sys_cpu_name.value = r.cpu_name;
+  sys_cpu_cores.value = r.cpu_cores;
+  sys_mem_bar.value = r.memory_bar;
+  sys_mem_display.value = r.memory_display;
+  disks.value = r.disks;
+  gpus.value = r.gpus;
 })
 
 
@@ -74,36 +80,30 @@ onMounted(async () => {
           <template v-if="store.loading == false && store.error == ''">
             <template v-if="store.active_kind == ''">
               <div class="flex flex-col overview flex-1 gap-[0px] overflow-auto p-8 bg-white">
-                <span class="text-2xl font-semibold text-[#1a1a1a]">System Overview</span>
-                <span class="text-sm text-[#616161] pb-4">Pick a module below to jump straight into its settings.</span>
-                <div class="flex flex-col overview-info w-full gap-[0px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3 mb-4" :key="'sysinfo'">
-                  <span class="text-sm font-semibold text-[#1a1a1a] pb-2">System Information</span>
-                  <span class="text-xs text-[#616161]">{{ 'Hostname: ' + sys_host }}</span>
-                  <span class="text-xs text-[#616161]">{{ 'OS: ' + sys_os }}</span>
-                  <span class="text-xs text-[#616161]">{{ 'CPU: ' + sys_cpu }}</span>
-                  <span class="text-xs text-[#616161]">{{ 'Memory: ' + sys_mem }}</span>
-                  <span class="text-xs text-[#616161]">{{ 'Disk: ' + sys_disk }}</span>
-                </div>
-                <button class="overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)" v-for="m in store.view_standalone">
-                  <div class="flex flex-row items-center gap-3 w-full">
-                    <span class="text-2xl shrink-0">{{ m.icon }}</span>
-                    <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
-                      <span class="text-sm font-semibold text-[#1a1a1a]">{{ m.name }}</span>
-                      <span class="text-xs text-[#616161]">{{ m.description }}</span>
-                    </div>
+                <span class="text-2xl font-semibold text-[#1a1a1a] pb-1">System Overview</span>
+                <span class="text-sm text-[#616161] pb-4">{{ sys_host + ' · ' + sys_os }}</span>
+                <div class="flex flex-row w-full gap-3 pb-3">
+                  <div class="flex flex-col ov-panel flex-1 gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3">
+                    <span class="text-sm font-semibold text-[#1a1a1a]">CPU</span>
+                    <span class="text-sm text-[#1a1a1a]">{{ sys_cpu_name }}</span>
+                    <span class="text-xs text-[#616161]">{{ sys_cpu_cores + ' logical cores' }}</span>
+                    <span class="text-xs text-[#8a8a8a]">{{ sys_cpu }}</span>
                   </div>
-                </button>
-                <div v-for="(g, __for_idx) in store.view_groups" :key="__for_idx">
-                  <span class="text-sm font-semibold text-[#1a1a1a] pt-4 pb-1">{{ g.label }}</span>
-                  <button class="overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]" :key="m.id" @click="SelectModule(m.id)" v-for="m in g.members">
-                    <div class="flex flex-row items-center gap-3 w-full">
-                      <span class="text-2xl shrink-0">{{ m.icon }}</span>
-                      <div class="flex flex-col nav-text flex-1 min-w-0 gap-[0px]">
-                        <span class="text-sm font-semibold text-[#1a1a1a]">{{ m.name }}</span>
-                        <span class="text-xs text-[#616161]">{{ m.description }}</span>
-                      </div>
-                    </div>
-                  </button>
+                  <div class="flex flex-col ov-panel flex-1 gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3">
+                    <span class="text-sm font-semibold text-[#1a1a1a]">GPU</span>
+                    <span class="text-sm text-[#1a1a1a]" v-for="gpu in gpus" :key="(((gpu as any)?.id ?? gpu))">{{ gpu }}</span>
+                  </div>
+                </div>
+                <div class="flex flex-row w-full gap-3">
+                  <div class="flex flex-col ov-panel flex-1 gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3">
+                    <span class="text-sm font-semibold text-[#1a1a1a]">Memory</span>
+                    <span class="text-sm text-[#1a1a1a]">{{ sys_mem_bar }}</span>
+                    <span class="text-xs text-[#616161]">{{ sys_mem_display }}</span>
+                  </div>
+                  <div class="flex flex-col ov-panel flex-1 gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3">
+                    <span class="text-sm font-semibold text-[#1a1a1a]">Storage</span>
+                    <span class="text-xs text-[#616161]" v-for="dsk in disks" :key="(((dsk as any)?.id ?? dsk))">{{ dsk.display }}</span>
+                  </div>
                 </div>
               </div>
             </template>

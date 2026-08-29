@@ -187,6 +187,13 @@ pub fn system_info_json() -> serde_json::Value {
         .or_else(|| env_or_na("HOSTNAME"))
         .unwrap_or_else(|| "n/a".to_string());
     let cpu = env_or_na("PROCESSOR_IDENTIFIER").unwrap_or_else(|| "n/a".to_string());
+    let cpu_name = if cfg!(windows) {
+        windows_cpu_name().unwrap_or_else(|| cpu.clone())
+    } else { cpu.clone() };
+    let cpu_cores: i64 = std::env::var("NUMBER_OF_PROCESSORS")
+        .ok()
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(0);
     // 展示串(加法字段,双端 UI 直用):VM 侧 __json_object 浮点字段 Dot 读
     // 有上游编码缺陷(f64 误读为 i32,如 54.16 → -1073741824),前端展示一律
     // 消费这里的手串;数值字段保留给程序化消费方。
@@ -196,11 +203,21 @@ pub fn system_info_json() -> serde_json::Value {
             None => "n/a".to_string(),
         }
     };
+    // T12 Dashboard:数值一律整数(VM __json_object 浮点 Dot 读有上游缺陷④,
+    // Int 走 as_i64 路径安全);条形图 10 格文本条 Rust 侧预制,双端直用。
+    let mem_total_i = memory_total_mb.as_f64().unwrap_or(0.0) as i64;
+    let mem_free_i = memory_free_mb.as_f64().unwrap_or(0.0) as i64;
+    let mem_used_pct = if mem_total_i > 0 {
+        ((mem_total_i - mem_free_i) * 100 / mem_total_i) as i64
+    } else { 0 };
     let memory_display = format!(
         "{} / {} MB free",
         fmt(&memory_free_mb),
         fmt(&memory_total_mb)
     );
+    let memory_bar = bar10(mem_used_pct);
+    let disks = if cfg!(windows) { windows_disks() } else { Vec::new() };
+    let gpus = if cfg!(windows) { windows_gpus() } else { Vec::new() };
     let storage_display = format!(
         "{} / {} GB",
         fmt(&storage_free_gb),
@@ -211,14 +228,128 @@ pub fn system_info_json() -> serde_json::Value {
         "os_version": os_version,
         "hostname": hostname,
         "cpu": cpu,
-        "memory_total_mb": memory_total_mb,
-        "memory_free_mb": memory_free_mb,
+        "cpu_name": cpu_name,
+        "cpu_cores": cpu_cores,
+        "memory_total_mb": mem_total_i,
+        "memory_free_mb": mem_free_i,
+        "memory_used_percent": mem_used_pct,
+        "memory_bar": memory_bar,
+        "memory_display": memory_display,
+        "disks": disks,
         "storage_total_gb": storage_total_gb,
         "storage_free_gb": storage_free_gb,
-        "memory_display": memory_display,
         "storage_display": storage_display,
+        "gpus": gpus,
     })
 }
+
+/// 10 格文本条(filled = 已用量格数)。
+fn bar10(used_percent: i64) -> String {
+    let used = (used_percent.clamp(0, 100) / 10) as usize;
+    let mut s = String::new();
+    for i in 0..10usize {
+        if i < used { s.push('\u{2588}'); } else { s.push('\u{2591}'); }
+    }
+    s
+}
+
+/// 固定硬盘枚举:每个盘 {drive, total_gb, free_gb, used_percent, bar}(全整数)。
+#[cfg(windows)]
+fn windows_disks() -> Vec<serde_json::Value> {
+    use windows_sys::Win32::Storage::FileSystem::{
+        GetLogicalDrives, GetDriveTypeW, GetDiskFreeSpaceExW,
+    };
+    // GetDriveTypeW 返回值:3 = DRIVE_FIXED(SDK WinBase 常量,windows-sys 未导出)
+    const DRIVE_FIXED: u32 = 3;
+    let mask = unsafe { GetLogicalDrives() };
+    let mut out = Vec::new();
+    for i in 0..26u32 {
+        if mask & (1 << i) == 0 { continue; }
+        let letter = (b'A' + i as u8) as char;
+        let root = format!("{}:\\", letter);
+        let wide: Vec<u16> = root.encode_utf16().chain(std::iter::once(0)).collect();
+        unsafe {
+            if GetDriveTypeW(wide.as_ptr()) != DRIVE_FIXED { continue; }
+            let mut free: u64 = 0;
+            let mut total: u64 = 0;
+            let mut _total_free: u64 = 0;
+            if GetDiskFreeSpaceExW(wide.as_ptr(), &mut free, &mut total, &mut _total_free) == 0 { continue; }
+            let tg = total / 1024 / 1024 / 1024;
+            let fg = free / 1024 / 1024 / 1024;
+            let used_pct = if tg > 0 { ((tg - fg) * 100 / tg) as i64 } else { 0 };
+            out.push(serde_json::json!({
+                "drive": format!("{}:", letter),
+                "total_gb": tg,
+                "free_gb": fg,
+                "used_percent": used_pct,
+                "bar": bar10(used_pct),
+                "display": format!(
+                    "{} {} {}% \u{b7} {} / {} GB free",
+                    letter, bar10(used_pct), used_pct, fg, tg
+                ),
+            }));
+        }
+    }
+    out
+}
+
+#[cfg(not(windows))]
+fn windows_disks() -> Vec<serde_json::Value> { Vec::new() }
+
+/// 活动显示适配器名(EnumDisplayDevicesW,ATTACHED_TO_DESKTOP)。
+#[cfg(windows)]
+fn windows_gpus() -> Vec<String> {
+    use windows_sys::Win32::Graphics::Gdi::{EnumDisplayDevicesW, DISPLAY_DEVICEW};
+    let mut out = Vec::new();
+    unsafe {
+        for i in 0..32u32 {
+            let mut dd: DISPLAY_DEVICEW = std::mem::zeroed();
+            dd.cb = std::mem::size_of::<DISPLAY_DEVICEW>() as u32;
+            if EnumDisplayDevicesW(std::ptr::null(), i, &mut dd, 0) == 0 { break; }
+            // DISPLAY_DEVICE_ATTACHED_TO_DESKTOP = 0x1
+            if dd.StateFlags & 1 != 0 {
+                let name = String::from_utf16_lossy(&dd.DeviceString)
+                    .trim_end_matches('\0').trim().to_string();
+                if !name.is_empty() && !out.contains(&name) { out.push(name); }
+            }
+        }
+    }
+    out
+}
+
+#[cfg(not(windows))]
+fn windows_gpus() -> Vec<String> { Vec::new() }
+
+/// CPU 营销名(注册表 ProcessorNameString;如 "Intel(R) Core(TM) i9 ...")。
+#[cfg(windows)]
+fn windows_cpu_name() -> Option<String> {
+    use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ};
+        let sub: Vec<u16> = r"HARDWARE\DESCRIPTION\System\CentralProcessor\0"
+            .encode_utf16().chain(std::iter::once(0)).collect();
+    let value: Vec<u16> = "ProcessorNameString".encode_utf16().chain(std::iter::once(0)).collect();
+    let mut buf = [0u16; 128];
+    let mut size = (buf.len() * 2) as u32;
+    let mut typ: u32 = 0;
+    let rc = unsafe {
+        RegGetValueW(
+            HKEY_LOCAL_MACHINE,
+            sub.as_ptr(),
+            value.as_ptr(),
+            RRF_RT_REG_SZ,
+            &mut typ,
+            buf.as_mut_ptr() as *mut std::os::raw::c_void,
+            &mut size,
+        )
+    };
+    if rc == 0 {
+        let s = String::from_utf16_lossy(&buf).trim_end_matches('\0').trim().to_string();
+        if !s.is_empty() { return Some(s); }
+    }
+    None
+}
+
+#[cfg(not(windows))]
+fn windows_cpu_name() -> Option<String> { None }
 
 /// env 读取,空值归 None。
 fn env_or_na(key: &str) -> Option<String> {
@@ -583,6 +714,34 @@ mod tests {
         let text = payload["text"].as_str().expect("text carries the array");
         let arr: serde_json::Value = serde_json::from_str(text).expect("text is JSON array");
         assert_eq!(arr.as_array().unwrap().len(), 7);
+    }
+
+    /// T12:dashboard 扩展字段——disks 数组(整数化)、gpus、cpu 详情、条形图。
+    #[test]
+    fn system_info_dashboard_fields() {
+        let v = system_info_json();
+        assert!(v["memory_total_mb"].is_i64(), "memory ints are vm-safe");
+        let pct = v["memory_used_percent"].as_i64().unwrap();
+        assert!((0..=100).contains(&pct));
+        let bar = v["memory_bar"].as_str().unwrap();
+        assert_eq!(bar.chars().count(), 10);
+        assert!(bar.chars().all(|c| c == '█' || c == '░'));
+        let disks = v["disks"].as_array().expect("disks array");
+        assert!(!disks.is_empty(), "at least the system drive is present");
+        for d in disks {
+            assert!(d["drive"].as_str().is_some());
+            assert!(d["total_gb"].is_i64() && d["total_gb"].as_i64().unwrap() > 0);
+            assert!(d["free_gb"].is_i64());
+            let p = d["used_percent"].as_i64().unwrap();
+            assert!((0..=100).contains(&p));
+            assert_eq!(d["bar"].as_str().unwrap().chars().count(), 10);
+            assert!(d["display"].as_str().map(|s| s.contains("GB free")).unwrap_or(false), "display carries the usage summary");
+        }
+        assert!(v["cpu_name"].as_str().map(|s| !s.is_empty()).unwrap_or(false));
+        assert!(v["cpu_cores"].as_i64().unwrap_or(0) > 0);
+        let gpus = v["gpus"].as_array().expect("gpus array");
+        assert!(!gpus.is_empty(), "at least one active display adapter");
+        assert!(gpus[0].as_str().map(|s| !s.is_empty()).unwrap_or(false));
     }
 
     /// T7:loadEnum 桥载荷按 url 路径语义分派。

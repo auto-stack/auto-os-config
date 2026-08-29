@@ -24,7 +24,7 @@ use modules_store: Modules
 use theme_picker: ThemePicker
 
 widget Sidebar {
-    msg Msg { SearchChanged(str), SelectModule(str), ToggleGroup(str) }
+    msg Msg { SearchChanged(str), SelectModule(str), ToggleGroup(str), SelectOverview }
 
     view {
         aside (style: "sidebar flex flex-col w-[280px] shrink-0 bg-[#f9f9f9] border-r border-[#e0e0e0]") {
@@ -36,6 +36,31 @@ widget Sidebar {
                 input (style: "search-input w-full px-3 py-2 text-sm bg-[#f0f0f0] border border-[#e0e0e0] rounded", value: .store.search, oninput: .SearchChanged, placeholder: "Search settings") {}
             }
             nav (style: "nav-list flex-1 overflow-auto px-2") {
+                // Plan 011 T12:首页入口置顶(选中态 = active_kind == "")。
+                if .store.active_kind == "" {
+                    button (class: "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]", key: "ov-home") {
+                        onclick: .SelectOverview
+                        row (style: "flex flex-row items-start gap-3 w-full") {
+                        span (text: "🏠", style: "nav-icon text-lg shrink-0 pt-px") {}
+                        col (style: "nav-text flex flex-col gap-[0px]") {
+                            text (text: "System Overview", style: "nav-name text-sm font-semibold text-primary") {}
+                            text (text: "System information dashboard", style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                        }
+                        }
+                    }
+                }
+                if .store.active_kind != "" {
+                    button (class: "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]", key: "ov-home") {
+                        onclick: .SelectOverview
+                        row (style: "flex flex-row items-start gap-3 w-full") {
+                        span (text: "🏠", style: "nav-icon text-lg shrink-0 pt-px") {}
+                        col (style: "nav-text flex flex-col gap-[0px]") {
+                            text (text: "System Overview", style: "nav-name text-sm font-medium text-[#1a1a1a]") {}
+                            text (text: "System information dashboard", style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
+                        }
+                        }
+                    }
+                }
                 if .store.search == "" {
                     for m in .store.view_standalone {
                         // R4（plan010 T8）:vm button 对 `class: <loop 字段表达式>`
@@ -168,5 +193,6 @@ widget Sidebar {
         .SearchChanged(q) -> { store.Search(q) }
         .SelectModule(mid) -> { store.Select(mid) }
         .ToggleGroup(gid) -> { store.ToggleGroup(gid) }
+        .SelectOverview -> { store.Overview() }
     }
 }

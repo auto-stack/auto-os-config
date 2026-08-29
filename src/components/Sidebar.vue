@@ -7,6 +7,7 @@ const emit = defineEmits<{
   SearchChanged: [string]
   SelectModule: [string]
   ToggleGroup: [string]
+  SelectOverview: []
 }>()
 
 import { useModulesStore } from '../stores/auto/useModulesStore'
@@ -23,6 +24,12 @@ function SelectModule(mid: any): void {
   store.Select(mid);
 
   emit('SelectModule', mid)
+}
+
+function SelectOverview(): void {
+  store.Overview();
+
+  emit('SelectOverview')
 }
 
 function ToggleGroup(gid: any): void {
@@ -44,6 +51,28 @@ function ToggleGroup(gid: any): void {
         <input class="search-input w-full px-3 py-2 text-sm bg-[#f0f0f0] border border-[#e0e0e0] rounded" :placeholder="'Search settings'" :value="store.search" @input="SearchChanged(($event.target as HTMLInputElement).value)" />
       </div>
       <nav class="nav-list flex-1 overflow-auto px-2">
+        <template v-if="store.active_kind == ''">
+          <button class="nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]" :key="'ov-home'" @click="SelectOverview">
+            <div class="flex flex-row items-start gap-3 w-full">
+              <span class="nav-icon text-lg shrink-0 pt-px">🏠</span>
+              <div class="flex flex-col nav-text gap-[0px]">
+                <span class="nav-name text-sm font-semibold text-primary">System Overview</span>
+                <span class="nav-desc text-xs text-[#8a8a8a] truncate">System information dashboard</span>
+              </div>
+            </div>
+          </button>
+        </template>
+        <template v-if="store.active_kind != ''">
+          <button class="nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]" :key="'ov-home'" @click="SelectOverview">
+            <div class="flex flex-row items-start gap-3 w-full">
+              <span class="nav-icon text-lg shrink-0 pt-px">🏠</span>
+              <div class="flex flex-col nav-text gap-[0px]">
+                <span class="nav-name text-sm font-medium text-[#1a1a1a]">System Overview</span>
+                <span class="nav-desc text-xs text-[#8a8a8a] truncate">System information dashboard</span>
+              </div>
+            </div>
+          </button>
+        </template>
         <template v-if="store.search == ''">
           <div v-for="m in store.view_standalone" :key="m.id">
             <template v-if="store.active_id == m.id">

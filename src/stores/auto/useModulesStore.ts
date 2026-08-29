@@ -137,6 +137,11 @@ has_results.value = true;
 }
 loading.value = false;
  }
+    const Overview = () => { active_id.value = null;
+active_kind.value = '';
+read_only.value = false;
+title.value = 'AutoOS Settings';
+ }
     const Search = (query: string) => { search.value = query;
 
 
@@ -301,6 +306,7 @@ has_results.value = any_hit;
         view_groups,
         has_results,
         Init,
+        Overview,
         Search,
         Select,
         ToggleGroup,

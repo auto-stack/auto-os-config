@@ -40,7 +40,7 @@ store Modules {
         var has_results bool = true
     }
 
-    msg Msg { Init, Select(str), ToggleGroup(str), Search(str) }
+    msg Msg { Init, Select(str), ToggleGroup(str), Search(str), Overview }
 
     on {
         .Init -> {
@@ -221,6 +221,14 @@ store Modules {
                 .has_results = true
             }
             .loading = false
+        }
+
+        // Plan 011 T12:回到系统概要首页(清选中态;概要页即 active_kind == "")。
+        .Overview -> {
+            .active_id = None
+            .active_kind = ""
+            .read_only = false
+            .title = "AutoOS Settings"
         }
 
         .Select(id) -> {
