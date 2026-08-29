@@ -13,7 +13,7 @@ accent_color.value = current.value;
     const SetAccent = async (name: string) => { current.value = name;
 accent_color.value = name;
 await applyAccent(name);
-; applyAccent(name, dark_mode.value) }
+; applyAccent(accent_color.value, dark_mode.value) }
     return {
         current,
         dark_mode,

@@ -30,13 +30,17 @@ widget App {
     msg Msg { Init, SelectModule(str) }
 
     model {
-        // Plan 011 T9:概要页系统信息卡(system_info 真数据;App 直调形态,
+        // Plan 011 T9/T12:概要页 Dashboard(system_info 真数据;App 直调形态,
         // 015-notes App handler 直调 back.api 先例——免三 store 消歧)。
         var sys_host str = ""
         var sys_os str = ""
         var sys_cpu str = ""
-        var sys_mem str = ""
-        var sys_disk str = ""
+        var sys_cpu_name str = ""
+        var sys_cpu_cores str = ""
+        var sys_mem_bar str = ""
+        var sys_mem_display str = ""
+        var disks Array<any> = []
+        var gpus Array<str> = []
     }
 
     view {
@@ -59,48 +63,40 @@ widget App {
                     }
                     if .store.loading == false && .store.error == "" {
                         if .store.active_kind == "" {
-                            // T18: 默认落地页 = 系统概要(方案 A)——模块入口卡片替代
-                            // 空白提示。卡片模式与侧栏 nav 同款(vm row/text-prop 词汇)。
+                            // T18/T12: 默认落地页 = 系统信息 Dashboard(仅系统信息,
+                            // 模块导航由左侧栏承担)。面板化:CPU / GPU / 内存 / 存储。
                             col (style: "overview flex-1 flex flex-col gap-[0px] overflow-auto p-8 bg-white") {
-                                text (text: "System Overview", style: "text-2xl font-semibold text-[#1a1a1a]") {}
-                                text (text: "Pick a module below to jump straight into its settings.", style: "text-sm text-[#616161] pb-4") {}
-                                col (style: "overview-info w-full flex flex-col gap-[0px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3 mb-4", key: "sysinfo") {
-                                    text (text: "System Information", style: "text-sm font-semibold text-[#1a1a1a] pb-2") {}
-                                    text (text: "Hostname: " + .sys_host, style: "text-xs text-[#616161]") {}
-                                    text (text: "OS: " + .sys_os, style: "text-xs text-[#616161]") {}
-                                    text (text: "CPU: " + .sys_cpu, style: "text-xs text-[#616161]") {}
-                                    text (text: "Memory: " + .sys_mem, style: "text-xs text-[#616161]") {}
-                                    text (text: "Disk: " + .sys_disk, style: "text-xs text-[#616161]") {}
-                                }
-                                for m in .store.view_standalone {
-                                    button (class: "overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]", key: m.id) {
-                                        onclick: .SelectModule(m.id)
-                                        row (style: "flex flex-row items-center gap-3 w-full") {
-                                            span (text: m.icon, style: "text-2xl shrink-0") {}
-                                            col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
-                                                text (text: m.name, style: "text-sm font-semibold text-[#1a1a1a]") {}
-                                                text (text: m.description, style: "text-xs text-[#616161]") {}
-                                            }
+                                text (text: "System Overview", style: "text-2xl font-semibold text-[#1a1a1a] pb-1") {}
+                                text (text: .sys_host + " · " + .sys_os, style: "text-sm text-[#616161] pb-4") {}
+                                row (style: "w-full flex flex-row gap-3 pb-3") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3") {
+                                        text (text: "CPU", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        text (text: .sys_cpu_name, style: "text-sm text-[#1a1a1a]") {}
+                                        text (text: .sys_cpu_cores + " logical cores", style: "text-xs text-[#616161]") {}
+                                        text (text: .sys_cpu, style: "text-xs text-[#8a8a8a]") {}
+                                    }
+                                    col (style: "ov-panel flex-1 flex flex-col gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3") {
+                                        text (text: "GPU", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        for gpu in .gpus {
+                                            text (text: gpu, style: "text-sm text-[#1a1a1a]") {}
                                         }
                                     }
                                 }
-                                for g in .store.view_groups {
-                                    text (text: g.label, style: "text-sm font-semibold text-[#1a1a1a] pt-4 pb-1") {}
-                                    for m in g.members {
-                                        button (class: "overview-card w-full text-left flex items-start gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] bg-white hover:bg-[#f5f5f5] text-[#1a1a1a]", key: m.id) {
-                                            onclick: .SelectModule(m.id)
-                                            row (style: "flex flex-row items-center gap-3 w-full") {
-                                                span (text: m.icon, style: "text-2xl shrink-0") {}
-                                                col (style: "nav-text flex-1 min-w-0 flex flex-col gap-[0px]") {
-                                                    text (text: m.name, style: "text-sm font-semibold text-[#1a1a1a]") {}
-                                                    text (text: m.description, style: "text-xs text-[#616161]") {}
-                                                }
-                                            }
+                                row (style: "w-full flex flex-row gap-3") {
+                                    col (style: "ov-panel flex-1 flex flex-col gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3") {
+                                        text (text: "Memory", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        text (text: .sys_mem_bar, style: "text-sm text-[#1a1a1a]") {}
+                                        text (text: .sys_mem_display, style: "text-xs text-[#616161]") {}
+                                    }
+                                    col (style: "ov-panel flex-1 flex flex-col gap-[6px] rounded-lg border border-[#e0e0e0] bg-[#f9f9f9] px-4 py-3") {
+                                        text (text: "Storage", style: "text-sm font-semibold text-[#1a1a1a]") {}
+                                        for dsk in .disks {
+                                            text (text: dsk.display, style: "text-xs text-[#616161]") {}
                                         }
                                     }
                                 }
                             }
-                        }
+                            }
                         if .store.active_kind == "file" {
                             if .store.active_id == "ai-daemon" {
                                 DaemonView(module_id: .store.active_id, key: .store.active_id) { }
@@ -132,15 +128,19 @@ widget App {
             // plan010: vm 轨无 auto-Init——accent 从 autoos-ui.json 读回需在根
             // Init 链上显式触发（vue 端 useTheme onMounted 同源，幂等）。
             Theme.Init()
-            // Plan 011 T9:概要页系统信息卡真数据(back.api 桥/HTTP 双传输)。
-            // 内存/磁盘展示串由 Rust 侧 memory_display/storage_display 预格式
-            // (VM __json_object 浮点字段 Dot 读有上游编码缺陷,前端不碰浮点)。
+            // Plan 011 T9/T12:概要页 Dashboard 真数据(back.api 桥/HTTP 双传输)。
+            // 展示串/条形图由 Rust 侧预制(VM __json_object 浮点 Dot 读有上游
+            // 缺陷④,数值字段全部整数化,视图只消费字符串与整数)。
             var r = system_info()
             .sys_host = r.hostname
             .sys_os = r.os_name + " " + r.os_version
             .sys_cpu = r.cpu
-            .sys_mem = r.memory_display
-            .sys_disk = r.storage_display
+            .sys_cpu_name = r.cpu_name
+            .sys_cpu_cores = r.cpu_cores
+            .sys_mem_bar = r.memory_bar
+            .sys_mem_display = r.memory_display
+            .disks = r.disks
+            .gpus = r.gpus
         }
         // T18: 概要页卡片点击 → 模块跳转（sidebar 同款 Select 链）
         .SelectModule(mid) -> {
