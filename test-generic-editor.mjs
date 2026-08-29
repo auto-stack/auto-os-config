@@ -37,7 +37,9 @@ const pass = (msg) => console.log('  ✓ PASS: ' + msg);
  *  description text, and exact-match guards against name prefixes like
  *  "Roles" vs "Harness Roles"). */
 async function clickModule(page, name) {
-  await page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('..').click();
+  // Plan 012:nav-item 组件化——.nav-name 语义锚由契约组件内建(label span),
+  // 精确文本匹配沿用;点击目标改 .nav-item 自身。
+  await page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('xpath=..').click();
   await page.waitForTimeout(600);
   // Plan 008 batch 3: the unified editor is Load-first on BOTH tracks (vm
   // children get no auto-Init) — kick the initial load before inspecting.

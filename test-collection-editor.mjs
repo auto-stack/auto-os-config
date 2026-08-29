@@ -29,8 +29,9 @@ const pass = (m) => console.log('  ✓ PASS: ' + m);
  *  :has-text, which also matches description text and name prefixes like
  *  "Roles" vs "Harness Roles"). */
 async function clickModule(page, name) {
-  // .nav-name holds the exact label; its parent .nav-item is the button.
-  await page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('..').click();
+  // Plan 012:nav-item 组件化——.nav-name 语义锚由契约组件内建(label span),
+  // 精确文本匹配沿用;点击目标改 .nav-item 自身。
+  await page.locator('.nav-item .nav-name', { hasText: new RegExp(`^${name}$`) }).locator('xpath=..').click();
 }
 
 console.log('=== Opening http://localhost:17700 ===');

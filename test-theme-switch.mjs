@@ -19,8 +19,10 @@ await page.goto('http://127.0.0.1:17700', { waitUntil: 'networkidle', timeout: 1
 await page.waitForSelector('.sidebar', { timeout: 10000 });
 await page.waitForTimeout(800);
 
+// Plan 012:nav-item 组件化——.active 标记随预计算串移除,选中项改 data-active
+// 锚(契约组件内建);.nav-name 语义锚保留(组件 label span 内建),色断言不变。
 const navNameColor = () =>
-  page.$eval('.nav-item.active .nav-name', el => getComputedStyle(el).color);
+  page.$eval('.nav-item[data-active="true"] .nav-name', el => getComputedStyle(el).color);
 
 console.log('=== default (indigo) — click AI Daemon ===');
 await page.click('.nav-item:has-text("AI Daemon")');

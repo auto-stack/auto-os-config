@@ -105,7 +105,9 @@ const NL = String.fromCharCode(10);
     try {
       let up = false;
       for (let i = 0; i < 30 && !up; i++) {
-        up = ((await call('autoui_state', { fields: ['title'] })) ?? '').includes('AutoOS Settings');
+        // Plan 011 fa41ef5 后 boot title = 'System Overview'(原 'AutoOS Settings' 为侧栏品牌名)——
+        // 就绪检查随之更新(此前 vm 轨恒超时的根因,与 012 无关的既有缺口)。
+        up = ((await call('autoui_state', { fields: ['title'] })) ?? '').includes('System Overview');
         if (!up) await sleep(1000);
       }
       if (!up) throw new Error('vm app never came up');
