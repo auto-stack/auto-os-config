@@ -4,15 +4,15 @@ status: executing
 feature_name: os-config-daemon Auto 版——外部 back 形态改造
 author: [zcode]
 created_at: 2026-08-28T18:30:00+08:00
-updated_at: 2026-08-29T02:30:00+08:00
+updated_at: 2026-08-29T04:20:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
 new_spec_components: []
 touched_goals: []
 
-current_step: 11
-total_steps: 11
+current_step: 12
+total_steps: 12
 ---
 
 # [PLAN-011] os-config-daemon Auto 版——外部 back 形态改造
@@ -224,6 +224,16 @@ vm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 �
   待澄清#5 上游 press 派发间歇 + MCP 字段名冲突,先于本计划存在(pristine
   main 复现)。严格 e2e-vm 双遍全绿待用户裁决(见待澄清#5);残差复核:
   U1/U3 表现与 plan010 台账一致,新后端未引入新残差。
+- [x] T12 (W5,用户新增) 首页 Dashboard 改版:①首页仅系统信息(模块导航归侧栏);
+  ②面板化展示——CPU(营销名/核数/标识符)、GPU(活动适配器)、内存(10 格文本条 +
+  used/total)、存储(各固定盘条形 + 百分比 + 容量);侧栏顶部首页入口(选中态
+  随 active_kind)。验证:双端渲染一致 + 门禁绿。
+  [✅ 已完成] 后端 system_info 扩展(整数化绕浮点缺陷④:多磁盘枚举/GPU 适配器/
+  CPU 注册表名/核数/预制条形图串);cargo test 39 绿;vue Playwright 实证四面板
+  真值(i5-13600KF/RTX 4060 Ti/四盘条形);e2e.sh ALL PASS;vm 侧入口置顶、
+  返回首页、四盘渲染实证;group collapse 断言恢复 PASS(概要页不再二消费
+  view_groups,③ 的触发面在 os-config 侧消除)。余 2 FAIL = 上游③ press
+  间歇(Test 流一次 nav 未落地,字段读数已诚实)。
 - [ ] T11 (W4) `backend/` 退役归档（archive/）+ README/KNOWN-DEBT 同步 + 计划收尾。
   验证:仓库无 backend/ 活代码引用;文档三处同步。
 
