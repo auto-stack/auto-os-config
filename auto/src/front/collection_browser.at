@@ -217,13 +217,17 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                     if .store.is_read_only {
                         col (style: "fm-view gap-[0px]") {
                             div (style: "field-row") {
-                                label (text: "Name", style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: "Name") {}
+                                }
                                 div (style: "readonly-val mono") {
                                     text (text: .store.fm_name) {}
                                 }
                             }
                             div (style: "field-row") {
-                                label (text: "Description", style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: "Description") {}
+                                }
                                 div (style: "readonly-val") {
                                     text (text: .store.fm_description) {}
                                 }
@@ -238,7 +242,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     key: e.key
                                     if e.is_table {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             div (style: "table-wrap gap-[0px]") {
                                                 table (style: "tbl") {
                                                     thead {
@@ -297,7 +303,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "toggle" {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             label (style: "toggle gap-[0px]") {
                                                 input ("type": "checkbox", checked: e.value == "true") {
                                                     onchange: .Toggle(e.key, $event.target.checked)
@@ -318,7 +326,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "number" {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             input ("type": "number", value: e.value, style: "input") {
                                                 oninput: .Draft
                                                 onchange: .ApplyEntry(e.key, $event.target.value)
@@ -327,7 +337,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "password" {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             div (style: "secret gap-[0px]") {
                                                 if .pw_show {
                                                     input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw text-[#1a1a1a] h-auto") {
@@ -349,7 +361,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "text" {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             input (value: e.value, "type": "text", placeholder: "(empty)", style: "input text-[#1a1a1a] h-auto") {
                                                 oninput: .Draft
                                                 onchange: .ApplyEntry(e.key, $event.target.value)
@@ -358,7 +372,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "select" {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             if e.options.len() > 0 {
                                                 select (value: e.value, style: "input") {
                                                     onchange: .ApplyEntry(e.key, $event.target.value)
@@ -383,7 +399,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "tags" {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             div (style: "tags") {
                                                 for t in e.items {
                                                     span (style: "tag") {
@@ -402,7 +420,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "multiselect" {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             div (style: "multiselect") {
                                                 for oi, o in e.options {
                                                     label (style: "ms-item") {
@@ -420,7 +440,9 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
                                     }
                                     if e.is_table == false && e.kind == "subform" {
                                         div (style: "field-row") {
-                                            label (text: e.label, style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {}
+                                            label (style: "field-label w-[160px] shrink-0 text-xs text-[#616161] pt-[6px] font-medium h-auto") {
+                                    text (text: e.label) {}
+                                }
                                             div (style: "table-readonly") {
                                                 text (text: e.frag, style: "font-mono text-xs text-[#616161] whitespace-pre-wrap break-all") {}
                                             }

@@ -170,10 +170,14 @@ store Modules {
                     }
                     if hit {
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        // 446 撤绕行（U7 修）：完整行类串预计算进 nav_class（README
+                        // 词汇规则 4），vm 轨 class: m.nav_class 直读渲染。
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
                         if .active_id == m.id {
                             nmcls = "nav-name text-sm font-semibold text-primary"
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: "nav-item", name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
                     }
                 }
                 var open = false
@@ -205,10 +209,12 @@ store Modules {
                 }
                 if shit {
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
                     if .active_id == sm.id {
                         snm = "nav-name text-sm font-semibold text-primary"
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: "nav-item", name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
                     any_hit = true
                 }
             }
@@ -289,10 +295,14 @@ store Modules {
                     }
                     if hit {
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        // 446 撤绕行（U7 修）：完整行类串预计算进 nav_class（README
+                        // 词汇规则 4），vm 轨 class: m.nav_class 直读渲染。
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
                         if .active_id == m.id {
                             nmcls = "nav-name text-sm font-semibold text-primary"
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: "nav-item", name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
                     }
                 }
                 var open = false
@@ -324,10 +334,12 @@ store Modules {
                 }
                 if shit {
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
                     if .active_id == sm.id {
                         snm = "nav-name text-sm font-semibold text-primary"
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: "nav-item", name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
                     any_hit = true
                 }
             }
@@ -380,10 +392,14 @@ store Modules {
                     }
                     if hit {
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        // 446 撤绕行（U7 修）：完整行类串预计算进 nav_class（README
+                        // 词汇规则 4），vm 轨 class: m.nav_class 直读渲染。
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
                         if .active_id == m.id {
                             nmcls = "nav-name text-sm font-semibold text-primary"
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: "nav-item", name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
                     }
                 }
                 var open = false
@@ -415,10 +431,12 @@ store Modules {
                 }
                 if shit {
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
                     if .active_id == sm.id {
                         snm = "nav-name text-sm font-semibold text-primary"
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: "nav-item", name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
                     any_hit = true
                 }
             }
@@ -451,10 +469,14 @@ store Modules {
                     }
                     if hit {
                         var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        // 446 撤绕行（U7 修）：完整行类串预计算进 nav_class（README
+                        // 词汇规则 4），vm 轨 class: m.nav_class 直读渲染。
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
                         if .active_id == m.id {
                             nmcls = "nav-name text-sm font-semibold text-primary"
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
                         }
-                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: "nav-item", name_class: nmcls })
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
                     }
                 }
                 var open = false
@@ -486,10 +508,12 @@ store Modules {
                 }
                 if shit {
                     var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
                     if .active_id == sm.id {
                         snm = "nav-name text-sm font-semibold text-primary"
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
                     }
-                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: "nav-item", name_class: snm })
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
                     any_hit = true
                 }
             }
