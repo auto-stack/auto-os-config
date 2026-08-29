@@ -73,10 +73,18 @@ vue regen+e2e 再 vm 冒烟；漂移处置惯例见 plans/010 复审记录）。
   `substr(a,b)` 闭区间；map 字面量内禁空数组/`.len()` 调用
 
 
-### vm 轨已知偏差（v1，登记 KNOWN-DEBT）
+### vm 轨已知偏差（v1，登记 KNOWN-DEBT；Plan 012 更新）
 
-- 侧栏无分组折叠；集合无过滤框；select 控件为自由文本+提示；markdown sidecar 单行；
+- ~~侧栏无分组折叠~~（Plan 012：侧栏换 nav-item/nav-group 组件族后双端折叠一致）；
+  集合无过滤框；select 控件为自由文本+提示；markdown sidecar 单行；
   表格/subform 以只读 JSON 文本展示；块增删（Plan 005 特性）未暴露
+
+Plan 012 侧栏组件族说明：nav-item/nav-group/nav(search:) 由 auto-lang Plan 482
+契约承载（hover/active 三态、icon/label/desc 槽、搜索行集成），类串双端同源；
+选中态 `data-active` 锚 + `.nav-name`/`.nav-desc` 语义锚内建；组头 chevron 为
+▾/▸ 文本字形（双端同构）；hover 类（hover:bg-accent）VM 端经 iced 原生
+Hovered 态生效。parity 台账随 012 重基线（sidebar 全窗 diff 2.1–5.0%，
+新基线见 docs/plans/012）。
 
 ## 共享样式词汇（Plan 008 Phase 2 定稿，双后端单一真源）
 

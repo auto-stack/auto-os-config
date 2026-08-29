@@ -47,80 +47,54 @@ function ToggleGroup(gid: any): void {
         <span class="text-xl">⚙️</span>
         <span>AutoOS Settings</span>
       </div>
-      <div class="pt-2 px-4 pb-3">
-        <input class="search-input w-full px-3 py-2 text-sm bg-[#f0f0f0] border border-[#e0e0e0] rounded" :placeholder="'Search settings'" :value="store.search" @input="SearchChanged(($event.target as HTMLInputElement).value)" />
-      </div>
-      <nav class="nav-list flex-1 overflow-auto px-2">
-        <template v-if="store.active_kind == ''">
-          <button class="nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]" :key="'ov-home'" @click="SelectOverview">
-            <div class="flex flex-row items-start gap-3 w-full min-w-0">
-              <span class="nav-icon text-lg shrink-0 pt-px">🏠</span>
-              <div class="flex flex-col nav-text gap-[0px] min-w-0">
-                <span class="nav-name text-sm font-semibold text-primary">System Overview</span>
-                <span class="nav-desc text-xs text-[#8a8a8a] truncate">System information dashboard</span>
-              </div>
-            </div>
-          </button>
-        </template>
-        <template v-if="store.active_kind != ''">
-          <button class="nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]" :key="'ov-home'" @click="SelectOverview">
-            <div class="flex flex-row items-start gap-3 w-full min-w-0">
-              <span class="nav-icon text-lg shrink-0 pt-px">🏠</span>
-              <div class="flex flex-col nav-text gap-[0px] min-w-0">
-                <span class="nav-name text-sm font-medium text-[#1a1a1a]">System Overview</span>
-                <span class="nav-desc text-xs text-[#8a8a8a] truncate">System information dashboard</span>
-              </div>
-            </div>
-          </button>
-        </template>
+      <nav class="nav-list flex-1 overflow-auto px-2 pt-2 flex flex-col">
+        <div class="nav-search flex items-center gap-2 mx-3 mb-2 px-3 h-9 rounded-md border border-input bg-muted/50 text-sm shrink-0">
+          <span class="h-4 w-4 shrink-0 text-muted-foreground shrink-0">🔍</span>
+          <input class="w-full bg-transparent border-0 outline-none placeholder:text-muted-foreground text-foreground text-sm" :value="store.search" placeholder="Search settings" @input="SearchChanged(($event.target as HTMLInputElement).value)" />
+        </div>
+        <button class="nav-item flex w-full items-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors h-[50px] mb-1" :data-active="!!(store.active_kind == '')" :class="store.active_kind == '' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent hover:text-accent-foreground'" type="button" @click="SelectOverview">
+          <span class="inline-flex items-center justify-center h-5 w-5 shrink-0">🏠</span>
+          <span class="flex flex-col min-w-0">
+            <span class="nav-name truncate">{{'System Overview'}}</span>
+            <span class="text-xs text-muted-foreground truncate">{{'System information dashboard'}}</span>
+          </span>
+        </button>
         <template v-if="store.search == ''">
-          <button :class="m.nav_class" :key="m.id" :title="m.description" @click="SelectModule(m.id)" v-for="m in store.view_standalone">
-            <div class="flex flex-row items-start gap-3 w-full min-w-0">
-              <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-              <div class="flex flex-col nav-text gap-[0px] min-w-0">
-                <span :class="m.name_class">{{ m.name }}</span>
-                <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
-              </div>
-            </div>
+          <button class="nav-item flex w-full items-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors" :data-active="!!(store.active_id == m.id)" :class="store.active_id == m.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent hover:text-accent-foreground'" type="button" @click="SelectModule(m.id)" v-for="m in store.view_standalone" :key="(((m as any)?.id ?? m))">
+            <span class="inline-flex items-center justify-center h-5 w-5 shrink-0">{{m.icon}}</span>
+            <span class="flex flex-col min-w-0">
+              <span class="nav-name truncate">{{m.name}}</span>
+              <span class="text-xs text-muted-foreground truncate">{{m.description}}</span>
+            </span>
           </button>
         </template>
-        <div v-for="g in store.view_groups" :key="g.id">
+        <div v-for="(g, __for_idx) in store.view_groups" :key="__for_idx">
           <template v-if="store.search == ''">
-            <button class="group-header w-full text-left flex items-center gap-[6px] px-3 py-3 mt-2 rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]" :key="g.id" @click="ToggleGroup(g.id)">
-              <div class="flex flex-row items-center gap-[6px] w-full gap-[0px]">
-                <template v-if="g.open">
-                  <span class="text-[11px] text-[#8a8a8a] w-[14px] shrink-0">▾</span>
-                </template>
-                <template v-if="g.open == false">
-                  <span class="text-[11px] text-[#8a8a8a] w-[14px] shrink-0">▸</span>
-                </template>
-                <span class="text-sm font-semibold text-[#1a1a1a] h-[50px] leading-[50px]">{{ g.label }}</span>
+            <div class="nav-group flex flex-col">
+              <button type="button" class="nav-group-toggle flex w-full items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-foreground cursor-pointer select-none hover:bg-accent" @click="ToggleGroup(g.id)">
+                <span v-if="g.open" class="text-[11px] text-muted-foreground w-[14px] shrink-0">▾</span>
+                <span v-else class="text-[11px] text-muted-foreground w-[14px] shrink-0">▸</span>
+                <span class="truncate"></span>
+              </button>
+              <div v-show="g.open" class="nav-group-content flex flex-col gap-1">
+                <button class="nav-item flex w-full items-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors" :data-active="!!(store.active_id == m.id)" :class="store.active_id == m.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent hover:text-accent-foreground'" type="button" @click="SelectModule(m.id)" v-for="m in g.members" :key="(((m as any)?.id ?? m))">
+                  <span class="inline-flex items-center justify-center h-5 w-5 shrink-0">{{m.icon}}</span>
+                  <span class="flex flex-col min-w-0">
+                    <span class="nav-name truncate">{{m.name}}</span>
+                    <span class="text-xs text-muted-foreground truncate">{{m.description}}</span>
+                  </span>
+                </button>
               </div>
-            </button>
+            </div>
           </template>
           <template v-if="store.search != ''">
-            <button :class="m.nav_class" :key="m.id" :title="m.description" @click="SelectModule(m.id)" v-for="m in g.members">
-              <div class="flex flex-row items-start gap-3 w-full min-w-0">
-                <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                <div class="flex flex-col nav-text gap-[0px] min-w-0">
-                  <span :class="m.name_class">{{ m.name }}</span>
-                  <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
-                </div>
-              </div>
+            <button class="nav-item flex w-full items-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors" :data-active="!!(store.active_id == m.id)" :class="store.active_id == m.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent hover:text-accent-foreground'" type="button" @click="SelectModule(m.id)" v-for="m in g.members" :key="(((m as any)?.id ?? m))">
+              <span class="inline-flex items-center justify-center h-5 w-5 shrink-0">{{m.icon}}</span>
+              <span class="flex flex-col min-w-0">
+                <span class="nav-name truncate">{{m.name}}</span>
+                <span class="text-xs text-muted-foreground truncate">{{m.description}}</span>
+              </span>
             </button>
-          </template>
-          <template v-if="store.search == ''">
-            <template v-if="g.open">
-              <button :class="m.nav_class" :key="m.id" :title="m.description" @click="SelectModule(m.id)" v-for="m in g.members">
-                <div class="flex flex-row items-start gap-3 w-full min-w-0">
-                  <span class="nav-icon text-lg shrink-0 pt-px">{{ m.icon }}</span>
-                  <div class="flex flex-col nav-text gap-[0px] min-w-0">
-                    <span :class="m.name_class">{{ m.name }}</span>
-                    <span class="nav-desc text-xs text-[#8a8a8a] truncate">{{ m.description }}</span>
-                  </div>
-                </div>
-              </button>
-            </template>
           </template>
         </div>
         <template v-if="store.loading">
