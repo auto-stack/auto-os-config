@@ -81,6 +81,12 @@ for f in ../src/components/CollectionBrowser.vue; do
   sed -i -e 's| :open="confirm_open"| v-if="confirm_open"|'          -e 's| :x="620"||' -e 's| :y="300"||'          -e 's| @dismiss="ConfirmDeleteNo"||' "$f"
 done
 
+# plan011 后续: 侧栏 nav item 长描述截断悬停提示——plain-mode button 无
+# title 属性通道(codegen 只透传已知 props),部署侧补 :title(popover C1
+# 同款部署侧 sed 先例);三处 nav_class 按钮形态一致,一条规则全覆盖。仅改
+# 部署 Sidebar.vue,VM 轨不受影响。配合 sidebar.at 的 min-w-0+truncate。
+sed -i 's|<button :class="m.nav_class" :key="m.id" @click=|<button :class="m.nav_class" :key="m.id" :title="m.description" @click=|g' ../src/components/Sidebar.vue
+
 # Root App.vue (batch 6): the codegen emits it at the scaffold root position
 # (gen/front/vue/src/App.vue), not in components/ — deploy to src/ with the
 # root-depth import rewrites (batch 6: the shared root from app.at).

@@ -20,6 +20,11 @@
 //     (extract_children_text joins with \n) — D5 structural parity;
 //   - the theme picker moved into its own ThemePicker widget (VG16: one
 //     store per widget — Sidebar owns Modules only).
+//   - nav item 宽度链(本次):row + nav-text col 都带 min-w-0,nav-desc 的
+//     truncate 才能咬合(CSS flex min-width:auto 默认会让长 desc 撑破
+//     280px 侧栏 → 横向滚动条,用户实报);截断 desc 的悬停提示走 regen.sh
+//     部署侧 :title 补偿(plain button 无 title 通道);vm 端 MinWidth(0)
+//     原生支持,两端同语义。
 use modules_store: Modules
 use theme_picker: ThemePicker
 
@@ -40,9 +45,9 @@ widget Sidebar {
                 if .store.active_kind == "" {
                     button (class: "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-[50px]", key: "ov-home") {
                         onclick: .SelectOverview
-                        row (style: "flex flex-row items-start gap-3 w-full") {
+                        row (style: "flex flex-row items-start gap-3 w-full min-w-0") {
                         span (text: "🏠", style: "nav-icon text-lg shrink-0 pt-px") {}
-                        col (style: "nav-text flex flex-col gap-[0px]") {
+                        col (style: "nav-text flex flex-col gap-[0px] min-w-0") {
                             text (text: "System Overview", style: "nav-name text-sm font-semibold text-primary") {}
                             text (text: "System information dashboard", style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                         }
@@ -52,9 +57,9 @@ widget Sidebar {
                 if .store.active_kind != "" {
                     button (class: "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-[50px]", key: "ov-home") {
                         onclick: .SelectOverview
-                        row (style: "flex flex-row items-start gap-3 w-full") {
+                        row (style: "flex flex-row items-start gap-3 w-full min-w-0") {
                         span (text: "🏠", style: "nav-icon text-lg shrink-0 pt-px") {}
-                        col (style: "nav-text flex flex-col gap-[0px]") {
+                        col (style: "nav-text flex flex-col gap-[0px] min-w-0") {
                             text (text: "System Overview", style: "nav-name text-sm font-medium text-[#1a1a1a]") {}
                             text (text: "System information dashboard", style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                         }
@@ -68,9 +73,9 @@ widget Sidebar {
                         // README 词汇规则 4/5）。
                                                     button (class: m.nav_class, key: m.id) {
                                 onclick: .SelectModule(m.id)
-                                row (style: "flex flex-row items-start gap-3 w-full") {
+                                row (style: "flex flex-row items-start gap-3 w-full min-w-0") {
                                 span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                col (style: "nav-text flex flex-col gap-[0px]") {
+                                col (style: "nav-text flex flex-col gap-[0px] min-w-0") {
                                     text (text: m.name, class: m.name_class) {}
                                     text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                 }
@@ -101,9 +106,9 @@ widget Sidebar {
                             for m in g.members {
                                                                     button (class: m.nav_class, key: m.id) {
                                         onclick: .SelectModule(m.id)
-                                        row (style: "flex flex-row items-start gap-3 w-full") {
+                                        row (style: "flex flex-row items-start gap-3 w-full min-w-0") {
                                         span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                        col (style: "nav-text flex flex-col gap-[0px]") {
+                                        col (style: "nav-text flex flex-col gap-[0px] min-w-0") {
                                             text (text: m.name, class: m.name_class) {}
                                             text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                         }
@@ -116,9 +121,9 @@ widget Sidebar {
                                 for m in g.members {
                                                                             button (class: m.nav_class, key: m.id) {
                                             onclick: .SelectModule(m.id)
-                                            row (style: "flex flex-row items-start gap-3 w-full") {
+                                            row (style: "flex flex-row items-start gap-3 w-full min-w-0") {
                                             span (text: m.icon, style: "nav-icon text-lg shrink-0 pt-px") {}
-                                            col (style: "nav-text flex flex-col gap-[0px]") {
+                                            col (style: "nav-text flex flex-col gap-[0px] min-w-0") {
                                                 text (text: m.name, class: m.name_class) {}
                                                 text (text: m.description, style: "nav-desc text-xs text-[#8a8a8a] truncate") {}
                                             }
