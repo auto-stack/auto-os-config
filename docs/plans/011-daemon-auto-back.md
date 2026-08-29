@@ -1,17 +1,17 @@
 ---
 plan_id: PLAN-011
-status: executing
+status: execution_done
 feature_name: os-config-daemon Auto 版——外部 back 形态改造
 author: [zcode]
 created_at: 2026-08-28T18:30:00+08:00
-updated_at: 2026-08-29T04:20:00+08:00
+updated_at: 2026-08-29T15:30:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
 new_spec_components: []
 touched_goals: []
 
-current_step: 12
+current_step: 12/12(全部完成)
 total_steps: 12
 ---
 
@@ -234,12 +234,27 @@ vm 模式:merged 直调。e2e 双门禁（scripts/e2e.sh 三套件 + e2e-vm 15 �
   返回首页、四盘渲染实证;group collapse 断言恢复 PASS(概要页不再二消费
   view_groups,③ 的触发面在 os-config 侧消除)。余 2 FAIL = 上游③ press
   间歇(Test 流一次 nav 未落地,字段读数已诚实)。
-- [ ] T11 (W4) `backend/` 退役归档（archive/）+ README/KNOWN-DEBT 同步 + 计划收尾。
+- [x] T11 (W4) `backend/` 退役归档（archive/）+ README/KNOWN-DEBT 同步 + 计划收尾。
   验证:仓库无 backend/ 活代码引用;文档三处同步。
+  [✅ 已完成] 7 个跟踪文件 git mv 至 archive/backend/(untracked target/ 随
+  rmdir 清除);README 架构表/.gitignore/capture.mjs/test-generic-editor.mjs
+  注释/KNOWN-DEBT-AND-RISKS 退役登记(⑤处)同步;活引用清零(tmp/css-era
+  历史基线与归档说明除外)。收口双门禁:vue ALL PASS + e2e-vm 17/17 全绿
+  (历史首次,④ 修复后二进制)。
 
 ## 复审记录
 
 （/auto-plan:review 回填）
+
+### 收口移交注记(执行结束,2026-08-29)
+
+- 12/12 任务完成;双门禁终态:scripts/e2e.sh 三套件 ALL PASS(32 断言)+
+  e2e-vm 17/17 全绿(历史首次;④ 修复后二进制 da505ab69)。
+- 上游联动:①char boundary 修复已折叠 auto-lang master(82a6664b4);③定性
+  反转收口(判定假阳性,os-config 2b37af2 计数断言);④ Plan 474 修复
+  (da505ab69);ObjectData 双同名结构陷阱债登记(35312a509)。
+- 后续可选项(非门禁):④ 修复后浮点字段可安全消费,展示串(display/
+  memory_bar)保留为演示层;Vue 端可另行增强为 CSS 图表(L2 差异台账归因)。
 
 ### T1 形态裁决记录(执行期产出,2026-08-28)
 
@@ -326,11 +341,10 @@ Cargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路
      ToggleGroup 路径复现,新旧二进制 + 摘除 T9 Init 均复现)。需上游专门
      调试会话(renderer 失效链路),已登记 ④。
      ④ __json_object 浮点字段 Dot 读编码缺陷(f64→i32 误读,54.16→
-     -1073741824)—— 未修,本仓已用展示串绕开。auto-lang ④ 会话已开工并
-     认领:指纹(0xC0000000 = -2.0f32 位型按 i32 重解释)与已修同族缺陷
-     fb06cd8b2/bb6608f75(decode 兜底位读/Float 无 tag 守卫)同源,写入侧
-     (Double 正常入字段)初步排除,焦点在 GET_FIELD/Dot 读取侧 pop/decode
-     的 tag 宽度错配;修复落地后本仓撤展示串绕法、恢复原始数值字段。
+     -1073741824)—— **已修复**(auto-lang Plan 474:CALL_SPEC 数学分发
+     nanbox 化石根除,da505ab69;tf 3249 绿+活体复验 GREEN+复审 6/6)。
+     本仓实测:vm 前端 Dot 读 storage_free_gb(51.2588)恢复真值。
+     展示串字段保留(演示友好),原始数值字段持续可用。
    - ③ 深入定位(2026-08-29 续):上游 canary
      auto-lang examples/capability-tests/p1-toggle-array-rerender(RED 6/6 确
      定性)——App 以 button 循环消费 view_groups + SidePanel 条件渲染同一数
