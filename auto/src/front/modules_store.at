@@ -31,7 +31,9 @@ store Modules {
         var read_only bool = false
         var loading bool = false
         var error str = ""
-        var title str = "AutoOS Settings"
+        // 概要页是落地页:默认 title 与 .Overview 落点一致(用户实报:内容头
+        // 标题应随内容区走);品牌名 "AutoOS Settings" 常驻侧栏顶部,两处分工。
+        var title str = "System Overview"
         // Plan 007: authoritative raw modules text (vm selection without fetch)
         var raw str = ""
         // Plan 008 batch 1: search + view projection (fold/search state baked
@@ -237,7 +239,76 @@ store Modules {
             .active_id = None
             .active_kind = ""
             .read_only = false
-            .title = "AutoOS Settings"
+            .title = "System Overview"
+            // 投影必须重建:nav_class 是预计算串(446 U7),不重建则上一个模块
+            // 的 active 高亮残留(用户实报:点 Overview 后 AI Client 仍高亮)。
+            // 块形态与 .Select 尾部同款(D4/D5 处理器各持整块的既定形态)。
+            var vg = []
+            let q = .search.to_lower()
+            var any_hit = false
+            for g in .groups {
+                var members = []
+                for m in g.members {
+                    var hit = true
+                    if q != "" {
+                        hit = false
+                        if m.name.to_lower().contains(q) {
+                            hit = true
+                        }
+                        if m.description.to_lower().contains(q) {
+                            hit = true
+                        }
+                    }
+                    if hit {
+                        var nmcls = "nav-name text-sm font-medium text-[#1a1a1a]"
+                        var ncls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
+                        if .active_id == m.id {
+                            nmcls = "nav-name text-sm font-semibold text-primary"
+                            ncls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
+                        }
+                        members.push({ id: m.id, icon: m.icon, name: m.name, description: m.description, nav_class: ncls, name_class: nmcls })
+                    }
+                }
+                var open = false
+                for x in .expanded {
+                    if x == g.id {
+                        open = true
+                    }
+                }
+                if q != "" {
+                    open = true
+                }
+                if members.len() > 0 {
+                    vg.push({ id: g.id, label: g.label, open: open, members: members })
+                    any_hit = true
+                }
+            }
+            .view_groups = vg
+            var vs = []
+            for sm in .standalone {
+                var shit = true
+                if q != "" {
+                    shit = false
+                    if sm.name.to_lower().contains(q) {
+                        shit = true
+                    }
+                    if sm.description.to_lower().contains(q) {
+                        shit = true
+                    }
+                }
+                if shit {
+                    var snm = "nav-name text-sm font-medium text-[#1a1a1a]"
+                    var scls = "nav-item w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-[#f9f9f9] hover:bg-[#ededed] transition-colors duration-[120ms] text-[#1a1a1a] h-auto"
+                    if .active_id == sm.id {
+                        snm = "nav-name text-sm font-semibold text-primary"
+                        scls = "nav-item active w-full text-left flex items-start gap-3 px-3 py-[10px] rounded bg-primary/10 text-[#1a1a1a] h-auto"
+                    }
+                    vs.push({ id: sm.id, icon: sm.icon, name: sm.name, description: sm.description, nav_class: scls, name_class: snm })
+                    any_hit = true
+                }
+            }
+            .view_standalone = vs
+            .has_results = any_hit
         }
 
         .Select(id) -> {
