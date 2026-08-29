@@ -334,7 +334,23 @@ Cargo crate:cdylib 桥 lib.rs / axum bin main.rs)、`examples/poc-hello/`(三路
      的堆表示非 GenericInstanceData/ObjectData(未知变体),其 open 的读取
      结果决定条件渲染。下一步:弄清对象字面量堆类型与 builder Dot 求值
      (与④浮点误读同根源区)。插桩([P011] 系)保留在分支,定位后移除。
-   - 上游 worktree:auto-lang/.worktrees/auto-os-config-dev(保留;含①提交)。
+   - ③ 定性反转(2026-08-29 第三轮,终局):**renderer 无 bug,RED 系断言
+     假阳性**。根因:e2e-vm `navVisible('Roles')` 对全快照所有 button 的多行
+     label 做行匹配,T18 概要卡 button `"🎭\nRoles\nAgent roles…"` 恒命中——
+     概要页在 active_kind=="" 时合法地常驻同名卡片。侧栏折叠本身一直正确:
+     折叠后侧栏 Roles vnode 从树中消失、概要卡 vnode 原样保留(分区判定,
+     debug 探针构建与 master 构建双实证;4 连快速 press 同步)。修复(本仓
+     e2e-vm.mjs):collapse/expand 断言改计数法(`navCount`,折叠恰好 −1、
+     重开恢复),复跑 group collapse + re-expand 双 PASS。上游 canary 的
+     「RED 6/6」同构(全快照文本包含被 App 卡片 g.m1 合法文本击穿),
+     README 已改写为绿色回归金丝雀(auto-lang 分支 ba0416d15)。「未知堆
+     变体」之谜一并解开:组对象堆类型即 `vm::types::ObjectData`(engine
+     CREATE_OBJ 分配,全仓 25 处);[P011] 探针此前 downcast 到无分配点的
+     `vm::object_data::ObjectData` 恒 miss(同结构双同名,已修正探针)。
+     注意:④「与③同根源」的假设随本定性**不成立**,④浮点误读独立存在
+     (见下条)。
+   - 上游 worktree:auto-lang/.worktrees/auto-os-config-dev(保留;含①提交
+     与③定性 ba0416d15;[P011] 系探针暂留,随 plan011 收口移除)。
    - 处置(2026-08-28 修订):本计划代码(POC 为纯新增目录)不触前端/旧
      backend,失败可于 pristine main 复现——登记为上游漂移问题。原定 Phase 0
      不折叠、改按 T8/T10 汇合点重试;现按用户指示于 T5 后提前合并入 main

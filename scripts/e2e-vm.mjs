@@ -130,6 +130,19 @@ async function navVisible(name) {
   if (channelDead) return false;
   return navButtons(await snapshot()).some((b) => b.lines.includes(name));
 }
+// Buttons anywhere in the snapshot whose multiline label carries `name` as a
+// line. plan011 ③ (2026-08-29 root-cause): the T18 overview cards are BUTTONS
+// with the same icon/name/description label shape as sidebar nav items, so a
+// whole-snapshot `navVisible('Roles')` matches the overview card even after a
+// SUCCESSFUL sidebar collapse — the old "Roles still visible" FAIL was a test
+// artifact, not a renderer bug (sidebar vnode ids verifiably leave the tree;
+// vm trace: handler/dirty/rebuild/diff all correct). Collapse/expand
+// assertions must count instead: exactly one copy (the sidebar's) appears /
+// disappears.
+async function navCount(name) {
+  if (channelDead) return -1;
+  return navButtons(await snapshot()).filter((b) => b.lines.includes(name)).length;
+}
 // Inputs with attribute blocks (sidebar search) expose placeholder lines —
 // find the nearest preceding `input #id` (detail-field bare inputs are found
 // positionally by the edit step instead).
@@ -212,16 +225,21 @@ async function runAttempt() {
   if (st.modules && st.modules.includes('vmref')) pass(`modules loaded (${(st.modules.match(/vmref/g) || []).length})`);
   else fail('modules not loaded');
 
-  // 1a/1b. group fold + unfold (Plan 008 D8: sidebar projections on vm)
-  if (!(await pressNav('Harness', 1800))) {
+  // 1a/1b. group fold + unfold (Plan 008 D8: sidebar projections on vm).
+  // Count-based (see navCount note): the overview page legitimately keeps a
+  // "Roles" card button on screen after the sidebar collapses.
+  const rolesN0 = await navCount('Roles');
+  const collapsed = await pressNav('Harness', 1800);
+  const rolesN1 = await navCount('Roles');
+  if (!collapsed) {
     fail('Harness group header not found');
-  } else if (!(await navVisible('Roles'))) {
+  } else if (rolesN1 === rolesN0 - 1) {
     pass('group collapse hides members');
   } else {
-    fail('group collapse: Roles still visible');
+    fail(`group collapse: Roles buttons ${rolesN0}->${rolesN1}, expected ${rolesN0 - 1}`);
   }
   if (await pressNav('Harness', 1800)) {
-    if (await navVisible('Roles')) pass('group re-expand shows members');
+    if ((await navCount('Roles')) === rolesN0) pass('group re-expand shows members');
     else fail('group re-expand: Roles missing');
   } else {
     fail('Harness group header (re-expand) not found');
