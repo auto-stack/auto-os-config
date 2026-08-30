@@ -3,6 +3,10 @@
 import { ref, onMounted } from 'vue'
 import { addBlockText, bodyHasText, deleteBlockSafe, editField, editTagField, entriesCount, entryAt, fetchConfigSafe, metaFile, putConfigSafe, setCellText, subAt, subCount, tableAddRowText, tableRemoveRowText, warmEnumsText } from '@/lib/api'
 
+const props = defineProps<{
+  module_id: string
+}>()
+
 const body = ref<string>('')
 const entries = ref<any[]>([])
 const loading = ref<boolean>(false)
@@ -20,10 +24,6 @@ const block_error = ref<string>('')
 const confirm_save = ref<boolean>(false)
 const save_acked = ref<boolean>(false)
 const confirm_del = ref<string>('')
-
-const props = defineProps<{
-  module_id: string
-}>()
 
 const emit = defineEmits<{
   Init: []

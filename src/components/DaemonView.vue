@@ -3,13 +3,13 @@
 import { ref } from 'vue'
 import { testDaemon } from '@/lib/api'
 
-const conn_state = ref<string>('idle')
-const test_error = ref<string>('')
-const latency = ref<number>(0)
-
 const props = defineProps<{
   module_id: string
 }>()
+
+const conn_state = ref<string>('idle')
+const test_error = ref<string>('')
+const latency = ref<number>(0)
 
 const emit = defineEmits<{
   Test: []

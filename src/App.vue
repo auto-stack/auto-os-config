@@ -249,7 +249,7 @@ onMounted(async () => {
                           </div>
                           <span class="text-xs text-muted">{{ dsk.free + ' / ' + dsk.total + ' GB free' }}</span>
                         </div>
-                        <progress class="w-full h-2" :max="100" :value="dsk.pct" />
+                        <progress class="w-full h-2" :class="(dsk.pct > 75 ? 'ov-disk-crit' : ((dsk.pct > 60 ? 'ov-disk-warn' : '')))" :max="100" :value="dsk.pct" />
                       </div>
                     </div>
                   </div>

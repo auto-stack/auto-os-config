@@ -205,7 +205,12 @@ widget App {
                                                     // 组件(双端原生:vue shadcn Progress / vm
                                                     // ProgressBar;上游同期修复 convert_progress 循环
                                                     // bindings——空 bindings 版循环内 value 恒 0)。
-                                                    progress (value: dsk.pct, max: 100, style: "w-full h-2") {}
+                                                    // 磁盘水位分级色(>75 红 / >60 橙 / 其余主色):
+                                                    // vue 轨由 styles.css 的 progress 变体消费 marker
+                                                    // class;vm 轨 ProgressBar 填充色硬编码不吃 class,
+                                                    // 属上游缺口(残差台账既有先例)。
+                                                    progress (value: dsk.pct, max: 100, style: "w-full h-2",
+                                                              class: dsk.pct > 75 ? "ov-disk-crit" : dsk.pct > 60 ? "ov-disk-warn" : "") {}
                                                 }
                                             }
                                         }

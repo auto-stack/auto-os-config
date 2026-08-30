@@ -1071,3 +1071,18 @@ progress::-moz-progress-bar {
 .dark progress::-webkit-progress-bar {
   background: #2a2f3a;
 }
+
+/* 磁盘水位分级色(app.at 进度条条件 class:>75% 红,>60% 橙,其余主色;
+   marker class 仅 vue 轨消费,vm 轨 ProgressBar 上游不吃 class)。 */
+progress.ov-disk-warn::-webkit-progress-value {
+  background: #f97316;
+}
+progress.ov-disk-warn::-moz-progress-bar {
+  background: #f97316;
+}
+progress.ov-disk-crit::-webkit-progress-value {
+  background: #ef4444;
+}
+progress.ov-disk-crit::-moz-progress-bar {
+  background: #ef4444;
+}

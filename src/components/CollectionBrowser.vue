@@ -3,17 +3,17 @@
 import { ref, onMounted } from 'vue'
 import { setCellText, tableAddRowText, tableRemoveRowText } from '@/lib/api'
 
+const props = defineProps<{
+  module_id: string
+  read_only: boolean
+}>()
+
 const creating = ref<boolean>(false)
 const new_name = ref<string>('')
 const confirm_open = ref<boolean>(false)
 const draft = ref<string>('')
 const sidecar_draft = ref<string>('')
 const pw_show = ref<boolean>(false)
-
-const props = defineProps<{
-  module_id: string
-  read_only: boolean
-}>()
 
 const emit = defineEmits<{
   Init: []
