@@ -820,7 +820,7 @@ pub fn loadMode() str {
             return v
         }
     }
-    return "light"
+    return "dark"
 }
 
 pub fn saveMode(mode str) {

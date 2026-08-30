@@ -2,9 +2,9 @@ import { ref } from 'vue'
 import { loadAccent, saveAccent, loadMode, saveMode } from '../../lib/api'
 
 const current = ref<string>('indigo')
-const dark_mode = ref<boolean>(false)
+const dark_mode = ref<boolean>(true)
 const accent_color = ref<string>('indigo')
-const mode = ref<string>('light')
+const mode = ref<string>('dark')
 
 export function useThemeStore(): any {
     const Init = async () => { current.value = await loadAccent();

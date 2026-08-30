@@ -15,7 +15,8 @@
         var h = m[s] || m.indigo;
         document.documentElement.style.setProperty('--primary', h);
         var t = localStorage.getItem('autoos-theme');
-        if (t === 'dark') document.documentElement.classList.add('dark');
+        // 启动默认深色主题；仅显式存过 'light' 才保持浅色。
+        if (t !== 'light') document.documentElement.classList.add('dark');
       } catch (e) { /* ignore — styles.css has a sensible default */ }
     })();
   </script>

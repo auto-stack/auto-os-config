@@ -256,7 +256,7 @@ export function saveAccent(name: string): void {
 // 注入 watcher 三处 keep-in-sync。
 const THEME_STORAGE_KEY = 'autoos-theme'
 
-/** Persisted theme mode or 'light' (also applies the dark class — store Init side effect). */
+/** Persisted theme mode or 'dark' (启动默认;also applies the dark class — store Init side effect). */
 export function loadMode(): string {
   let stored: string | null = null
   try {
@@ -264,7 +264,7 @@ export function loadMode(): string {
   } catch {
     stored = null
   }
-  const mode = stored === 'dark' ? 'dark' : 'light'
+  const mode = stored === 'light' ? 'light' : 'dark'
   document.documentElement.classList.toggle('dark', mode === 'dark')
   return mode
 }
