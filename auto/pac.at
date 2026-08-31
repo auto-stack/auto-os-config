@@ -10,3 +10,9 @@ default_classes: off
 # 本地 src/back/api.at 优先,regen 行为不变)。
 back: { project: "../auto-os-config-back" }
 
+# auto-lang Plan 501:vm 桌面外部仓 app 声明——desktop launch 臂据此确保
+# os-config daemon 就绪(ping :17701 → 发现序 spawn)并注入 AUTOOS_DAEMON
+# env 到 App 会话(vm track 既有约定,api.at daemon_base() 消费)。
+# vue 轨/regen 不读此键,零影响。
+daemon: "autoos"
+
