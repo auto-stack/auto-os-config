@@ -478,6 +478,10 @@ fn module_entry(ent str) any {
         description: unquote(json.get(ent, "description")),
         group: unquote(json.get(ent, "group")),
         format: unquote(json.get(ent, "format")),
+        // Plan 551:插件自定义 UI 声明——与前端版同步(view 是 .at 文法
+        // 关键字,内部字段名 view_name;widgets 保留对象映射原始文本)。
+        view_name: unquote(json.get(ent, "view")),
+        widgets: json.get(ent, "widgets"),
     }
 }
 
@@ -1252,4 +1256,46 @@ pub fn fieldDisplayOf(body str, key str) str {
 #[api(method = "GET", path = "/api/system-info")]
 pub fn system_info() any {
     return {}
+}
+
+// ─── Plan 551:插件自定义 UI 面(与前端 auto/src/back/api.at 同步)────────────
+
+/// 字段级 widget 覆盖查找——widgets 对象映射文本 + 字段名,widget 名
+/// (未声明/缺席返回 "")。
+pub fn widgetFor(widgets_text str, field str) str {
+    return unquote(json.get(widgets_text, field))
+}
+
+/// GET /api/config/<id> 单取 + 平铺读(body 文本 + cfgField 逐字段 getter)。
+pub fn fetchDesktopCfgSafe(id str) any {
+    let r = fetchConfigSafe(id)
+    if r.ok == false {
+        return { ok: false, error: r.error, body: "{}" }
+    }
+    return { ok: true, error: "", body: r.value }
+}
+
+/// 平铺字段读(unquote 后的显示值;缺席 = "")。
+pub fn cfgField(body str, key str) str {
+    return unquote(json.get(body, key))
+}
+
+/// POST /api/action/list-dir → 图片枚举(wallpaper_picker 数据源;只读 +
+/// 图片后缀过滤在 daemon 侧)。cdylib host_call 同名覆盖优先(网络/FS
+/// 归 Rust);本 .at 体为无桥形态(独立 vm run)兜底。
+pub fn listImagesSafe(dir str) any {
+    let t = http.post_json(daemon_base() + "/api/action/list-dir", "{\"path\":" + quote_json(dir) + "}")
+    if is_transport_error(t) || json.type_of(t) != "array" {
+        return { ok: false, error: "目录枚举失败", items: "[]", count: 0 }
+    }
+    return { ok: true, error: "", items: t, count: json.len(t) }
+}
+
+pub fn imageCount(items str) int {
+    return json.len(items)
+}
+
+pub fn imageAt(items str, i int) any {
+    let ent = json.get_at(items, i)
+    return { name: unquote(json.get(ent, "name")), path: unquote(json.get(ent, "path")) }
 }

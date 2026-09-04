@@ -471,6 +471,8 @@ fn module_entry(ent str) any {
         description: unquote(json.get(ent, "description")),
         group: unquote(json.get(ent, "group")),
         format: unquote(json.get(ent, "format")),
+        // Plan 551:插件自定义 UI 声明——与 back 桩同步(view 是 .at 文法
+        // 关键字,内部字段名 view_name;widgets 保留对象映射原始文本)。
         view_name: unquote(json.get(ent, "view")),
         widgets: json.get(ent, "widgets"),
     }
