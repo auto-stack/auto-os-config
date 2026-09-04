@@ -1,0 +1,135 @@
+// widgets.at — Plan 551 T5:字段级 widget 注册表(内置具名组件)。
+//
+// 插件机制约定:registry 模块声明 `widgets : ["<field>:<widget>", …]` →
+// daemon /api/modules 投影 widgets 对象映射 → 消费方(自定义视图或通用
+// 编辑器)对命中字段渲染该具名 widget 替换默认控件。本文件是内置 widget
+// 实现;新增内置 widget = 在此加组件 + daemon 侧零改动(名字即约定)。
+//
+// WallpaperPicker(wallpaper_picker):壁纸选择器——目录图片栅格 + 点选回写。
+// 数据源 = daemon POST /api/action/list-dir(只读图片枚举,D6 最小约束);
+// 写路径自包含:点选时 fresh GET → editField 单字段全编辑 → PUT merge
+// 落盘(与桌面宿主轮询热应用衔接,auto-lang Plan 551 T6),不经组件外状态,
+// 任意 file 模块可复用。vm 子组件无 auto-Init → 「扫描」按钮显式触发
+// (vue 端 onMounted 自动 Init,ConfigEditor 同款双轨)。
+use back.api: fetchDesktopCfgSafe, putConfigSafe, editField, listImagesSafe, imageCount, imageAt
+
+widget WallpaperPicker(module_id: str, field: str, dir: str, current: str) {
+    msg Msg { Init, Load, Pick(str) }  // Init=vue onMounted;Load=vm 扫描钮
+
+    model {
+        var images Array<str> = []
+        var scanned bool = false
+        var saved_path str = ""
+        var saved str = "0"
+        var error str = ""
+    }
+
+    view {
+        col (style: "gap-2") {
+            row (style: "items-center gap-2") {
+                button "扫描目录" {
+                    onclick: .Load
+                    style: "h-7 px-3 text-xs bg-muted text-muted-foreground rounded-lg"
+                }
+                text .dir { style: "text-xs text-muted-foreground" }
+            }
+            if .error != "" {
+                text .error { style: "text-xs text-muted-foreground" }
+            }
+            if .scanned && .images.len() == 0 {
+                text "目录无图片(或目录不可读)— 可用手输路径 / #hex / builtin:" { style: "text-xs text-muted-foreground" }
+            }
+            if .scanned && .images.len() > 0 {
+                text "点击即应用(桌面宿主热生效)：" { style: "text-xs text-muted-foreground" }
+                col (style: "flex flex-row flex-wrap gap-2") {
+                    for it in .images {
+                        button (text: it.name) {
+                            onclick: .Pick(it.path)
+                            style: "h-7 px-2 text-[10px] bg-muted text-muted-foreground rounded border border-border hover:bg-background max-w-[180px] truncate"
+                        }
+                    }
+                }
+            }
+            if .saved == "1" {
+                row (style: "items-center gap-2") {
+                    text "已应用：" { style: "text-xs text-success" }
+                    text .saved_path { style: "text-xs text-foreground" }
+                }
+            } else {
+                if .current != "" {
+                    row (style: "items-center gap-2") {
+                        text "当前：" { style: "text-xs text-muted-foreground" }
+                        text .current { style: "text-xs text-foreground" }
+                    }
+                }
+            }
+        }
+    }
+
+    on {
+        // 扫描臂(VG 平铺:Init/Load 各自驱动同一批状态写)。
+        .Init -> {
+            let r = listImagesSafe(.dir)
+            if r.ok {
+                var arr = []
+                let n = imageCount(r.items)
+                var i = 0
+                loop {
+                    if i >= n {
+                        break
+                    }
+                    let im = imageAt(r.items, i)
+                    arr.push({ name: im.name, path: im.path })
+                    i = i + 1
+                }
+                .images = arr
+                .error = ""
+            } else {
+                .images = []
+                .error = r.error
+            }
+            .scanned = true
+        }
+
+        .Load -> {
+            let r = listImagesSafe(.dir)
+            if r.ok {
+                var arr = []
+                let n = imageCount(r.items)
+                var i = 0
+                loop {
+                    if i >= n {
+                        break
+                    }
+                    let im = imageAt(r.items, i)
+                    arr.push({ name: im.name, path: im.path })
+                    i = i + 1
+                }
+                .images = arr
+                .error = ""
+            } else {
+                .images = []
+                .error = r.error
+            }
+            .scanned = true
+        }
+
+        .Pick(path) -> {
+            // 自包含单源写:fresh GET → 单字段全编辑 → PUT merge。
+            let r = fetchDesktopCfgSafe(.module_id)
+            if r.ok {
+                let body = editField(r.body, .field, path)
+                let w = putConfigSafe(.module_id, body)
+                if w.ok {
+                    .saved_path = path
+                    .saved = "1"
+                    .error = ""
+                } else {
+                    .error = w.error
+                }
+            } else {
+                .error = r.error
+            }
+        }
+    }
+}

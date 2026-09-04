@@ -152,6 +152,45 @@ pub fn enum_tiers_json() -> serde_json::Value {
     )
 }
 
+/// auto-lang Plan 551 T5(D6):`POST /api/action/list-dir` 投影——给定目录
+/// 的**图片文件**枚举(wallpaper_picker 数据源)。trusted 本地模型下的最小
+/// 约束:只读、只报图片后缀(jpg/jpeg/png/webp/bmp/avif)的 name/path,
+/// 不读内容、不列其他文件;目录不存在/不可读 → 空表(前端回退手输)。
+pub fn list_dir_json(path: &str) -> serde_json::Value {
+    const IMAGE_EXTS: [&str; 6] = ["jpg", "jpeg", "png", "webp", "bmp", "avif"];
+    let mut out: Vec<serde_json::Value> = Vec::new();
+    if path.trim().is_empty() {
+        return serde_json::json!(out);
+    }
+    let dir = std::path::PathBuf::from(path);
+    if !dir.is_dir() {
+        return serde_json::json!(out);
+    }
+    let mut entries: Vec<_> = match std::fs::read_dir(&dir) {
+        Ok(e) => e.flatten().collect(),
+        Err(_) => return serde_json::json!(out),
+    };
+    entries.sort_by_key(|e| e.file_name());
+    for entry in entries {
+        let p = entry.path();
+        if !p.is_file() {
+            continue;
+        }
+        let is_img = p
+            .extension()
+            .and_then(|x| x.to_str())
+            .map(|x| IMAGE_EXTS.contains(&x.to_ascii_lowercase().as_str()))
+            .unwrap_or(false);
+        if !is_img {
+            continue;
+        }
+        if let (Some(name), Some(full)) = (p.file_name().and_then(|n| n.to_str()), p.to_str()) {
+            out.push(serde_json::json!({ "name": name, "path": full }));
+        }
+    }
+    serde_json::json!(out)
+}
+
 /// `GET /api/enums/dir/:kind` → 配置目录名清单(roles/modes 取 *.at 名;
 /// skills 取 <name>/SKILL.md 子目录)。目录缺失 → [](前端回退自由文本)。
 pub fn enum_dir_json(kind: &str) -> serde_json::Value {

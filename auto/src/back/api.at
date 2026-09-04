@@ -499,6 +499,25 @@ pub fn cfgField(body str, key str) str {
     return unquote(json.get(body, key))
 }
 
+/// POST /api/action/list-dir → 图片枚举原始文本(wallpaper_picker 数据源)。
+pub fn listImagesSafe(dir str) any {
+    let t = http.post_json(daemon_base() + "/api/action/list-dir",
+                           "{\"path\":" + quote_json(dir) + "}")
+    if is_transport_error(t) || json.type_of(t) != "array" {
+        return { ok: false, error: "目录枚举失败", items: "[]", count: 0 }
+    }
+    return { ok: true, error: "", items: t, count: json.len(t) }
+}
+
+pub fn imageCount(items str) int {
+    return json.len(items)
+}
+
+pub fn imageAt(items str, i int) any {
+    let ent = json.get_at(items, i)
+    return { name: unquote(json.get(ent, "name")), path: unquote(json.get(ent, "path")) }
+}
+
 pub fn getHash() str {
     // no URL hash on the desktop; deep-link branch skips naturally
     return ""

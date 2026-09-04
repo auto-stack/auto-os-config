@@ -26,6 +26,8 @@ use collection_browser: CollectionBrowser
 // Plan 551 T4:Desktop 模块自定义视图(插件机制模块级覆盖,registry
 // view : "desktop_page" 声明驱动分发)。
 use desktop_page: DesktopPage
+// Plan 551 T5:字段级 widget 注册表(内置具名组件,wallpaper_picker 等)。
+use widgets: WallpaperPicker
 use theme_store: Theme
 use back.api: system_info, fetchModulesRaw, modulesCount, moduleAt
 

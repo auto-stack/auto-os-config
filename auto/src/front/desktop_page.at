@@ -194,6 +194,10 @@ widget DesktopPage {
                                                 style: "h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg"
                                             }
                                         }
+                                        // Plan 551 T5:字段级 widget 覆盖旗舰——
+                                        // registry 声明 cfg_wallpaper:wallpaper_picker,
+                                        // 此处渲染具名 widget(目录扫描+点选回写)。
+                                        WallpaperPicker(module_id: "desktop", field: "cfg_wallpaper", dir: .store.cfg_wallpapers_dir, current: .store.cfg_wallpaper) { }
                                         if .store.wallpaper_saved == "1" {
                                             text "已保存，桌面宿主热应用" { style: "text-success text-xs" }
                                         } else {

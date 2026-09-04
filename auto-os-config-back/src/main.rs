@@ -94,6 +94,15 @@ async fn enum_self_models(
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e }))))
 }
 
+/// auto-lang Plan 551 T5:POST /api/action/list-dir —— body { path } →
+/// 图片文件枚举(wallpaper_picker 数据源;只读+图片后缀过滤,见 core)。
+async fn action_list_dir(
+    ExtractJson(payload): ExtractJson<serde_json::Value>,
+) -> Json<serde_json::Value> {
+    let path = payload["path"].as_str().unwrap_or("");
+    Json(core::list_dir_json(path))
+}
+
 /// POST /api/action/test-daemon(aaid 代理;离线 → 503)。
 async fn action_test_daemon() -> (axum::http::StatusCode, Json<serde_json::Value>) {
     match core::test_daemon_proxy() {
@@ -222,6 +231,7 @@ async fn main() {
         .route("/api/enums/self/:module_id/providers", get(enum_self_providers))
         .route("/api/enums/self/:module_id/models/:provider", get(enum_self_models))
         .route("/api/action/test-daemon", post(action_test_daemon))
+        .route("/api/action/list-dir", post(action_list_dir))
         .route("/api/health", get(health))
         .layer(cors);
 
