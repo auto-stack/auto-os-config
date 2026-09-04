@@ -184,16 +184,44 @@ GET  /api/collection/:module_id                   集合列表
 GET  PUT POST DELETE /api/collection/:module_id/:name   实体 CRUD + sidecar
 GET  /api/enums/tiers | /dir/:kind | /self/:id/providers | /self/:id/models/:prov
 POST /api/action/test-daemon                      代理 aaid /v1/config/test(唯一需 aaid 在线)
+POST /api/action/list-dir                         图片文件枚举(Plan 551 wallpaper_picker 数据源;只读+图片后缀过滤)
 GET  /api/health
 ```
 
 ---
 
-## 10. 注册一个新模块（三路径）
+## 10. 注册一个新模块（路径）
 
 1. **file / collection（最常见，零前端代码）**：丢 `modules.d/<id>.at` → 重启无需（热注册）→ 侧栏出现 → 通用编辑器自动渲染。改 auto-os-config 一行代码都不需要。
-2. **需要定制 UX**：`kind : custom` + `remote : <url>`，远程按 §8.5 协议构建。
-3. **第一方定制视图**：宿主自己的组件，静态 import + `BUILTIN_FILE_VIEWS` 映射（如 ai-daemon → DaemonView），数据流不变。
+2. **第一方定制视图**：宿主自己的组件，静态 import + `BUILTIN_FILE_VIEWS` 映射（如 ai-daemon → DaemonView），数据流不变。
+3. **插件自定义 UI（Plan 551 兑现，替代 Plan 006 退役的 remote-ESM 协议）**——两级钩子，声明全部落在 registry 模块声明处（数据文件保持纯数据；Node::deserialize v1 只走 props，故不用子块）：
+
+   ```text
+   module {
+       kind : file
+       id : "desktop"
+       file : "apps/desktop/config.at"
+       root : "desktop"
+       group : ""                      # 空组 = standalone 侧栏位
+       view : "desktop_page"           # 模块级:渲染命名组件替换通用表单
+       widgets : ["cfg_wallpaper:wallpaper_picker",
+                  "cfg_wallpapers_dir:dir_picker"]   # 字段级:field:widget 编码
+   }
+   ```
+
+   - **模块级 `view`**：前端对该模块渲染命名组件替换通用表单，数据仍走
+     `/api/config/:id`（旗舰 = desktop 模块的 desktop_page：二级导航
+     Dock/通知/外观/关于）。分发点在侧栏选中态（active 模块的 view 字段）。
+   - **字段级 `widgets`**：`field:widget` prop 数组编码（`view` 是 .at 文法
+     关键字——map 裸键/成员访问会静默炸生成器，消费侧内部命名避开即可；
+     daemon 投影把数组展开为对象映射）。命中字段的编辑界面渲染具名内置
+     widget（front/widgets.at 注册表，如 wallpaper_picker：目录图片枚举 +
+     点选回写）。**写路径不绕单源**：widget 自包含 fresh GET → 单字段编辑
+     → PUT merge，与通用表单同一写通道。
+   - 通用编辑器的字段级挂载点：`entryAt` 分类器按 widgets 命中改写 kind →
+     编辑器按名挂内置 widget。当前挂载消费端为 desktop_page（自定义视图）；
+     ConfigEditor 内联挂载因「per-render 取 widgets 映射需缓存设计」列为
+     跟进项（2026-09-04,auto-lang Plan 551）。
 
 ---
 
