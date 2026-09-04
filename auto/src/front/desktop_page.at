@@ -6,8 +6,8 @@
 // ONE view source for BOTH backends (vue regen + vm interpret),sidebar.at
 // 同款约定:bare store import + `.store.x` 投影;widget msg 仅转发 store
 // (vm 子 widget 无 auto-Init,数据面在 DesktopCfg store,Select 预载)。
-// 壁纸字段(T5 起)经字段级 widget 覆盖渲染 wallpaper_picker;通用控件
-// 语义与 auto-lang 045 设置窗对齐(控件集迁移基线)。
+// vm 布局注意:视图样式不用 min-h-0(vm 自绘布局按硬 0 处理致子树塌缩,
+// vue 无此问题——Plan 551 T8 实测)。
 use desktop_store: DesktopCfg
 
 widget DesktopPage {
@@ -19,282 +19,272 @@ widget DesktopPage {
               PickTheme(str), PickTransparency(str) }
 
     view {
-        col (style: "flex-1 min-h-0 flex flex-col") {
+        col (style: "flex-1 p-4 gap-2") {
             if .store.loading {
-                text (text: "Loading desktop config...", style: "block p-4 text-center text-xs text-muted") {}
+                text "Loading desktop config..." { style: "text-xs text-muted" }
             }
             if .store.loading == false && .store.error != "" {
-                text (text: "⚠️ " + .store.error, style: "text-sm text-destructive") {}
+                text .store.error { style: "text-sm text-destructive" }
             }
             if .store.loading == false && .store.error == "" {
-                row (style: "flex-1 min-h-0 flex flex-row gap-4") {
-                    // ---- 左列:二级导航(四子页) ----
-                    col (style: "w-40 py-3 px-2 gap-1 bg-card border-r border-border") {
-                        if .store.section == "dock" {
-                            button "Dock" {
-                                style: "w-full h-9 px-3 text-sm text-left bg-primary/10 text-primary rounded-lg font-medium"
-                            }
-                        } else {
-                            button "Dock" {
-                                onclick: .Nav("dock")
-                                style: "w-full h-9 px-3 text-sm text-left text-muted-foreground rounded-lg bg-transparent hover:bg-muted"
+                row (style: "gap-1 pb-2 border-b border-border") {
+                    if .store.section == "dock" {
+                        button "Dock" {
+                            style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                        }
+                    } else {
+                        button "Dock" {
+                            onclick: .Nav("dock")
+                            style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                        }
+                    }
+                    if .store.section == "notes" {
+                        button "通知" {
+                            style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                        }
+                    } else {
+                        button "通知" {
+                            onclick: .Nav("notes")
+                            style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                        }
+                    }
+                    if .store.section == "appearance" {
+                        button "外观" {
+                            style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                        }
+                    } else {
+                        button "外观" {
+                            onclick: .Nav("appearance")
+                            style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                        }
+                    }
+                    if .store.section == "about" {
+                        button "关于" {
+                            style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                        }
+                    } else {
+                        button "关于" {
+                            onclick: .Nav("about")
+                            style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                        }
+                    }
+                }
+                col (style: "flex-1 p-4 gap-3") {
+                    if .store.section == "dock" {
+                        col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
+                            text "位置" { style: "text-sm font-medium text-foreground" }
+                            row (style: "gap-2") {
+                                if .store.cfg_dock_position == "bottom" {
+                                    button "底部" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "底部" {
+                                        onclick: .PickPosition("bottom")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
+                                if .store.cfg_dock_position == "top" {
+                                    button "顶部" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "顶部" {
+                                        onclick: .PickPosition("top")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
                             }
                         }
-                        if .store.section == "notes" {
-                            button "通知" {
-                                style: "w-full h-9 px-3 text-sm text-left bg-primary/10 text-primary rounded-lg font-medium"
-                            }
-                        } else {
-                            button "通知" {
-                                onclick: .Nav("notes")
-                                style: "w-full h-9 px-3 text-sm text-left text-muted-foreground rounded-lg bg-transparent hover:bg-muted"
+                        col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
+                            text "显示 Dock" { style: "text-sm font-medium text-foreground" }
+                            row (style: "gap-2") {
+                                if .store.cfg_dock_enabled == "1" {
+                                    button "开" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "开" {
+                                        onclick: .PickEnabled("1")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
+                                if .store.cfg_dock_enabled == "0" {
+                                    button "关" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "关" {
+                                        onclick: .PickEnabled("0")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
                             }
                         }
-                        if .store.section == "appearance" {
-                            button "外观" {
-                                style: "w-full h-9 px-3 text-sm text-left bg-primary/10 text-primary rounded-lg font-medium"
+                        col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
+                            text "固定应用（逗号分隔 app id）" { style: "text-sm font-medium text-foreground" }
+                            input {
+                                value: .store.pinned_draft
+                                oninput: .DraftPinned
+                                placeholder: "011-calculator,013-todo,015-notes"
+                                style: "flex-1 text-sm text-foreground bg-background rounded-lg border border-border px-2"
                             }
-                        } else {
-                            button "外观" {
-                                onclick: .Nav("appearance")
-                                style: "w-full h-9 px-3 text-sm text-left text-muted-foreground rounded-lg bg-transparent hover:bg-muted"
+                            row (style: "items-center gap-2") {
+                                button "保存并热同步" {
+                                    onclick: .SavePinned
+                                    style: "h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg"
+                                }
+                                text "空值 = 复位默认三枚；桌面宿主热应用" { style: "text-xs text-muted-foreground" }
                             }
-                        }
-                        if .store.section == "about" {
-                            button "关于" {
-                                style: "w-full h-9 px-3 text-sm text-left bg-primary/10 text-primary rounded-lg font-medium"
-                            }
-                        } else {
-                            button "关于" {
-                                onclick: .Nav("about")
-                                style: "w-full h-9 px-3 text-sm text-left text-muted-foreground rounded-lg bg-transparent hover:bg-muted"
+                            if .store.pinned_saved == "1" {
+                                text "已保存" { style: "text-success text-xs" }
+                            } else {
+                                row (style: "items-center gap-2") {
+                                    text "当前：" { style: "text-xs text-muted-foreground" }
+                                    text .store.cfg_dock_pinned { style: "text-xs text-foreground" }
+                                }
                             }
                         }
                     }
-
-                    // ---- 右列:子页内容(滚动面) ----
-                    col (style: "flex-1 p-4 gap-3 min-h-0 overflow-auto") {
-                        if .store.section == "dock" {
-                            col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
-                                text "位置" { style: "text-sm font-medium text-foreground" }
-                                row (style: "gap-2") {
-                                    if .store.cfg_dock_position == "bottom" {
-                                        button "底部" {
-                                            style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                        }
-                                    } else {
-                                        button "底部" {
-                                            onclick: .PickPosition("bottom")
-                                            style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                        }
+                    if .store.section == "notes" {
+                        col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
+                            text "通知中心" { style: "text-sm font-medium text-foreground" }
+                            row (style: "gap-2") {
+                                if .store.cfg_notes_enabled == "1" {
+                                    button "开" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
                                     }
-                                    if .store.cfg_dock_position == "top" {
-                                        button "顶部" {
-                                            style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                        }
-                                    } else {
-                                        button "顶部" {
-                                            onclick: .PickPosition("top")
-                                            style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                        }
+                                } else {
+                                    button "开" {
+                                        onclick: .PickNotes("1")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
+                                if .store.cfg_notes_enabled == "0" {
+                                    button "关" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "关" {
+                                        onclick: .PickNotes("0")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
                                     }
                                 }
                             }
-                            col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
-                                text "显示 Dock" { style: "text-sm font-medium text-foreground" }
-                                row (style: "gap-2") {
-                                    if .store.cfg_dock_enabled == "1" {
-                                        button "开" {
-                                            style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                        }
-                                    } else {
-                                        button "开" {
-                                            onclick: .PickEnabled("1")
-                                            style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                        }
-                                    }
-                                    if .store.cfg_dock_enabled == "0" {
-                                        button "关" {
-                                            style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                        }
-                                    } else {
-                                        button "关" {
-                                            onclick: .PickEnabled("0")
-                                            style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                        }
-                                    }
-                                }
-                            }
-                            col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
-                                text "固定应用（逗号分隔 app id）" { style: "text-sm font-medium text-foreground" }
+                            text "关闭后桌面 notify 全链路短路（入史/toast/未读）" { style: "text-xs text-muted-foreground" }
+                        }
+                    }
+                    if .store.section == "appearance" {
+                        col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
+                            text "壁纸" { style: "text-sm font-medium text-foreground" }
+                            text "图片路径或 #hex 色值；内置宣纸/水墨可填 builtin:ricepaper / builtin:inkwash" { style: "text-xs text-muted-foreground" }
+                            row (style: "items-center gap-2") {
                                 input {
-                                    value: .store.pinned_draft
-                                    oninput: .DraftPinned
-                                    placeholder: "011-calculator,013-todo,015-notes"
+                                    value: .store.wallpaper_draft
+                                    oninput: .DraftWallpaper
+                                    placeholder: "D:\wallpaper.png 或 #243b55"
                                     style: "flex-1 text-sm text-foreground bg-background rounded-lg border border-border px-2"
                                 }
-                                row (style: "items-center gap-2") {
-                                    button "保存并热同步" {
-                                        onclick: .SavePinned
-                                        style: "h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg"
-                                    }
-                                    text "空值 = 复位默认三枚；桌面宿主热应用" { style: "text-xs text-muted-foreground" }
-                                }
-                                if .store.pinned_saved == "1" {
-                                    text "已保存" { style: "text-success text-xs" }
-                                } else {
-                                    row (style: "items-center gap-2") {
-                                        text "当前：" { style: "text-xs text-muted-foreground" }
-                                        text .store.cfg_dock_pinned { style: "text-xs text-foreground" }
-                                    }
+                                button "保存" {
+                                    onclick: .SaveWallpaper
+                                    style: "h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg"
                                 }
                             }
-                        } else {
-                            if .store.section == "notes" {
-                                col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
-                                    text "通知中心" { style: "text-sm font-medium text-foreground" }
-                                    row (style: "gap-2") {
-                                        if .store.cfg_notes_enabled == "1" {
-                                            button "开" {
-                                                style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                            }
-                                        } else {
-                                            button "开" {
-                                                onclick: .PickNotes("1")
-                                                style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                            }
-                                        }
-                                        if .store.cfg_notes_enabled == "0" {
-                                            button "关" {
-                                                style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                            }
-                                        } else {
-                                            button "关" {
-                                                onclick: .PickNotes("0")
-                                                style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                            }
-                                        }
-                                    }
-                                    text "关闭后桌面 notify 全链路短路（入史/toast/未读）" { style: "text-xs text-muted-foreground" }
-                                }
+                            WallpaperPicker(module_id: "desktop", field: "cfg_wallpaper", dir: .store.cfg_wallpapers_dir, current: .store.cfg_wallpaper) { }
+                            if .store.wallpaper_saved == "1" {
+                                text "已保存，桌面宿主热应用" { style: "text-success text-xs" }
                             } else {
-                                if .store.section == "appearance" {
-                                    col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
-                                        text "壁纸" { style: "text-sm font-medium text-foreground" }
-                                        text "图片路径或 #hex 色值；内置宣纸/水墨可填 builtin:ricepaper / builtin:inkwash" { style: "text-xs text-muted-foreground" }
-                                        row (style: "items-center gap-2") {
-                                            input {
-                                                value: .store.wallpaper_draft
-                                                oninput: .DraftWallpaper
-                                                placeholder: "D:\\wallpaper.png 或 #243b55"
-                                                style: "flex-1 text-sm text-foreground bg-background rounded-lg border border-border px-2"
-                                            }
-                                            button "保存" {
-                                                onclick: .SaveWallpaper
-                                                style: "h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg"
-                                            }
-                                        }
-                                        // Plan 551 T5:字段级 widget 覆盖旗舰——
-                                        // registry 声明 cfg_wallpaper:wallpaper_picker,
-                                        // 此处渲染具名 widget(目录扫描+点选回写)。
-                                        WallpaperPicker(module_id: "desktop", field: "cfg_wallpaper", dir: .store.cfg_wallpapers_dir, current: .store.cfg_wallpaper) { }
-                                        if .store.wallpaper_saved == "1" {
-                                            text "已保存，桌面宿主热应用" { style: "text-success text-xs" }
-                                        } else {
-                                            row (style: "items-center gap-2") {
-                                                text "当前：" { style: "text-xs text-muted-foreground" }
-                                                text .store.cfg_wallpaper { style: "text-xs text-foreground" }
-                                            }
-                                        }
-                                        row (style: "items-center gap-2") {
-                                            input {
-                                                value: .store.wallpapers_dir_draft
-                                                oninput: .DraftWallpapersDir
-                                                placeholder: "壁纸目录，如 D:\\wallpapers"
-                                                style: "flex-1 text-sm text-foreground bg-background rounded-lg border border-border px-2"
-                                            }
-                                            button "保存目录" {
-                                                onclick: .SaveWallpapersDir
-                                                style: "h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg"
-                                            }
-                                        }
-                                    }
-                                    col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
-                                        text "主题" { style: "text-sm font-medium text-foreground" }
-                                        row (style: "gap-2") {
-                                            if .store.cfg_theme == "dark" {
-                                                button "深色" {
-                                                    style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                                }
-                                            } else {
-                                                button "深色" {
-                                                    onclick: .PickTheme("dark")
-                                                    style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                                }
-                                            }
-                                            if .store.cfg_theme == "light" {
-                                                button "浅色" {
-                                                    style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                                }
-                                            } else {
-                                                button "浅色" {
-                                                    onclick: .PickTheme("light")
-                                                    style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                                }
-                                            }
-                                        }
-                                    }
-                                    col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
-                                        text "窗口透明度" { style: "text-sm font-medium text-foreground" }
-                                        row (style: "gap-2") {
-                                            if .store.cfg_transparency == "off" {
-                                                button "关" {
-                                                    style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                                }
-                                            } else {
-                                                button "关" {
-                                                    onclick: .PickTransparency("off")
-                                                    style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                                }
-                                            }
-                                            if .store.cfg_transparency == "low" {
-                                                button "低" {
-                                                    style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                                }
-                                            } else {
-                                                button "低" {
-                                                    onclick: .PickTransparency("low")
-                                                    style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                                }
-                                            }
-                                            if .store.cfg_transparency == "high" {
-                                                button "高" {
-                                                    style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
-                                                }
-                                            } else {
-                                                button "高" {
-                                                    onclick: .PickTransparency("high")
-                                                    style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
-                                                }
-                                            }
-                                        }
+                                row (style: "items-center gap-2") {
+                                    text "当前：" { style: "text-xs text-muted-foreground" }
+                                    text .store.cfg_wallpaper { style: "text-xs text-foreground" }
+                                }
+                            }
+                            row (style: "items-center gap-2") {
+                                input {
+                                    value: .store.wallpapers_dir_draft
+                                    oninput: .DraftWallpapersDir
+                                    placeholder: "壁纸目录，如 D:\wallpapers"
+                                    style: "flex-1 text-sm text-foreground bg-background rounded-lg border border-border px-2"
+                                }
+                                button "保存目录" {
+                                    onclick: .SaveWallpapersDir
+                                    style: "h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg"
+                                }
+                            }
+                        }
+                        col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
+                            text "主题" { style: "text-sm font-medium text-foreground" }
+                            row (style: "gap-2") {
+                                if .store.cfg_theme == "dark" {
+                                    button "深色" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
                                     }
                                 } else {
-                                    // ---- 关于:桌面版本 / 配置单源路径 ----
-                                    col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
-                                        text "关于" { style: "text-sm font-medium text-foreground" }
-                                        row (style: "items-center gap-2") {
-                                            text "虚拟桌面" { style: "text-xs text-muted-foreground" }
-                                            text "Auto Desktop（auto-lang ui_desktop / desktop-host）" { style: "text-xs text-foreground" }
-                                        }
-                                        row (style: "items-center gap-2") {
-                                            text "配置单源" { style: "text-xs text-muted-foreground" }
-                                            text "~/.config/autoos/apps/desktop/config.at" { style: "text-xs text-foreground" }
-                                        }
-                                        text "桌面宿主读取同一文件并在变更后热应用（≤2s）" { style: "text-xs text-muted-foreground" }
+                                    button "深色" {
+                                        onclick: .PickTheme("dark")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
+                                if .store.cfg_theme == "light" {
+                                    button "浅色" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "浅色" {
+                                        onclick: .PickTheme("light")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
                                     }
                                 }
                             }
+                        }
+                        col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
+                            text "窗口透明度" { style: "text-sm font-medium text-foreground" }
+                            row (style: "gap-2") {
+                                if .store.cfg_transparency == "off" {
+                                    button "关" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "关" {
+                                        onclick: .PickTransparency("off")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
+                                if .store.cfg_transparency == "low" {
+                                    button "低" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "低" {
+                                        onclick: .PickTransparency("low")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
+                                if .store.cfg_transparency == "high" {
+                                    button "高" {
+                                        style: "h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg"
+                                    }
+                                } else {
+                                    button "高" {
+                                        onclick: .PickTransparency("high")
+                                        style: "h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if .store.section == "about" {
+                        col (style: "gap-2 p-4 bg-card rounded-xl border border-border") {
+                            text "关于" { style: "text-sm font-medium text-foreground" }
+                            row (style: "items-center gap-2") {
+                                text "虚拟桌面" { style: "text-xs text-muted-foreground" }
+                                text "Auto Desktop（auto-lang ui_desktop / desktop-host）" { style: "text-xs text-foreground" }
+                            }
+                            row (style: "items-center gap-2") {
+                                text "配置单源" { style: "text-xs text-muted-foreground" }
+                                text "~/.config/autoos/apps/desktop/config.at" { style: "text-xs text-foreground" }
+                            }
+                            text "桌面宿主读取同一文件并在变更后热应用（≤2s）" { style: "text-xs text-muted-foreground" }
                         }
                     }
                 }
