@@ -113,6 +113,16 @@ pub fn modules_json() -> serde_json::Value {
         .iter()
         .map(|m| {
             let d = m.display();
+            // Plan 551 T3：字段级 widget 覆盖投影为对象映射（声明侧是
+            // `field:widget` prop 数组——Node::deserialize v1 无 kids）。
+            let widgets: serde_json::Map<String, serde_json::Value> = d
+                .widgets
+                .iter()
+                .filter_map(|w| {
+                    let (f, g) = w.split_once(':')?;
+                    Some((f.to_string(), serde_json::Value::String(g.to_string())))
+                })
+                .collect();
             serde_json::json!({
                 "id": m.id(),
                 "kind": m.kind(),
@@ -122,6 +132,8 @@ pub fn modules_json() -> serde_json::Value {
                 "group": d.group.clone().unwrap_or_default(),
                 "remote": m.remote().map(|s| s.to_string()),
                 "format": m.format().map(|s| s.to_string()),
+                "view": d.view.clone().unwrap_or_default(),
+                "widgets": widgets,
             })
         })
         .collect();
@@ -331,6 +343,14 @@ mod tests {
         );
         let ids: Vec<&str> = arr.iter().filter_map(|m| m["id"].as_str()).collect();
         assert!(ids.contains(&"desktop"), "desktop module registered");
+        // Plan 551 T3:desktop standalone 首位 + 插件自定义 UI 声明投影。
+        assert_eq!(arr[0]["id"], "desktop", "desktop 升基线首位（侧栏 Overview 后第 2）");
+        assert_eq!(arr[0]["view"], "desktop_page", "模块级 view 投影");
+        assert_eq!(
+            arr[0]["widgets"]["cfg_wallpaper"], "wallpaper_picker",
+            "字段级 widgets 投影为对象映射"
+        );
+        assert_eq!(arr[0]["widgets"]["cfg_wallpapers_dir"], "dir_picker");
         let first = &arr[0];
         for key in ["id", "kind", "name", "icon", "description", "group", "format"] {
             assert!(first.get(key).is_some(), "missing field: {key}");

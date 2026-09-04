@@ -225,6 +225,17 @@ async fn main() {
         .route("/api/health", get(health))
         .layer(cors);
 
+    // Plan 551 D7：boot 自检——registry 模块数与 id 一行（2026-09-04 实机
+    // 排障经验：运行中二进制落后于源码时此前无任何可见线索）。
+    let reg_ids: Vec<String> = auto_os_config_back::core::modules_json()
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|m| m["id"].as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    println!("[registry] {} modules: {}", reg_ids.len(), reg_ids.join(", "));
     println!("auto-os-config-back-server on http://{addr}");
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

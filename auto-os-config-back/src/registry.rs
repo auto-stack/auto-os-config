@@ -33,6 +33,11 @@
 //!     icon : "🦌"
 //!     description : "…"
 //!     group : ""             # optional; non-empty clusters into a section
+//!     view : "name"          # Plan 551: module-level custom view (front
+//!                            #   renders the named component; data unchanged)
+//!     widgets : ["f:w", ...] # Plan 551: field-level widget overrides,
+//!                            #   `field:widget` encoding (props array — Node
+//!                            #   deserialize walks props only, v1 no kids)
 //! }
 //! ```
 
@@ -75,6 +80,15 @@ pub struct DisplayMeta {
     /// Sidebar group label; empty/None = top-level standalone item.
     #[serde(default)]
     pub group: Option<String>,
+    /// auto-lang Plan 551 T3：模块级视图覆盖——前端渲染该命名组件替换通用
+    /// 表单（数据仍走统一 daemon `/api/config`）。None = 通用表单。
+    #[serde(default)]
+    pub view: Option<String>,
+    /// auto-lang Plan 551 T3：字段级 widget 覆盖，`field:widget` 字符串数组
+    /// 编码（Node::deserialize v1 只走 props——嵌套块不可达，故不用子块；
+    /// API 投影层展开为对象映射）。空 = 全字段通用控件。
+    #[serde(default)]
+    pub widgets: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -136,6 +150,16 @@ impl EntityFormat {
             EntityFormat::Atom => "atom",
             EntityFormat::FrontmatterMd => "frontmatter-md",
         }
+    }
+}
+
+impl DisplayMeta {
+    /// auto-lang Plan 551 T3：字段级 widget 覆盖查找——`field:widget` 编码
+    /// 解析（首个 `:` 分隔；未声明字段返回 None = 通用表单控件）。
+    pub fn widget_for(&self, field: &str) -> Option<&str> {
+        self.widgets
+            .iter()
+            .find_map(|w| w.split_once(':').filter(|(f, _)| *f == field).map(|(_, g)| g))
     }
 }
 
@@ -337,6 +361,18 @@ pub const DEFAULT_REGISTRY_ATOM: &str = r#"
 modules {
     module {
         kind : file
+        id : "desktop"
+        file : "apps/desktop/config.at"
+        root : "desktop"
+        name : "Desktop"
+        icon : "🖥️"
+        description : "Virtual desktop: dock, wallpaper, theme, transparency, notifications"
+        view : "desktop_page"
+        widgets : ["cfg_wallpaper:wallpaper_picker", "cfg_wallpapers_dir:dir_picker"]
+    }
+
+    module {
+        kind : file
         id : "ai-daemon"
         file : "ai-daemon.at"
         root : "daemon"
@@ -413,16 +449,6 @@ modules {
         group : "Harness"
     }
 
-    module {
-        kind : file
-        id : "desktop"
-        file : "apps/desktop/config.at"
-        root : "desktop"
-        name : "Desktop"
-        icon : "🖥️"
-        description : "Virtual desktop: dock, wallpaper, theme, transparency, notifications"
-        group : "System"
-    }
 }
 "#;
 
@@ -446,6 +472,34 @@ mod tests {
         // generic editor and the desktop host (boot read / settings window
         // write) operate on the same apps/desktop/config.at file.
         assert!(matches!(r.find("desktop"), Some(Module::File(_))));
+        // auto-lang Plan 551 T3: desktop promoted to standalone-first — the
+        // sidebar shows it right after the pinned System Overview entry.
+        assert!(
+            matches!(r.modules.first(), Some(Module::File(f)) if f.id == "desktop"),
+            "desktop 是基线首模块（standalone 首位）"
+        );
+    }
+
+    /// Plan 551 T3：插件自定义 UI 声明解析——view（模块级视图覆盖）+
+    /// widgets（字段级 widget 覆盖，`field:widget` prop 数组编码）+
+    /// widget_for 查找（未声明字段回退通用表单）。
+    #[test]
+    fn desktop_module_declares_plugin_overrides() {
+        let r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
+        let d = r.find("desktop").expect("desktop module");
+        let disp = d.display();
+        assert_eq!(disp.view.as_deref(), Some("desktop_page"), "模块级 view 覆盖");
+        assert_eq!(
+            disp.widget_for("cfg_wallpaper"),
+            Some("wallpaper_picker"),
+            "字段级 widget 覆盖命中"
+        );
+        assert_eq!(disp.widget_for("cfg_wallpapers_dir"), Some("dir_picker"));
+        assert_eq!(disp.widget_for("cfg_theme"), None, "未声明字段回退通用表单");
+        assert!(
+            disp.group.as_deref().unwrap_or("").is_empty(),
+            "desktop standalone（无组，侧栏第 2 位）"
+        );
     }
 
     #[test]
