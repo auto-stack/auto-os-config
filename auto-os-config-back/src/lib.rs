@@ -138,6 +138,21 @@ pub extern "Rust" fn auto_backend_register(reg: Arc<dyn BackendRegistry>) -> Res
     let test_daemon: BackendHostCallFn = Arc::new(|_args: &str| Ok(test_daemon_payload().to_string()));
     reg.host_call("testDaemon", test_daemon);
 
+    // auto-lang Plan 551 T5:listImagesSafe —— wallpaper_picker 图片枚举
+    //(core::list_dir_json:只读 + 图片后缀过滤)。cdylib 覆盖优先于 stub
+    //(网络/FS 归 Rust;stub 同名 fn 供 vue 轨 codegen)。
+    let list_dir: BackendHostCallFn = Arc::new(|args: &str| {
+        let a: serde_json::Value = serde_json::from_str(args).map_err(|e| e.to_string())?;
+        let dir = s(&a, "dir");
+        let items = core::list_dir_json(&dir);
+        let count = items.as_array().map(|a| a.len()).unwrap_or(0);
+        Ok(serde_json::json!({
+            "ok": true, "error": "", "items": items, "count": count
+        })
+        .to_string())
+    });
+    reg.host_call("listImagesSafe", list_dir);
+
     Ok(())
 }
 

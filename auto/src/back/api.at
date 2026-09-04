@@ -501,8 +501,7 @@ pub fn cfgField(body str, key str) str {
 
 /// POST /api/action/list-dir → 图片枚举原始文本(wallpaper_picker 数据源)。
 pub fn listImagesSafe(dir str) any {
-    let t = http.post_json(daemon_base() + "/api/action/list-dir",
-                           "{\"path\":" + quote_json(dir) + "}")
+    let t = http.post_json(daemon_base() + "/api/action/list-dir", "{\"path\":" + quote_json(dir) + "}")
     if is_transport_error(t) || json.type_of(t) != "array" {
         return { ok: false, error: "目录枚举失败", items: "[]", count: 0 }
     }
