@@ -720,7 +720,15 @@ mod tests {
         assert_eq!(payload["error"], "");
         let text = payload["text"].as_str().expect("text carries the array");
         let arr: serde_json::Value = serde_json::from_str(text).expect("text is JSON array");
-        assert_eq!(arr.as_array().unwrap().len(), 7);
+        // baseline floor (machine-local drop-ins may add more)
+        assert!(arr.as_array().unwrap().len() >= 8);
+        let ids: Vec<&str> = arr
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|m| m["id"].as_str())
+            .collect();
+        assert!(ids.contains(&"desktop"));
     }
 
     /// T12:dashboard 扩展字段——disks 数组(整数化)、gpus、cpu 详情、条形图。

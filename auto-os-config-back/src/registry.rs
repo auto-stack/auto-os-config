@@ -412,6 +412,17 @@ modules {
         description : "Musk harness role definitions (consumed by auto-ai-agent)"
         group : "Harness"
     }
+
+    module {
+        kind : file
+        id : "desktop"
+        file : "apps/desktop/config.at"
+        root : "desktop"
+        name : "Desktop"
+        icon : "🖥️"
+        description : "Virtual desktop: dock, wallpaper, theme, transparency, notifications"
+        group : "System"
+    }
 }
 "#;
 
@@ -422,7 +433,7 @@ mod tests {
     #[test]
     fn default_registry_loads() {
         let r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
-        assert_eq!(r.modules.len(), 7);
+        assert_eq!(r.modules.len(), 8);
         assert!(matches!(r.find("ai-daemon"), Some(Module::File(_))));
         assert!(matches!(r.find("auto-musk"), Some(Module::File(_))));
         assert!(matches!(r.find("roles"), Some(Module::Collection(_))));
@@ -431,6 +442,10 @@ mod tests {
         assert!(matches!(r.find("ai-client"), Some(Module::File(_))));
         assert!(matches!(r.find("modes"), Some(Module::Collection(_))));
         assert!(matches!(r.find("musk-harness-roles"), Some(Module::Collection(_))));
+        // auto-lang Plan 540 T8: virtual desktop single-source config — the
+        // generic editor and the desktop host (boot read / settings window
+        // write) operate on the same apps/desktop/config.at file.
+        assert!(matches!(r.find("desktop"), Some(Module::File(_))));
     }
 
     #[test]
@@ -516,7 +531,7 @@ mod tests {
         let mut r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
         let n = r.merge_dropins(std::path::Path::new("/nonexistent/path/xyz")).unwrap();
         assert_eq!(n, 0);
-        assert_eq!(r.modules.len(), 7); // unchanged
+        assert_eq!(r.modules.len(), 8); // unchanged
     }
 
     #[test]

@@ -316,12 +316,21 @@ fn local_http_post_json(addr: &str, path: &str, body: &str) -> Result<(u16, Stri
 mod tests {
     use super::*;
 
-    /// T4:/api/modules 形状——7 个内置模块,字段与旧 daemon 同名。
+    /// T4:/api/modules 形状——内置模块数与旧 daemon 同名字段(Plan 540 desktop 注册后 8)。
     #[test]
     fn modules_json_shape_matches_legacy_daemon() {
         let v = modules_json();
         let arr = v.as_array().expect("modules endpoint returns an array");
-        assert_eq!(arr.len(), 7, "baseline registry has 7 built-in modules");
+        // merged_registry = baseline + machine-local modules.d drop-ins, so
+        // only assert the baseline floor + first-party membership (Plan 540
+        // desktop registration) — drop-in count is machine-dependent.
+        assert!(
+            arr.len() >= 8,
+            "at least the 8 baseline modules, got {}",
+            arr.len()
+        );
+        let ids: Vec<&str> = arr.iter().filter_map(|m| m["id"].as_str()).collect();
+        assert!(ids.contains(&"desktop"), "desktop module registered");
         let first = &arr[0];
         for key in ["id", "kind", "name", "icon", "description", "group", "format"] {
             assert!(first.get(key).is_some(), "missing field: {key}");
