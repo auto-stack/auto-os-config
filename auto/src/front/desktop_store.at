@@ -1,0 +1,185 @@
+// desktop_store.at — Plan 551 T4:Desktop 模块自定义视图数据面(插件机制
+// 模块级覆盖旗舰)。os-config 侧栏第二项(System Overview 之后)。
+//
+// 数据单源:GET/PUT /api/config/desktop → ~/.config/autoos/apps/desktop/
+// config.at(桌面宿主 boot 读 + 宿主侧轮询热应用,auto-lang Plan 551 T6)。
+// 写 = editField 单字段全编辑(引号/转义由 api 层 quote_json 收口)+
+// putConfigSafe 整体回传(daemon merge 折叠进现有 AST,未触碰字段不丢)。
+//
+// 预载约定:Modules.Select 命中 view == "desktop_page" 时调 Init
+//(vm 子 widget 无 auto-Init,plan010 R10 同 Collection 先例;vue 端幂等)。
+// 子页四枚:Dock / 通知 / 外观 / 关于——「系统」子页随 ⚙️ 直开 os-config
+// 退役(auto-lang Plan 551 用户裁定:os-config 本体即设置中心)。
+use back.api: fetchDesktopCfgSafe, putConfigSafe, editField, cfgField
+
+store DesktopCfg {
+    model {
+        var module_id str = "desktop"
+        var loading bool = false
+        var error str = ""
+        // 二级导航:dock | notes | appearance | about
+        var section str = "dock"
+
+        // ---- 单源快照(GET 投影,unquote 后显示值;缺席回退宿主内置默认)----
+        var cfg_dock_position str = "bottom"   // bottom | top
+        var cfg_dock_enabled str = "1"         // 1 | 0
+        var cfg_dock_pinned str = ""
+        var cfg_wallpaper str = ""
+        var cfg_wallpapers_dir str = ""
+        var cfg_theme str = "dark"             // dark | light
+        var cfg_transparency str = "off"       // off | low | high
+        var cfg_notes_enabled str = "1"        // 1 | 0
+
+        // ---- 输入草稿(空 = 不写)----
+        var pinned_draft str = ""
+        var pinned_saved str = "0"
+        var wallpaper_draft str = ""
+        var wallpaper_saved str = "0"
+        var wallpapers_dir_draft str = ""
+
+        // 编辑基底(GET 的 value 文本;editField 全编辑基准)
+        var body str = "{}"
+    }
+
+    msg Msg { Init(str), Nav(str),
+              PickPosition(str), PickEnabled(str), DraftPinned(str), SavePinned,
+              PickNotes(str),
+              DraftWallpaper(str), SaveWallpaper,
+              DraftWallpapersDir(str), SaveWallpapersDir,
+              PickTheme(str), PickTransparency(str) }
+
+    on {
+        .Init(id) -> {
+            .module_id = id
+            .loading = true
+            .error = ""
+            let r = fetchDesktopCfgSafe(id)
+            if r.ok {
+                .body = r.body
+                .cfg_dock_position = cfgField(.body, "cfg_dock_position")
+                if .cfg_dock_position == "" {
+                    .cfg_dock_position = "bottom"
+                }
+                .cfg_dock_enabled = cfgField(.body, "cfg_dock_enabled")
+                if .cfg_dock_enabled == "" {
+                    .cfg_dock_enabled = "1"
+                }
+                .cfg_dock_pinned = cfgField(.body, "cfg_dock_pinned")
+                .cfg_wallpaper = cfgField(.body, "cfg_wallpaper")
+                .cfg_wallpapers_dir = cfgField(.body, "cfg_wallpapers_dir")
+                .cfg_theme = cfgField(.body, "cfg_theme")
+                if .cfg_theme == "" {
+                    .cfg_theme = "dark"
+                }
+                .cfg_transparency = cfgField(.body, "cfg_transparency")
+                if .cfg_transparency == "" {
+                    .cfg_transparency = "off"
+                }
+                .cfg_notes_enabled = cfgField(.body, "cfg_notes_enabled")
+                if .cfg_notes_enabled == "" {
+                    .cfg_notes_enabled = "1"
+                }
+            } else {
+                .error = r.error
+            }
+            .loading = false
+        }
+
+        .Nav(s) -> {
+            .section = s
+        }
+
+        .PickPosition(v) -> {
+            .cfg_dock_position = v
+            .body = editField(.body, "cfg_dock_position", v)
+            let r = putConfigSafe(.module_id, .body)
+            if r.ok == false {
+                .error = r.error
+            }
+        }
+
+        .PickEnabled(v) -> {
+            .cfg_dock_enabled = v
+            .body = editField(.body, "cfg_dock_enabled", v)
+            let r = putConfigSafe(.module_id, .body)
+            if r.ok == false {
+                .error = r.error
+            }
+        }
+
+        .DraftPinned(v) -> {
+            .pinned_draft = v
+        }
+
+        .SavePinned -> {
+            if .pinned_draft != "" {
+                .cfg_dock_pinned = .pinned_draft
+                .body = editField(.body, "cfg_dock_pinned", .pinned_draft)
+                let r = putConfigSafe(.module_id, .body)
+                if r.ok == false {
+                    .error = r.error
+                }
+                .pinned_saved = "1"
+            }
+        }
+
+        .PickNotes(v) -> {
+            .cfg_notes_enabled = v
+            .body = editField(.body, "cfg_notes_enabled", v)
+            let r = putConfigSafe(.module_id, .body)
+            if r.ok == false {
+                .error = r.error
+            }
+        }
+
+        .DraftWallpaper(v) -> {
+            .wallpaper_draft = v
+        }
+
+        .SaveWallpaper -> {
+            if .wallpaper_draft != "" {
+                .cfg_wallpaper = .wallpaper_draft
+                .body = editField(.body, "cfg_wallpaper", .wallpaper_draft)
+                let r = putConfigSafe(.module_id, .body)
+                if r.ok == false {
+                    .error = r.error
+                }
+                .wallpaper_draft = ""
+                .wallpaper_saved = "1"
+            }
+        }
+
+        .DraftWallpapersDir(v) -> {
+            .wallpapers_dir_draft = v
+        }
+
+        .SaveWallpapersDir -> {
+            if .wallpapers_dir_draft != "" {
+                .cfg_wallpapers_dir = .wallpapers_dir_draft
+                .body = editField(.body, "cfg_wallpapers_dir", .wallpapers_dir_draft)
+                let r = putConfigSafe(.module_id, .body)
+                if r.ok == false {
+                    .error = r.error
+                }
+            }
+        }
+
+        .PickTheme(v) -> {
+            .cfg_theme = v
+            .body = editField(.body, "cfg_theme", v)
+            let r = putConfigSafe(.module_id, .body)
+            if r.ok == false {
+                .error = r.error
+            }
+        }
+
+        .PickTransparency(v) -> {
+            .cfg_transparency = v
+            .body = editField(.body, "cfg_transparency", v)
+            let r = putConfigSafe(.module_id, .body)
+            if r.ok == false {
+                .error = r.error
+            }
+        }
+    }
+}

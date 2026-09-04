@@ -471,9 +471,33 @@ fn module_entry(ent str) any {
         description: unquote(json.get(ent, "description")),
         group: unquote(json.get(ent, "group")),
         format: unquote(json.get(ent, "format")),
+        view_name: unquote(json.get(ent, "view")),
+        widgets: json.get(ent, "widgets"),
     }
 }
 
+/// Plan 551 T5:字段级 widget 覆盖查找——widgets 对象映射文本 + 字段名,
+/// widget 名(未声明/缺席返回 "")。
+pub fn widgetFor(widgets_text str, field str) str {
+    return unquote(json.get(widgets_text, field))
+}
+
+// ─── desktop module page (Plan 551 T4:模块级自定义视图数据面) ───────────────
+
+/// GET /api/config/<id> 单取 + 平铺读(VG12/VG13-safe:body 文本 +
+/// cfgField 逐字段 getter)。
+pub fn fetchDesktopCfgSafe(id str) any {
+    let r = fetchConfigSafe(id)
+    if r.ok == false {
+        return { ok: false, error: r.error, body: "{}" }
+    }
+    return { ok: true, error: "", body: r.value }
+}
+
+/// 平铺字段读(unquote 后的显示值;缺席 = "")。
+pub fn cfgField(body str, key str) str {
+    return unquote(json.get(body, key))
+}
 
 pub fn getHash() str {
     // no URL hash on the desktop; deep-link branch skips naturally

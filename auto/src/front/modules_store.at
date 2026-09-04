@@ -17,6 +17,8 @@
 use back.api: fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, groupOfModule, getHash
 // plan010 R10: Select 命中集合时预载 Collection store（见 .Select 注）
 use collection_store: Collection
+// Plan 551 T4:desktop 模块自定义视图数据面(Select 预载,同 Collection 先例)
+use desktop_store: DesktopCfg
 
 store Modules {
     model {
@@ -28,6 +30,12 @@ store Modules {
         var active_id ?str = None
         // "file" | "collection" | "custom" | "" (no selection)
         var active_kind str = ""
+        // Plan 551 T4:活动模块的插件自定义 UI 声明——view_name 非空 =
+        // app.at 渲染该命名视图替换通用表单;widgets = 字段级覆盖映射原始
+        // 文本(T5 通用表单渲染器消费)。注:view 是 .at 文法关键字,内部
+        // 字段名一律 view_name(协议键仍为 "view")。
+        var active_view_name str = ""
+        var active_widgets str = "{}"
         var read_only bool = false
         var loading bool = false
         var error str = ""
@@ -62,7 +70,7 @@ store Modules {
                         break
                     }
                     let m = moduleAt(r.text, i)
-                    mods.push({ id: m.id, kind: m.kind, name: m.name, icon: m.icon, description: m.description, group: m.group, format: m.format })
+                    mods.push({ id: m.id, kind: m.kind, name: m.name, icon: m.icon, description: m.description, group: m.group, format: m.format, view_name: m.view_name, widgets: m.widgets })
                     i = i + 1
                 }
                 .modules = mods
@@ -82,7 +90,7 @@ store Modules {
                             break
                         }
                         let mm = groupMemberAt(r.text, gi, mi)
-                        members.push({ id: mm.id, kind: mm.kind, name: mm.name, icon: mm.icon, description: mm.description, group: mm.group, format: mm.format })
+                        members.push({ id: mm.id, kind: mm.kind, name: mm.name, icon: mm.icon, description: mm.description, group: mm.group, format: mm.format, view_name: mm.view_name, widgets: mm.widgets })
                         mi = mi + 1
                     }
                     grps.push({ id: g.id, label: g.label, members: members })
@@ -97,7 +105,7 @@ store Modules {
                         break
                     }
                     let sm = standaloneAt(r.text, si)
-                    sa.push({ id: sm.id, kind: sm.kind, name: sm.name, icon: sm.icon, description: sm.description, group: sm.group, format: sm.format })
+                    sa.push({ id: sm.id, kind: sm.kind, name: sm.name, icon: sm.icon, description: sm.description, group: sm.group, format: sm.format, view_name: sm.view_name, widgets: sm.widgets })
                     si = si + 1
                 }
                 .standalone = sa
@@ -127,6 +135,8 @@ store Modules {
                     if hit != None {
                         .active_id = hit.id
                         .active_kind = hit.kind
+                        .active_view_name = hit.view_name
+                        .active_widgets = hit.widgets
                         .read_only = hit.format == "frontmatter-md"
                         .title = hit.name
                         var gid = groupOfModule(.raw, h)
@@ -224,6 +234,8 @@ store Modules {
         .Overview -> {
             .active_id = None
             .active_kind = ""
+            .active_view_name = ""
+            .active_widgets = "{}"
             .read_only = false
             .title = "System Overview"
             // Plan 012:nav_class 预计算已随 nav-item 组件化移除——active
@@ -292,12 +304,21 @@ store Modules {
                 .active_kind = hit.kind
                 .read_only = hit.format == "frontmatter-md"
                 .title = hit.name
+                // Plan 551 T4:插件自定义 UI 声明随选中态装载(app.at 按
+                // active_view_name 分发命名视图)。
+                .active_view_name = hit.view_name
+                .active_widgets = hit.widgets
                 // plan010 R10（复审退回项）: read_only 集合在 vm 无任何加载入口
                 // （无 Load 按钮 + 子 widget 无 auto-Init，列表永远空）。Select
                 // 命中集合时预载 Collection store——CollectionBrowser 实例重建
                 // 即有数据。vue 端幂等（mount Init 再 Init 同 id，覆盖无害）。
                 if hit.kind == "collection" {
                     Collection.Init(hit.id)
+                }
+                // Plan 551 T4:同 Collection 先例——自定义视图无 auto-Init,
+                // Select 命中即预载(vue 端幂等)。
+                if hit.view_name == "desktop_page" {
+                    DesktopCfg.Init(hit.id)
                 }
                 var gid = groupOfModule(.raw, id)
                 if gid != "" {

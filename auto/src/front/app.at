@@ -23,6 +23,9 @@ use sidebar: Sidebar
 use daemon_view: DaemonView
 use config_editor: ConfigEditor
 use collection_browser: CollectionBrowser
+// Plan 551 T4:Desktop 模块自定义视图(插件机制模块级覆盖,registry
+// view : "desktop_page" 声明驱动分发)。
+use desktop_page: DesktopPage
 use theme_store: Theme
 use back.api: system_info, fetchModulesRaw, modulesCount, moduleAt
 
@@ -270,7 +273,13 @@ widget App {
                                 }
                             }
                             }
-                        if .store.active_kind == "file" {
+                        // Plan 551 T4:插件机制模块级视图覆盖——registry
+                        // 声明 view 的模块渲染命名组件(数据面在各视图自己的
+                        // store),替换通用表单;未声明回退通用 ConfigEditor。
+                        if .store.active_view_name == "desktop_page" {
+                            DesktopPage(key: .store.active_id) { }
+                        }
+                        if .store.active_view_name == "" && .store.active_kind == "file" {
                             if .store.active_id == "ai-daemon" {
                                 DaemonView(module_id: .store.active_id, key: .store.active_id) { }
                                 ConfigEditor(module_id: .store.active_id, key: "aaid-cfg") { }
@@ -279,7 +288,7 @@ widget App {
                                 ConfigEditor(module_id: .store.active_id, key: .store.active_id) { }
                             }
                         }
-                        if .store.active_kind == "collection" {
+                        if .store.active_view_name == "" && .store.active_kind == "collection" {
                             CollectionBrowser(module_id: .store.active_id, read_only: .store.read_only, key: .store.active_id) { }
                         }
                         if .store.active_kind != "" && .store.active_kind != "file" && .store.active_kind != "collection" {
