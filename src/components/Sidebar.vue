@@ -47,67 +47,96 @@ function ToggleGroup(gid: any): void {
         <span class="text-xl">⚙️</span>
         <span>AutoOS Settings</span>
       </div>
-      <nav class="nav-list flex-1 overflow-auto px-2 pt-2 flex flex-col">
-        <div class="nav-search flex items-center gap-2 mx-3 mb-2 px-3 h-9 rounded-md border border-input bg-muted/50 text-sm shrink-0">
-          <span class="h-4 w-4 shrink-0 text-muted-foreground shrink-0">🔍</span>
-          <input class="w-full bg-transparent border-0 outline-none placeholder:text-muted-foreground text-foreground text-sm" :value="store.search" placeholder="Search settings" @input="SearchChanged(($event.target as HTMLInputElement).value)" />
+      <div class="w-full min-h-0 flex-1 flex flex-col">
+        <div class="px-2 pt-2">
+          <input class="w-full text-sm px-2.5 py-1.5 rounded-md border border-border bg-background outline-none focus:border-primary transition-colors" :placeholder="'Search settings'" :value="store.search" @input="SearchChanged(($event.target as HTMLInputElement).value)" />
         </div>
-        <button class="nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors h-[50px] mb-1" :data-active="!!(store.active_kind == '')" :class="store.active_kind == '' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent hover:text-accent-foreground'" type="button" @click="SelectOverview">
-          <span class="inline-flex items-center justify-center h-5 w-5 shrink-0">🏠</span>
-          <span class="flex flex-col min-w-0">
-            <span class="nav-name truncate">{{'System Overview'}}</span>
-            <span class="text-xs text-muted-foreground truncate">{{'System information dashboard'}}</span>
-          </span>
-        </button>
-        <template v-if="store.search == ''">
-          <button class="nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors" :data-active="!!(store.active_id == m.id)" :class="store.active_id == m.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent hover:text-accent-foreground'" type="button" @click="SelectModule(m.id)" v-for="m in store.view_standalone" :key="(((m as any)?.id ?? m))">
-            <span class="inline-flex items-center justify-center h-5 w-5 shrink-0">{{m.icon}}</span>
-            <span class="flex flex-col min-w-0">
-              <span class="nav-name truncate">{{m.name}}</span>
-              <span class="text-xs text-muted-foreground truncate">{{m.description}}</span>
-            </span>
-          </button>
-        </template>
-        <div v-for="(g, __for_idx) in store.view_groups" :key="__for_idx">
-          <template v-if="store.search == ''">
-            <div class="nav-group flex flex-col">
-              <button type="button" class="nav-group-toggle flex w-full items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-foreground cursor-pointer select-none hover:bg-accent" @click="ToggleGroup(g.id)">
-                <span v-if="g.open" class="text-[11px] text-muted-foreground w-[14px] shrink-0">▾</span>
-                <span v-else class="text-[11px] text-muted-foreground w-[14px] shrink-0">▸</span>
-                <span class="truncate"></span>
+        <div class="nav-list flex-1 overflow-auto px-2 pt-2 flex flex-col">
+          <div>
+            <div>
+              <button :class="(store.active_kind == '' ? 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors h-[50px] mb-1' : 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary h-[50px] mb-1')" :active="store.active_kind == ''" :key="'ov-home'" :size="'lg'" @click="SelectOverview">
+                <div class="flex flex-row items-center gap-2">
+                  <span>🏠</span>
+                  <div class="flex flex-col gap-4 items-start">
+                    <span>System Overview</span>
+                    <span class="text-xs text-muted-foreground">System information dashboard</span>
+                  </div>
+                </div>
               </button>
-              <div v-show="g.open" class="nav-group-content flex flex-col gap-1">
-                <button class="nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors" :data-active="!!(store.active_id == m.id)" :class="store.active_id == m.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent hover:text-accent-foreground'" type="button" @click="SelectModule(m.id)" v-for="m in g.members" :key="(((m as any)?.id ?? m))">
-                  <span class="inline-flex items-center justify-center h-5 w-5 shrink-0">{{m.icon}}</span>
-                  <span class="flex flex-col min-w-0">
-                    <span class="nav-name truncate">{{m.name}}</span>
-                    <span class="text-xs text-muted-foreground truncate">{{m.description}}</span>
-                  </span>
+            </div>
+            <template v-if="store.search == ''">
+              <div v-for="m in store.view_standalone" :key="(((m as any)?.id ?? m))">
+                <button :class="(store.active_id == m.id ? 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
+                  <div class="flex flex-row items-center gap-2">
+                    <span>{{ m.icon }}</span>
+                    <div class="flex flex-col gap-4 items-start">
+                      <span>{{ m.name }}</span>
+                      <span class="text-xs text-muted-foreground">{{ m.description }}</span>
+                    </div>
+                  </div>
                 </button>
               </div>
-            </div>
+            </template>
+          </div>
+          <div v-for="g in store.view_groups" :key="g.id">
+            <template v-if="store.search == ''">
+              <div class="flex flex-col">
+                <button class="flex w-full items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-foreground cursor-pointer select-none transition-colors hover:bg-secondary" :key="g.id" @click="ToggleGroup(g.id)">
+                  <span>{{ g.label }}</span>
+                  <template v-if="g.open">
+                    <span class="ml-auto text-muted-foreground">▾</span>
+                  </template>
+                  <template v-if="g.open == false">
+                    <span class="ml-auto text-muted-foreground">▸</span>
+                  </template>
+                </button>
+                <template v-if="g.open">
+                  <div>
+                    <div>
+                      <div v-for="m in g.members" :key="(((m as any)?.id ?? m))">
+                        <button :class="(store.active_id == m.id ? 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
+                          <div class="flex flex-row items-center gap-2">
+                            <span>{{ m.icon }}</span>
+                            <div class="flex flex-col gap-4 items-start">
+                              <span>{{ m.name }}</span>
+                              <span class="text-xs text-muted-foreground">{{ m.description }}</span>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template v-if="store.search != ''">
+              <div>
+                <div v-for="m in g.members" :key="(((m as any)?.id ?? m))">
+                  <button :class="(store.active_id == m.id ? 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
+                    <div class="flex flex-row items-center gap-2">
+                      <span>{{ m.icon }}</span>
+                      <div class="flex flex-col gap-4 items-start">
+                        <span>{{ m.name }}</span>
+                        <span class="text-xs text-muted-foreground">{{ m.description }}</span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+          <template v-if="store.loading">
+            <span class="block p-4 text-center text-xs text-muted">Loading modules...</span>
           </template>
-          <template v-if="store.search != ''">
-            <button class="nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors" :data-active="!!(store.active_id == m.id)" :class="store.active_id == m.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent hover:text-accent-foreground'" type="button" @click="SelectModule(m.id)" v-for="m in g.members" :key="(((m as any)?.id ?? m))">
-              <span class="inline-flex items-center justify-center h-5 w-5 shrink-0">{{m.icon}}</span>
-              <span class="flex flex-col min-w-0">
-                <span class="nav-name truncate">{{m.name}}</span>
-                <span class="text-xs text-muted-foreground truncate">{{m.description}}</span>
-              </span>
-            </button>
-          </template>
-        </div>
-        <template v-if="store.loading">
-          <span class="block p-4 text-center text-xs text-muted">Loading modules...</span>
-        </template>
-        <template v-if="store.loading == false">
-          <template v-if="store.search != ''">
-            <template v-if="store.has_results == false">
-              <span class="block p-4 text-center text-xs text-muted">No modules found.</span>
+          <template v-if="store.loading == false">
+            <template v-if="store.search != ''">
+              <template v-if="store.has_results == false">
+                <span class="block p-4 text-center text-xs text-muted">No modules found.</span>
+              </template>
             </template>
           </template>
-        </template>
-      </nav>
+        </div>
+      </div>
       <ThemePicker :key="'ThemePicker-1'" />
     </aside>
 

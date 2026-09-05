@@ -240,6 +240,7 @@ store Modules {
             .title = "System Overview"
             // Plan 012:nav_class 预计算已随 nav-item 组件化移除——active
             // 高亮由视图表达式(active_id == m.id)实时判定,残留高亮根除。
+            // Plan 562:nav-item 迁移 sidebar_menu_button,active 表达式语义不变。
             // 投影块保留(搜索过滤/open/has_results 仍需),块形态不变。
             var vg = []
             let q = .search.to_lower()

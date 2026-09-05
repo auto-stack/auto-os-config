@@ -1,16 +1,27 @@
 // sidebar.at — unified module navigation.
 //
-// ONE view source for BOTH backends (vue regen + vm), built on the auto-lang
-// Plan 482 nav component family:
-//   - nav(search:) integrates the search row (contract classes, onsearch msg);
-//   - nav-item carries hover/active(disabled) states + icon/label/desc slots
-//     from the shared class contract — no store-precomputed class strings;
-//     active is a live view expression (fa41ef5 stale-highlight root-cause
-//     eliminated); data-active anchor for tests/a11y;
-//   - nav-group renders collapsible group headers (open bound to the store
-//     projection, ontoggle -> ToggleGroup);
+// ONE view source for BOTH backends (vue regen + vm), migrated to the auto-lang
+// Plan 548/561 sidebar component family (Plan 562; nav family retired):
+//   - nav(search:) is flattened into sidebar_header + a native input (VM-side
+//     sidebar_input is not in the 561 contract subset; native input works on
+//     both backends) — placeholder/onsearch semantics unchanged;
+//   - nav-item entries become sidebar_menu_item + sidebar_menu_button with
+//     explicit children (Vue 548 arm ignores icon:/label: props);
+//   - nav-group(label:/collapsible:/open:/ontoggle:) becomes sidebar_group +
+//     an explicit header button (onclick -> ToggleGroup) + `if g.open` around
+//     sidebar_group_content — dual-end parity: the Vue 548 arm does not
+//     implement collapsible groups, so the open state stays store-driven;
+//   - THIS project is pac.at `shadcn: off` (Plain mode): the sidebar family
+//     carries NO contract classes here (562 T6 map_tag arm only preserves
+//     <button> semantics), so each button carries its look via a style
+//     if-expression — the exact class strings the retired nav-item contract
+//     emitted on this project (active = bg-primary/10 text-primary
+//     font-medium; hover was dead `hover:bg-accent` before, now live
+//     hover:bg-secondary — intentional fix). The `active:` prop stays the
+//     VM track's state source (561 contract classes there);
 //   - marker classes (sidebar/nav-list/theme-picker) remain inert test hooks;
-//     neutrals stay deterministic hex; no fractional spacing (vm drops them).
+//     neutrals stay deterministic hex; no fractional spacing (vm drops them —
+//     VM track styling comes from the 561 contract, user classes are web-only).
 //
 use modules_store: Modules
 use theme_picker: ThemePicker
@@ -24,57 +35,130 @@ widget Sidebar {
                 span (text: "⚙️", style: "text-xl") {}
                 text (text: "AutoOS Settings") {}
             }
-            // Plan 012(上游 auto-lang 482):nav(search:) 集成搜索行——
-            // 契约类(边框/muted 底/放大镜)取代手搓 input;placeholder/onsearch
-            // 语义不变。pt-2 pb-3 维持原纵向节律(搜索行自带 mx-3 mb-2)。
-            nav (search: true, search_value: .store.search, onsearch: .SearchChanged,
-                 search_placeholder: "Search settings",
-                 style: "nav-list flex-1 overflow-auto px-2 pt-2 flex flex-col") {
-                // Plan 011 T12:首页入口置顶(选中态 = active_kind == "")——
-                // Plan 012:双 if 块合一,active 由 nav-item 契约承载
-                // (hover/选中主色调内建,h-[50px] 用户类追加保行高)。
-                nav-item (onclick: .SelectOverview, active: .store.active_kind == "",
-                          icon: "🏠", label: "System Overview",
-                          desc: "System information dashboard",
-                          size: "lg", style: "h-[50px] mb-1", key: "ov-home")
-                if .store.search == "" {
-                    for m in .store.view_standalone {
-                        nav-item (onclick: .SelectModule(m.id), active: .store.active_id == m.id,
-                                  icon: m.icon, label: m.name, desc: m.description,
-                                  size: "lg", key: m.id)
-                    }
+            // Plan 562: nav(search:) 容器平移——provider 独子直返（VM）/包装
+            // div（Vue，class 覆盖默认 min-h-svh w-full）；搜索行 =
+            // sidebar_header + 原生 input；列表进 sidebar_content（契约自带
+            // flex-1 滚动）。nav-list 标记类保留在 content 上（测试钩子）。
+            sidebar_provider (class: "w-full min-h-0 flex-1 flex flex-col") {
+                sidebar_header (style: "px-2 pt-2") {
+                    input { value: .store.search, oninput: .SearchChanged, placeholder: "Search settings", style: "w-full text-sm px-2.5 py-1.5 rounded-md border border-border bg-background outline-none focus:border-primary transition-colors" }
                 }
-
-                for g in .store.view_groups {
-                    if .store.search == "" {
-                        // Plan 012:组头 nav-group 契约承载(chevron+折叠);
-                        // open 绑定投影,ontoggle 走既有 ToggleGroup 消息。
-                        nav-group (label: g.label, collapsible: true, open: g.open,
-                                   ontoggle: .ToggleGroup(g.id)) {
-                            for m in g.members {
-                                nav-item (onclick: .SelectModule(m.id), active: .store.active_id == m.id,
-                                          icon: m.icon, label: m.name, desc: m.description,
-                                          size: "lg", key: m.id)
+                sidebar_content (style: "nav-list flex-1 overflow-auto px-2 pt-2 flex flex-col") {
+                    // Plan 011 T12:首页入口置顶(选中态 = active_kind == "")
+                    sidebar_menu {
+                        sidebar_menu_item {
+                            sidebar_menu_button (onclick: .SelectOverview, active: .store.active_kind == "", size: "lg", key: "ov-home",
+                                style: if .store.active_kind == "" {
+                                    "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors h-[50px] mb-1"
+                                } else {
+                                    "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary h-[50px] mb-1"
+                                }) {
+                                row (style: "items-center gap-2") {
+                                    text "🏠" {}
+                                    col (style: "items-start") {
+                                        text "System Overview" {}
+                                        text "System information dashboard" (style: "text-xs text-muted-foreground") {}
+                                    }
+                                }
+                            }
+                        }
+                        if .store.search == "" {
+                            for m in .store.view_standalone {
+                                sidebar_menu_item {
+                                    sidebar_menu_button (onclick: .SelectModule(m.id), active: .store.active_id == m.id, size: "lg", key: m.id,
+                                        style: if .store.active_id == m.id {
+                                            "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
+                                        } else {
+                                            "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
+                                        }) {
+                                        row (style: "items-center gap-2") {
+                                            text (text: m.icon) {}
+                                            col (style: "items-start") {
+                                                text (text: m.name) {}
+                                                text (text: m.description, style: "text-xs text-muted-foreground") {}
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                    if .store.search != "" {
-                        // 搜索期扁平:组头隐藏,命中成员直出(投影语义不变)。
-                        for m in g.members {
-                            nav-item (onclick: .SelectModule(m.id), active: .store.active_id == m.id,
-                                      icon: m.icon, label: m.name, desc: m.description,
-                                      size: "lg", key: m.id)
+
+                    for g in .store.view_groups {
+                        if .store.search == "" {
+                            // Plan 562:nav-group 折叠组平移——组头 =
+                            // sidebar_menu_button(onclick -> ToggleGroup)，
+                            // 开合由 store 投影 + if g.open 承载（双端同语义）。
+                            sidebar_group (class: "flex flex-col") {
+                                sidebar_menu_button (onclick: .ToggleGroup(g.id), key: g.id,
+                                    style: "flex w-full items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-foreground cursor-pointer select-none transition-colors hover:bg-secondary") {
+                                    text (text: g.label) {}
+                                    if g.open {
+                                        text "▾" (style: "ml-auto text-muted-foreground") {}
+                                    }
+                                    if g.open == false {
+                                        text "▸" (style: "ml-auto text-muted-foreground") {}
+                                    }
+                                }
+                                if g.open {
+                                    sidebar_group_content {
+                                        sidebar_menu {
+                                            for m in g.members {
+                                                sidebar_menu_item {
+                                                    sidebar_menu_button (onclick: .SelectModule(m.id), active: .store.active_id == m.id, size: "lg", key: m.id,
+                                                        style: if .store.active_id == m.id {
+                                                            "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
+                                                        } else {
+                                                            "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
+                                                        }) {
+                                                        row (style: "items-center gap-2") {
+                                                            text (text: m.icon) {}
+                                                            col (style: "items-start") {
+                                                                text (text: m.name) {}
+                                                                text (text: m.description, style: "text-xs text-muted-foreground") {}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if .store.search != "" {
+                            // 搜索期扁平:组头隐藏,命中成员直出(投影语义不变)。
+                            sidebar_menu {
+                                for m in g.members {
+                                    sidebar_menu_item {
+                                        sidebar_menu_button (onclick: .SelectModule(m.id), active: .store.active_id == m.id, size: "lg", key: m.id,
+                                            style: if .store.active_id == m.id {
+                                                "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
+                                            } else {
+                                                "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
+                                            }) {
+                                            row (style: "items-center gap-2") {
+                                                text (text: m.icon) {}
+                                                col (style: "items-start") {
+                                                    text (text: m.name) {}
+                                                    text (text: m.description, style: "text-xs text-muted-foreground") {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                }
 
-                if .store.loading {
-                    text (text: "Loading modules...", style: "block p-4 text-center text-xs text-muted") {}
-                }
-                if .store.loading == false {
-                    if .store.search != "" {
-                        if .store.has_results == false {
-                            text (text: "No modules found.", style: "block p-4 text-center text-xs text-muted") {}
+                    if .store.loading {
+                        text (text: "Loading modules...", style: "block p-4 text-center text-xs text-muted") {}
+                    }
+                    if .store.loading == false {
+                        if .store.search != "" {
+                            if .store.has_results == false {
+                                text (text: "No modules found.", style: "block p-4 text-center text-xs text-muted") {}
+                            }
                         }
                     }
                 }
