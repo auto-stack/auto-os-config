@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import CollectionBrowser from './components/CollectionBrowser.vue'
 import ConfigEditor from './components/ConfigEditor.vue'
 import DaemonView from './components/DaemonView.vue'
+import DesktopPage from './components/DesktopPage.vue'
 import Sidebar from './components/Sidebar.vue'
 
 import { fetchModulesRaw, moduleAt, modulesCount, system_info } from '@/lib/api'
@@ -308,7 +309,10 @@ onMounted(async () => {
                 </div>
               </div>
             </template>
-            <template v-if="store.active_kind == 'file'">
+            <template v-if="store.active_view_name == 'desktop_page'">
+              <DesktopPage :key="store.active_id" />
+            </template>
+            <template v-if="store.active_view_name == '' && store.active_kind == 'file'">
               <template v-if="store.active_id == 'ai-daemon'">
                 <DaemonView :key="store.active_id" :module_id="store.active_id" />
                 <ConfigEditor :key="'aaid-cfg'" :module_id="store.active_id" />
@@ -317,7 +321,7 @@ onMounted(async () => {
                 <ConfigEditor :key="store.active_id" :module_id="store.active_id" />
               </template>
             </template>
-            <template v-if="store.active_kind == 'collection'">
+            <template v-if="store.active_view_name == '' && store.active_kind == 'collection'">
               <CollectionBrowser :key="store.active_id" :module_id="store.active_id" :read_only="store.read_only" />
             </template>
             <template v-if="store.active_kind != '' && store.active_kind != 'file' && store.active_kind != 'collection'">

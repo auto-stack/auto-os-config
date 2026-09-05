@@ -39,7 +39,8 @@ await saveMode(m);
 // Each entry maps a name → shadcn --primary HSL triplet (space-separated).
 const ACCENT_PALETTES: Record<string, string> = {
   indigo: '239 84% 67%',
-  coral:  '350 75% 64%',
+  // Plan 503: coral 校准至 stella-os 玫瑰粉 light #c4706a(dark +4 由 applyAccent 处理)。
+  coral:  '4 43% 59%',
   ocean:  '217 91% 60%',
   sage:   '160 84% 39%',
   amber:  '38 92% 50%',

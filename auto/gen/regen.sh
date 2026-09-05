@@ -25,8 +25,15 @@ if grep -qE "Parse error|error\[|Error:" gen/build.log; then
 fi
 
 # Deploy store composables: rewrite the codegen's imports to the host tree —
-# @/lib/api -> handwritten transport; @/ext/... -> the auto tree (stores sit
+# @/lib/api -> host transport; @/ext/... -> the auto tree (stores sit
 # one level deeper than components: ../../../ = repo root).
+#
+# Plan 559 W2: the host transport itself is now GENERATED — the checked-in
+# source of truth is auto/src/back/api.ts (auto build installs it into the
+# gen tree as src/lib/api.ts for the gen-side vue-tsc gate). Mirror it to
+# the host before the deploys; hand-editing src/lib/api.ts is retired —
+# edit src/back/api.ts instead.
+cp gen/front/vue/src/lib/api.ts ../src/lib/api.ts
 mkdir -p ../src/stores/auto
 for f in gen/front/vue/src/stores/use*Store.ts; do
   base=$(basename "$f")

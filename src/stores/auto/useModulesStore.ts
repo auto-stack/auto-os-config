@@ -1,6 +1,10 @@
-import { useCollectionStore } from './useCollectionStore'
 import { ref } from 'vue'
 import { fetchModulesRaw, modulesCount, moduleAt, groupCount, groupAt, groupMemberCount, groupMemberAt, standaloneCount, standaloneAt, groupOfModule, getHash } from '../../lib/api'
+import { useCollectionStore } from './useCollectionStore'
+import { useDesktopCfgStore } from './useDesktopCfgStore'
+import { reactive } from 'vue'
+const collectionStore = reactive(useCollectionStore())
+const desktopCfgStore = reactive(useDesktopCfgStore())
 
 const modules = ref<any>([])
 const groups = ref<any>([])
@@ -8,6 +12,8 @@ const standalone = ref<any>([])
 const expanded = ref<any>([])
 const active_id = ref<string | null>(null)
 const active_kind = ref<string>('')
+const active_view_name = ref<string>('')
+const active_widgets = ref<string>('{}')
 const read_only = ref<boolean>(false)
 const loading = ref<boolean>(false)
 const error = ref<string>('')
@@ -29,7 +35,7 @@ let i: number = 0;
 while (true) {
 if (i >= n) {break;
 }let m = await moduleAt(r.text, i);
-mods.push({ id: m.id, kind: m.kind, name: m.name, icon: m.icon, description: m.description, group: m.group, format: m.format });
+mods.push({ id: m.id, kind: m.kind, name: m.name, icon: m.icon, description: m.description, group: m.group, format: m.format, view_name: m.view_name, widgets: m.widgets });
 i = i + 1;
 }
 modules.value = mods;
@@ -45,7 +51,7 @@ let mi: number = 0;
 while (true) {
 if (mi >= mc) {break;
 }let mm = await groupMemberAt(r.text, gi, mi);
-members.push({ id: mm.id, kind: mm.kind, name: mm.name, icon: mm.icon, description: mm.description, group: mm.group, format: mm.format });
+members.push({ id: mm.id, kind: mm.kind, name: mm.name, icon: mm.icon, description: mm.description, group: mm.group, format: mm.format, view_name: mm.view_name, widgets: mm.widgets });
 mi = mi + 1;
 }
 grps.push({ id: g.id, label: g.label, members: members });
@@ -58,7 +64,7 @@ let si: number = 0;
 while (true) {
 if (si >= sc) {break;
 }let sm = await standaloneAt(r.text, si);
-sa.push({ id: sm.id, kind: sm.kind, name: sm.name, icon: sm.icon, description: sm.description, group: sm.group, format: sm.format });
+sa.push({ id: sm.id, kind: sm.kind, name: sm.name, icon: sm.icon, description: sm.description, group: sm.group, format: sm.format, view_name: sm.view_name, widgets: sm.widgets });
 si = si + 1;
 }
 standalone.value = sa;
@@ -78,6 +84,8 @@ let h = await getHash();
 if (h != '') {let hit = modules.value.find((x: any) => x.id == h);
 if (hit != null) {active_id.value = hit.id;
 active_kind.value = hit.kind;
+active_view_name.value = hit.view_name;
+active_widgets.value = hit.widgets;
 read_only.value = hit.format == 'frontmatter-md';
 title.value = hit.name;
 let gid = await groupOfModule(raw.value, h);
@@ -135,6 +143,8 @@ loading.value = false;
  }
     const Overview = () => { active_id.value = null;
 active_kind.value = '';
+active_view_name.value = '';
+active_widgets.value = '{}';
 read_only.value = false;
 title.value = 'System Overview';
 
@@ -211,9 +221,16 @@ read_only.value = hit.format == 'frontmatter-md';
 title.value = hit.name;
 
 
+active_view_name.value = hit.view_name;
+active_widgets.value = hit.widgets;
 
 
-if (hit.kind == 'collection') {useCollectionStore().Init(hit.id);
+
+
+if (hit.kind == 'collection') {collectionStore.Init(hit.id);
+}
+
+if (hit.view_name == 'desktop_page') {desktopCfgStore.Init(hit.id);
 }let gid = await groupOfModule(raw.value, id);
 if (gid != '') {let has: boolean = false;
 for (const x of expanded.value) {if (x == gid) {has = true;
@@ -311,6 +328,8 @@ has_results.value = any_hit;
         expanded,
         active_id,
         active_kind,
+        active_view_name,
+        active_widgets,
         read_only,
         loading,
         error,
