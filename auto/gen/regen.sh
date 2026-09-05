@@ -43,16 +43,10 @@ for f in gen/front/vue/src/stores/use*Store.ts; do
       "$f" > "../src/stores/auto/${base}"
 done
 
-# plan010 R10: store-to-store call — codegen emits a bare `Collection.Init(...)`
-# inside useModulesStore (no import/facade for cross-store refs, same family as
-# the multi-store facade gap). Rewrite to the composable call + import; the
-# module-level refs are singletons so state is shared.
-# (446 撤绕行 VG16: Collection.Open 已回归自然名 Init。)
-if [ -f "../src/stores/auto/useModulesStore.ts" ] && grep -q "Collection.Init(" "../src/stores/auto/useModulesStore.ts"; then
-  grep -q "^import { useCollectionStore }" "../src/stores/auto/useModulesStore.ts" || \
-    sed -i "1i import { useCollectionStore } from './useCollectionStore'" "../src/stores/auto/useModulesStore.ts"
-  sed -i "s|Collection\.Init(|useCollectionStore().Init(|g" "../src/stores/auto/useModulesStore.ts"
-fi
+# plan010 R10 / plan446 VG16 撤销（Plan 559 T3b）：跨 store 限定调用与自限定
+# 调用已上游进 vue codegen——组合式直接发 sibling facade 导入/常量与
+# collectionStore.Init(...)，自限定（Collection.Select）经 store_bare_heads
+# 裸发本地调用。下方旧 sed 重写均不再命中，删除。
 
 # 概要页四期:dark 类 DOM 同步——theme_store.at 的 SetMode 无 DOM 通道(.at
 # 不持 DOM),部署侧给 useThemeStore 追加模块级 watcher:dark_mode ref →
@@ -98,13 +92,10 @@ for stale in AppShell.vue ConfigEditorVm.vue DaemonViewVm.vue CollectionBrowserV
 done
 for f in gen/front/vue/src/components/*.vue; do
   base=$(basename "$f")
+  # Plan 559 T3a: 事件 cast sed 已上游（vue_event_param 单点收窄），删除。
   sed -e "s|@/ext/src/front/utils/|../../auto/src/front/utils/|g" \
       -e "s|@/ext/src/lib/api|../../lib/api|g" \
       -e "s|@/stores/use|../stores/auto/use|g" \
-      -e "s|\$event\.target\.value|(\$event.target as HTMLInputElement).value|g" \
-      -e "s|\$event\.target\.checked|(\$event.target as HTMLInputElement).checked|g" \
-      -e "s|\$event\.target\.value|($event.target as HTMLInputElement).value|g" \
-      -e "s|\$event\.target\.checked|($event.target as HTMLInputElement).checked|g" \
       "$f" > "../src/components/${base}"
 done
 # plan446 撤绕行 C1: 确认层迁回 popover 后,上游 vue codegen 对 popover 是惰性
@@ -140,16 +131,13 @@ sed -i 's|<button :class="m.nav_class" :key="m.id" @click=|<button :class="m.nav
 # qualifies it as `Modules.Init()` — which vue codegen passes through raw
 # (multi-store facade is an upstream v1 gap). Rewrite it back to the local
 # `store` const (= useModulesStore), byte-identical to the pre-A1 artifact.
+# Plan 559 T3a: 事件 cast sed 已上游（vue_event_param），删除。
 sed -e "s|@/components/|./components/|g" \
     -e "s|@/stores/use|./stores/auto/use|g" \
     -e "s|@/ext/src/front/utils/|../auto/src/front/utils/|g" \
     -e "s|@/ext/src/lib/api|./lib/api|g" \
     -e "s|^  Modules\.Init();|  store.Init();|" \
     -e "s|^  Theme\.Init();|  useThemeStore().Init();|" \
-    -e "s|\$event\.target\.value|(\$event.target as HTMLInputElement).value|g" \
-    -e "s|\$event\.target\.checked|(\$event.target as HTMLInputElement).checked|g" \
-    -e "s|\$event\.target\.value|($event.target as HTMLInputElement).value|g" \
-    -e "s|\$event\.target\.checked|($event.target as HTMLInputElement).checked|g" \
     "gen/front/vue/src/App.vue" > "../src/App.vue"
 
 echo "REGEN OK — components: $(find ../src/components -maxdepth 1 -name '*.vue' | wc -l), stores: $(find ../src/stores/auto -maxdepth 1 -name '*.ts' 2>/dev/null | wc -l)"
