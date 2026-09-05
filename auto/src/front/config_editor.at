@@ -25,9 +25,10 @@
 //   - 已登记的降级残留（待后续批次还原）：select 暂为自由文本（枚举选项
 //     管线未建）、tags/multiselect 暂为加号式（chips 未还原）、table 暂为
 //     只读 JSON（可编辑表格未还原）、confirm 行内化（vm 无 window.confirm）。
-use back.api: fetchConfigSafe, putConfigSafe, deleteBlockSafe, entriesCount, entryAt, subCount, subAt, editField, editTagField, addBlockText, bodyHasText, metaFile, warmEnumsText, setCellText, tableAddRowText, tableRemoveRowText
+use back.api: fetchConfigSafe, putConfigSafe, deleteBlockSafe, entriesCount, entryAt, entryAtW, subCount, subAt, editField, editTagField, addBlockText, bodyHasText, metaFile, warmEnumsText, setCellText, tableAddRowText, tableRemoveRowText, cfgField
+use widgets: WallpaperPicker
 
-widget ConfigEditor(module_id: str) {
+widget ConfigEditor(module_id: str, widgets: str) {
     msg Msg {
         Init,
         Load,
@@ -51,8 +52,8 @@ widget ConfigEditor(module_id: str) {
         ConfirmDeleteYes,
         ConfirmDeleteNo
     }
-
     model {
+        var wallpapers_dir str = ""
         var body str = ""
         var entries Array<str> = []
         var loading bool = false
@@ -177,7 +178,19 @@ widget ConfigEditor(module_id: str) {
                                     }
                                 }
                             }
-                            if e.kind != "subform" {
+                            // Plan 559 W6: declared field widgets mount their
+                            // picker component instead of the flat input row
+                            // (write path stays the picker's own fresh
+                            // GET→editField→PUT — 551 T5 semantics).
+                            if e.kind == "wallpaper_picker" {
+                                div (class: e.box_class) {
+                                    label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
+                                        text (text: e.label) {}
+                                    }
+                                    WallpaperPicker(module_id: .module_id, field: e.key, dir: .wallpapers_dir, current: e.value) { }
+                                }
+                            }
+                            if e.kind != "subform" && e.kind != "wallpaper_picker" {
                                 div (class: e.box_class) {
                                     label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
                                     text (text: e.label) {}
@@ -361,6 +374,7 @@ widget ConfigEditor(module_id: str) {
             var r = fetchConfigSafe(.module_id)
             if r.ok {
                 .body = r.value
+                .wallpapers_dir = cfgField(.body, "cfg_wallpapers_dir")
                 .meta_file = metaFile(r.meta)
                 .dirty = false
                 .loaded_once = true
@@ -373,15 +387,15 @@ widget ConfigEditor(module_id: str) {
                     if i >= n {
                         break
                     }
-                    es.push(entryAt(.body, i, .module_id))
-                    if entryAt(.body, i, .module_id).kind == "subform" {
-                        let sc = subCount(entryAt(.body, i, .module_id).frag)
+                    es.push(entryAtW(.body, i, .module_id, .widgets))
+                    if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                        let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                         var j = 0
                         loop {
                             if j >= sc {
                                 break
                             }
-                            es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                            es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                             j = j + 1
                         }
                     }
@@ -402,6 +416,7 @@ widget ConfigEditor(module_id: str) {
             var r = fetchConfigSafe(.module_id)
             if r.ok {
                 .body = r.value
+                .wallpapers_dir = cfgField(.body, "cfg_wallpapers_dir")
                 .meta_file = metaFile(r.meta)
                 .dirty = false
                 .loaded_once = true
@@ -414,15 +429,15 @@ widget ConfigEditor(module_id: str) {
                     if i >= n {
                         break
                     }
-                    es.push(entryAt(.body, i, .module_id))
-                    if entryAt(.body, i, .module_id).kind == "subform" {
-                        let sc = subCount(entryAt(.body, i, .module_id).frag)
+                    es.push(entryAtW(.body, i, .module_id, .widgets))
+                    if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                        let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                         var j = 0
                         loop {
                             if j >= sc {
                                 break
                             }
-                            es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                            es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                             j = j + 1
                         }
                     }
@@ -463,15 +478,15 @@ widget ConfigEditor(module_id: str) {
                 if i >= n {
                     break
                 }
-                es.push(entryAt(.body, i, .module_id))
-                if entryAt(.body, i, .module_id).kind == "subform" {
-                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                es.push(entryAtW(.body, i, .module_id, .widgets))
+                if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                    let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                     var j = 0
                     loop {
                         if j >= sc {
                             break
                         }
-                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                         j = j + 1
                     }
                 }
@@ -491,15 +506,15 @@ widget ConfigEditor(module_id: str) {
                     if i >= n {
                         break
                     }
-                    es.push(entryAt(.body, i, .module_id))
-                    if entryAt(.body, i, .module_id).kind == "subform" {
-                        let sc = subCount(entryAt(.body, i, .module_id).frag)
+                    es.push(entryAtW(.body, i, .module_id, .widgets))
+                    if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                        let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                         var j = 0
                         loop {
                             if j >= sc {
                                 break
                             }
-                            es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                            es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                             j = j + 1
                         }
                     }
@@ -520,15 +535,15 @@ widget ConfigEditor(module_id: str) {
                     if i >= n {
                         break
                     }
-                    es.push(entryAt(.body, i, .module_id))
-                    if entryAt(.body, i, .module_id).kind == "subform" {
-                        let sc = subCount(entryAt(.body, i, .module_id).frag)
+                    es.push(entryAtW(.body, i, .module_id, .widgets))
+                    if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                        let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                         var j = 0
                         loop {
                             if j >= sc {
                                 break
                             }
-                            es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                            es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                             j = j + 1
                         }
                     }
@@ -549,15 +564,15 @@ widget ConfigEditor(module_id: str) {
                 if i >= n {
                     break
                 }
-                es.push(entryAt(.body, i, .module_id))
-                if entryAt(.body, i, .module_id).kind == "subform" {
-                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                es.push(entryAtW(.body, i, .module_id, .widgets))
+                if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                    let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                     var j = 0
                     loop {
                         if j >= sc {
                             break
                         }
-                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                         j = j + 1
                     }
                 }
@@ -577,15 +592,15 @@ widget ConfigEditor(module_id: str) {
                 if i >= n {
                     break
                 }
-                es.push(entryAt(.body, i, .module_id))
-                if entryAt(.body, i, .module_id).kind == "subform" {
-                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                es.push(entryAtW(.body, i, .module_id, .widgets))
+                if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                    let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                     var j = 0
                     loop {
                         if j >= sc {
                             break
                         }
-                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                         j = j + 1
                     }
                 }
@@ -605,15 +620,15 @@ widget ConfigEditor(module_id: str) {
                 if i >= n {
                     break
                 }
-                es.push(entryAt(.body, i, .module_id))
-                if entryAt(.body, i, .module_id).kind == "subform" {
-                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                es.push(entryAtW(.body, i, .module_id, .widgets))
+                if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                    let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                     var j = 0
                     loop {
                         if j >= sc {
                             break
                         }
-                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                         j = j + 1
                     }
                 }
@@ -633,15 +648,15 @@ widget ConfigEditor(module_id: str) {
                 if i >= n {
                     break
                 }
-                es.push(entryAt(.body, i, .module_id))
-                if entryAt(.body, i, .module_id).kind == "subform" {
-                    let sc = subCount(entryAt(.body, i, .module_id).frag)
+                es.push(entryAtW(.body, i, .module_id, .widgets))
+                if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                    let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                     var j = 0
                     loop {
                         if j >= sc {
                             break
                         }
-                        es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                        es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                         j = j + 1
                     }
                 }
@@ -718,15 +733,15 @@ widget ConfigEditor(module_id: str) {
                         if i >= n {
                             break
                         }
-                        es.push(entryAt(.body, i, .module_id))
-                        if entryAt(.body, i, .module_id).kind == "subform" {
-                            let sc = subCount(entryAt(.body, i, .module_id).frag)
+                        es.push(entryAtW(.body, i, .module_id, .widgets))
+                        if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                            let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                             var j = 0
                             loop {
                                 if j >= sc {
                                     break
                                 }
-                                es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                                es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                                 j = j + 1
                             }
                         }
@@ -765,15 +780,15 @@ widget ConfigEditor(module_id: str) {
                         if i >= n {
                             break
                         }
-                        es.push(entryAt(.body, i, .module_id))
-                        if entryAt(.body, i, .module_id).kind == "subform" {
-                            let sc = subCount(entryAt(.body, i, .module_id).frag)
+                        es.push(entryAtW(.body, i, .module_id, .widgets))
+                        if entryAtW(.body, i, .module_id, .widgets).kind == "subform" {
+                            let sc = subCount(entryAtW(.body, i, .module_id, .widgets).frag)
                             var j = 0
                             loop {
                                 if j >= sc {
                                     break
                                 }
-                                es.push(subAt(.body, entryAt(.body, i, .module_id).key, j, .module_id))
+                                es.push(subAt(.body, entryAtW(.body, i, .module_id, .widgets).key, j, .module_id))
                                 j = j + 1
                             }
                         }

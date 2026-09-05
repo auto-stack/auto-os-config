@@ -315,10 +315,10 @@ onMounted(async () => {
             <template v-if="store.active_view_name == '' && store.active_kind == 'file'">
               <template v-if="store.active_id == 'ai-daemon'">
                 <DaemonView :key="store.active_id" :module_id="store.active_id" />
-                <ConfigEditor :key="'aaid-cfg'" :module_id="store.active_id" />
+                <ConfigEditor :key="'aaid-cfg'" :module_id="store.active_id" :widgets="store.active_widgets" />
               </template>
               <template v-if="store.active_id != 'ai-daemon'">
-                <ConfigEditor :key="store.active_id" :module_id="store.active_id" />
+                <ConfigEditor :key="store.active_id" :module_id="store.active_id" :widgets="store.active_widgets" />
               </template>
             </template>
             <template v-if="store.active_view_name == '' && store.active_kind == 'collection'">

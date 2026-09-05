@@ -1,12 +1,16 @@
 <!-- ConfigEditor component - Auto-generated from Auto language -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { addBlockText, bodyHasText, deleteBlockSafe, editField, editTagField, entriesCount, entryAt, fetchConfigSafe, metaFile, putConfigSafe, setCellText, subAt, subCount, tableAddRowText, tableRemoveRowText, warmEnumsText } from '@/lib/api'
+import WallpaperPicker from '@/components/WallpaperPicker.vue'
+
+import { addBlockText, bodyHasText, cfgField, deleteBlockSafe, editField, editTagField, entriesCount, entryAtW, fetchConfigSafe, metaFile, putConfigSafe, setCellText, subAt, subCount, tableAddRowText, tableRemoveRowText, warmEnumsText } from '@/lib/api'
 
 const props = defineProps<{
   module_id: string
+  widgets: string
 }>()
 
+const wallpapers_dir = ref<string>('')
 const body = ref<string>('')
 const entries = ref<any[]>([])
 const loading = ref<boolean>(false)
@@ -62,12 +66,12 @@ async function AddBlock(): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -87,12 +91,12 @@ async function Apply(e: any, v: any): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -136,12 +140,12 @@ async function ConfirmDeleteYes(): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -190,6 +194,7 @@ async function Load(): Promise<void> {
   error.value = '';
   let r = await fetchConfigSafe(props.module_id);
   if (r.ok) {body.value = r.value;
+  wallpapers_dir.value = await cfgField(body.value, 'cfg_wallpapers_dir');
   meta_file.value = await metaFile(r.meta);
   dirty.value = false;
   loaded_once.value = true;
@@ -200,12 +205,12 @@ async function Load(): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -255,12 +260,12 @@ async function TableCell(e: any, ri: any, col: any, v: any): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -279,12 +284,12 @@ async function TableRowAdd(e: any): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -303,12 +308,12 @@ async function TableRowRemove(e: any, ri: any): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -327,12 +332,12 @@ async function TagAdd(e: any): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -352,12 +357,12 @@ async function TagRemove(e: any, t: any): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -379,12 +384,12 @@ async function Toggle(e: any, on: any): Promise<void> {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -407,6 +412,7 @@ onMounted(async () => {
   error.value = '';
   let r = await fetchConfigSafe(props.module_id);
   if (r.ok) {body.value = r.value;
+  wallpapers_dir.value = await cfgField(body.value, 'cfg_wallpapers_dir');
   meta_file.value = await metaFile(r.meta);
   dirty.value = false;
   loaded_once.value = true;
@@ -417,12 +423,12 @@ onMounted(async () => {
   let i: number = 0;
   while (true) {
   if (i >= n) {break;
-  }es.push(await entryAt(body.value, i, props.module_id));
-  if (await entryAt(body.value, i, props.module_id).kind == 'subform') {let sc = await subCount(await entryAt(body.value, i, props.module_id).frag);
+  }es.push(await entryAtW(body.value, i, props.module_id, props.widgets));
+  if (await entryAtW(body.value, i, props.module_id, props.widgets).kind == 'subform') {let sc = await subCount(await entryAtW(body.value, i, props.module_id, props.widgets).frag);
   let j: number = 0;
   while (true) {
   if (j >= sc) {break;
-  }es.push(await subAt(body.value, await entryAt(body.value, i, props.module_id).key, j, props.module_id));
+  }es.push(await subAt(body.value, await entryAtW(body.value, i, props.module_id, props.widgets).key, j, props.module_id));
   j = j + 1;
   }
   }i = i + 1;
@@ -517,7 +523,15 @@ onMounted(async () => {
                 </template>
               </div>
             </template>
-            <template v-if="e.kind != 'subform'">
+            <template v-if="e.kind == 'wallpaper_picker'">
+              <div :class="e.box_class">
+                <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
+                  <span>{{ e.label }}</span>
+                </label>
+                <WallpaperPicker :current="e.value" :dir="wallpapers_dir" :field="e.key" :module_id="module_id" :key="'WallpaperPicker-1-' + (((e as any)?.id ?? e))" />
+              </div>
+            </template>
+            <template v-if="e.kind != 'subform' && e.kind != 'wallpaper_picker'">
               <div :class="e.box_class">
                 <label class="field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto">
                   <span>{{ e.label }}</span>

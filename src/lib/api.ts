@@ -1032,6 +1032,7 @@ export function entryAt(body: any, i: number, moduleId: string): any {
   return {
     key,
     kind: spec.kind,
+    widget: '',
     label: spec.label,
     value: displayOfValue(frag),
     frag: JSON.stringify(frag),
@@ -1056,6 +1057,22 @@ export function entryAt(body: any, i: number, moduleId: string): any {
     spec,
     raw: frag,
   }
+}
+
+/** Plan 559 W6 twin (entryAtW): entryAt with the module's field→widget
+ * overrides applied — kind becomes the declared widget name so the generic
+ * ConfigEditor mounts the field widget instead of the flat input. */
+export function entryAtW(body: any, i: number, moduleId: string, widgetsText: string): any {
+  const e = entryAt(body, i, moduleId)
+  let w = ''
+  try {
+    const m = typeof widgetsText === 'string' && widgetsText ? JSON.parse(widgetsText) : widgetsText
+    if (m && typeof m === 'object') w = m[e.key] ?? ''
+  } catch {
+    w = ''
+  }
+  if (w) return { ...e, kind: w, widget: w }
+  return e
 }
 
 /** vm contract twin (subCount): field count of a subform object fragment. */

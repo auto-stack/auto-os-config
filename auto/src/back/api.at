@@ -1127,6 +1127,21 @@ pub fn fragHasKey(frag str, name str) bool {
 /// box_class (2026-08-27 像素对拍): 顶层条目的行容器类——css-era .field-row
 /// (grid 160px/1fr gap12)。子表单盒子由 subAt 的 subform-cont 系列拼装。
 pub fn entryAt(body str, i int, module_id str) any {
+    return entryAtImpl(body, i, module_id, "{}")
+}
+
+/// Plan 559 W6: entryAt with the module's field→widget overrides applied —
+/// the entry kind becomes the declared widget name (wallpaper_picker /
+/// dir_picker) so the generic ConfigEditor mounts the field widget instead
+/// of the flat input. widgets_text = the module registry entry's widgets
+/// object text (ConfigEditor receives it as a prop from app.at, which reads
+/// Modules.active_widgets — loaded once per module selection, no per-render
+/// HTTP).
+pub fn entryAtW(body str, i int, module_id str, widgets_text str) any {
+    return entryAtImpl(body, i, module_id, widgets_text)
+}
+
+fn entryAtImpl(body str, i int, module_id str, widgets_text str) any {
     // 446 撤绕行（VG11/D5 修）：键列可直接 get_at 索引——原手写计数扫描已删。
     let ku = unquote(json.get_at(json.keys(body), i))
     let frag = json.get(body, ku)
@@ -1139,9 +1154,18 @@ pub fn entryAt(body str, i int, module_id str) any {
     }
     let spec = inferField(ku, frag, module_id, prov)
     let opts = selectOptionsOf(spec, module_id)
+    // Plan 559 W6: field→widget override — the declared widget name wins
+    // over the inferred kind; `widget` carries the raw declaration (""
+    // = none) so views can special-case fallbacks (e.g. dir_picker).
+    let w = widgetFor(widgets_text, ku)
+    var kind = spec.kind
+    if w != "" {
+        kind = w
+    }
     return {
         key: ku,
-        kind: spec.kind,
+        kind: kind,
+        widget: w,
         label: spec.label,
         value: displayOf(frag),
         frag: frag,

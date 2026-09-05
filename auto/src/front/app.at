@@ -284,10 +284,10 @@ widget App {
                         if .store.active_view_name == "" && .store.active_kind == "file" {
                             if .store.active_id == "ai-daemon" {
                                 DaemonView(module_id: .store.active_id, key: .store.active_id) { }
-                                ConfigEditor(module_id: .store.active_id, key: "aaid-cfg") { }
+                                ConfigEditor(module_id: .store.active_id, widgets: .store.active_widgets, key: "aaid-cfg") { }
                             }
                             if .store.active_id != "ai-daemon" {
-                                ConfigEditor(module_id: .store.active_id, key: .store.active_id) { }
+                                ConfigEditor(module_id: .store.active_id, widgets: .store.active_widgets, key: .store.active_id) { }
                             }
                         }
                         if .store.active_view_name == "" && .store.active_kind == "collection" {
