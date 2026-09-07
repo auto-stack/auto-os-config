@@ -1,10 +1,25 @@
 ---
 plan_id: OS-013
-status: execution_done
+status: reviewed
 feature_name: 虚拟桌面加载 AutoTerm 复刻应用
 author: [zcode]
 created_at: 2026-09-07
 updated_at: 2026-09-07
+
+# /auto-plan:review 填充(merge 消费):
+supersedes_spec_components: []
+new_spec_components:
+  - "auto/src/front/autoterm_store.at + autoterm_page.at: AutoTerm 终端会话(引擎经 auto.term.* catalog natives,Tick 200ms 收割,会话按需开关;字段 term_ 前缀防裸名并根 state 撞车)"
+  - "auto/src/front/app.at: 根 .Tick 200ms 节拍转发(interval var)+ autoterm_page 插件视图分发臂(551 T4 形态)"
+  - "auto-os-config-back/src/registry.rs: autoterm 模块入册(kind=file, view=autoterm_page, icon ⌨️)+ ~/.config/autoos/apps/autoterm/config.at 占位"
+  - "scripts/deploy-autoterm.sh: 003 §5 部署契约执行件(dll+ctrlc 宿主同目录 + term 门面→~/.auto/libs stdlib 安装副本,幂等)"
+  - "scripts/autoterm-vm-smoke.mjs: AutoTerm 验收冒烟门禁(16 断言+截图;陈旧 vnode id press 重试口径)"
+touched_goals:
+  - "goal-001: 引擎 VM 绑定面——auto.lang auto.term.* 七函数 catalog shim(ID 2943-2949,libloading 进程内 cdylib)"
+  - "goal-002: AutoTerm 应用源进桌面工程——<terminal/> 真渲染(上游 convert_view_messages 显式臂 + ListData 物化两臂配套)"
+  - "goal-003: 桌面入口注册(registry 插件视图形态,007 导航对齐)"
+  - "goal-004: 部署契约执行(003 §5 同目录 + stdlib 安装副本同步,幂等验证)"
+  - "goal-005: 验收冒烟与零回归(smoke 16 断言 ALL PASS + e2e-vm 18 断言 + 截图×5 在案)"
 
 current_step: 7
 total_steps: 7
@@ -161,3 +176,39 @@ is_exited/free),对齐 at-gen engine.rs 语义(句柄表+快照表+内联 feed);
 row_style/cursor/kill 待真彩场景再接。
 **待澄清③裁定**:Plan 010 已 19/19 execution 完结、worktree 已拆、
 工作全并入 main(checkout 干净)——无同文件并行窗口,直接开工。
+
+
+## 复审记录
+
+- **复审人**:zcode(/auto-plan:review)
+- **时间**:2026-09-07
+- **方法**:三仓 worktree diff 对齐计划宣称(auto-lang 9 文件+457 / auto-os-config 6 文件+531 / auto-term DEBTS+8,无未申报改动);全部验证复审期重跑,不信任执行期勾选。
+
+### 逐项判定
+
+| 项 | 判定 | 证据 |
+|---|---|---|
+| T1 调查/裁定 | pass | T1 执行记录在案;三待澄清裁定完整(最小七函数/拷贝=store 惯例重写装载/010 已并 main) |
+| T2 引擎 VM 绑定 | pass | 单测 term_engine_shims_echo_roundtrip 复审重跑绿(0.38s);catalog 三表 ID 2943-2949,sync 测试绿 |
+| T3 应用源进桌面 | pass | autoterm_store/page.at + app.at 分发臂在位;截图 02 实证视口完整渲染(banner+提示符+echo)。**计划文本偏差(已授权)**:`at/autoterm.at` 未逐字拷贝,按 T1 裁定以 widget/store 惯例重写装载 |
+| T4 入口注册 | pass | smoke 断言 nav 可见+可进入;registry 计数锚 8→9,13/13 绿 |
+| T5 部署脚本 | pass | 复审期双跑幂等 ✓;桌面进程加载 DLL 实证(smoke handle=1) |
+| T6 验收冒烟 | pass | **复审新跑**:smoke 16 断言 ALL PASS;e2e-vm 18 断言 PASSED(modules 14 含 AutoTerm);截图×5 在 tmp/autoterm-smoke/ |
+| T7 收账 | pass | KNOWN-DEBT 013 段 5 项 + auto-term DEBTS #9(其自身 worktree)+ 003 §5 逐条核对在计划内 |
+
+### 全量门禁(本计划唯一全量跑点)
+
+- `cargo tf`(no-fail-fast):**3469/3470,唯一红 = test_charts_gallery_compiles** ——主检出 master 复证同败,**既有基线**(在册,Plan 056),非本计划引入。
+- `cargo tv`(no-fail-fast,VM 文件触碰):**3610/3611,同一 charts 红**——VM 语料金档零回归。
+- `cargo tt/tb` 未跑:转译器/书未触碰,不在触发条件内。
+
+### 遗漏 / 延后 / workaround 猎捕
+
+- **遗漏**:无——七任务均有对应 diff 与验证;`interval` var 被 extract 剥离不进 state(stopwatch 先例)。
+- **延后**:无计划内任务被延后。vue 轨适配**不在本计划任务面**(验收口径=vm 桌面,变更摘要明示),已入债账而非静默延后;真彩/样式面为待澄清①明示裁剪。
+- **workaround/边界(全部入册,非静默)**:①smoke 陈旧 vnode id press 重试(上游 id 滚动,债#3);②T2 测试绕开 fn-main 两处上游 VM 缺陷(待澄清④);③~/.auto/libs stdlib 安装副本机制缺口(deploy 脚本收编,债#2);④宿主直关窗口子进程清理观察项(债#4);⑤interrupt 对 cmd 击穿副作用(债#5);⑥vue 轨未适配(债#1,regen 未跑)。
+- **infra 备注**:组内 `shim/` 硬链目录(e2e-vm PATH 复跑用),merge 清组时同灭,非仓库内容。
+
+### 结论
+
+**全项 pass,无阻断债 → status: reviewed,就绪 /auto-plan:merge。**
