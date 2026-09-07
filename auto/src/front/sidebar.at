@@ -19,7 +19,10 @@
 //     font-medium; hover was dead `hover:bg-accent` before, now live
 //     hover:bg-secondary — intentional fix). The `active:` prop stays the
 //     VM track's state source (561 contract classes there);
-//   - marker classes (sidebar/nav-list/theme-picker) remain inert test hooks;
+//   - marker classes (sidebar/nav-list/theme-picker, plus nav-item on module
+//     buttons / nav-name on their label spans — restored at Plan 012 review:
+//     the 562 migration dropped them, breaking the vue e2e anchors) remain
+//     inert test hooks;
 //     neutrals stay deterministic hex; no fractional spacing (vm drops them —
 //     VM track styling comes from the 561 contract, user classes are web-only).
 //
@@ -49,14 +52,14 @@ widget Sidebar {
                         sidebar_menu_item {
                             sidebar_menu_button (onclick: .SelectOverview, active: .store.active_kind == "", size: "lg", key: "ov-home",
                                 style: if .store.active_kind == "" {
-                                    "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors h-[50px] mb-1"
+                                    "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors h-[50px] mb-1"
                                 } else {
-                                    "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary h-[50px] mb-1"
+                                    "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary h-[50px] mb-1"
                                 }) {
                                 row (style: "items-center gap-2") {
                                     text "🏠" {}
                                     col (style: "items-start") {
-                                        text "System Overview" {}
+                                        text "System Overview" (style: "nav-name") {}
                                         text "System information dashboard" (style: "text-xs text-muted-foreground") {}
                                     }
                                 }
@@ -67,14 +70,14 @@ widget Sidebar {
                                 sidebar_menu_item {
                                     sidebar_menu_button (onclick: .SelectModule(m.id), active: .store.active_id == m.id, size: "lg", key: m.id,
                                         style: if .store.active_id == m.id {
-                                            "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
+                                            "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
                                         } else {
-                                            "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
+                                            "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
                                         }) {
                                         row (style: "items-center gap-2") {
                                             text (text: m.icon) {}
                                             col (style: "items-start") {
-                                                text (text: m.name) {}
+                                                text (text: m.name, style: "nav-name") {}
                                                 text (text: m.description, style: "text-xs text-muted-foreground") {}
                                             }
                                         }
@@ -107,14 +110,14 @@ widget Sidebar {
                                                 sidebar_menu_item {
                                                     sidebar_menu_button (onclick: .SelectModule(m.id), active: .store.active_id == m.id, size: "lg", key: m.id,
                                                         style: if .store.active_id == m.id {
-                                                            "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
+                                                            "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
                                                         } else {
-                                                            "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
+                                                            "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
                                                         }) {
                                                         row (style: "items-center gap-2") {
                                                             text (text: m.icon) {}
                                                             col (style: "items-start") {
-                                                                text (text: m.name) {}
+                                                                text (text: m.name, style: "nav-name") {}
                                                                 text (text: m.description, style: "text-xs text-muted-foreground") {}
                                                             }
                                                         }
@@ -133,14 +136,14 @@ widget Sidebar {
                                     sidebar_menu_item {
                                         sidebar_menu_button (onclick: .SelectModule(m.id), active: .store.active_id == m.id, size: "lg", key: m.id,
                                             style: if .store.active_id == m.id {
-                                                "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
+                                                "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors"
                                             } else {
-                                                "flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
+                                                "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary"
                                             }) {
                                             row (style: "items-center gap-2") {
                                                 text (text: m.icon) {}
                                                 col (style: "items-start") {
-                                                    text (text: m.name) {}
+                                                    text (text: m.name, style: "nav-name") {}
                                                     text (text: m.description, style: "text-xs text-muted-foreground") {}
                                                 }
                                             }

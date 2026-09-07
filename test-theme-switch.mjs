@@ -19,13 +19,14 @@ await page.goto('http://127.0.0.1:17700', { waitUntil: 'networkidle', timeout: 1
 await page.waitForSelector('.sidebar', { timeout: 10000 });
 await page.waitForTimeout(800);
 
-// Plan 012:nav-item 组件化——.active 标记随预计算串移除,选中项改 data-active
-// 锚(契约组件内建);.nav-name 语义锚保留(组件 label span 内建),色断言不变。
-// 概要页四期:改为等待式取色——弹窗引入后偶发 Vue 响应式更新竞态(点击后
-// data-active 短暂未就绪),裸 $eval 会 throw。语义不变,仅加 5s 就绪等待。
+// Plan 012 复审修复(562 迁移补锚):nav 家族退役后契约不再发 data-active 属性,
+// vue 轨选中态改锚激活分支类串子串 bg-primary/10(仅激活分支含此串);
+// .nav-item/.nav-name 标记类已随复审补回 sidebar.at(惰性测试钩子惯例)。
+// 概要页四期:等待式取色——弹窗引入后偶发 Vue 响应式更新竞态,裸 $eval 会
+// throw。语义不变,仅加 5s 就绪等待。
 const navNameColor = async () => {
-  await page.waitForSelector('.nav-item[data-active="true"] .nav-name', { timeout: 5000 });
-  return page.$eval('.nav-item[data-active="true"] .nav-name', el => getComputedStyle(el).color);
+  await page.waitForSelector('.nav-item[class*="bg-primary/10"] .nav-name', { timeout: 5000 });
+  return page.$eval('.nav-item[class*="bg-primary/10"] .nav-name', el => getComputedStyle(el).color);
 };
 
 console.log('=== default (indigo) — click AI Daemon ===');

@@ -54,11 +54,11 @@ function ToggleGroup(gid: any): void {
         <div class="nav-list flex-1 overflow-auto px-2 pt-2 flex flex-col">
           <div>
             <div>
-              <button :class="(store.active_kind == '' ? 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors h-[50px] mb-1' : 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary h-[50px] mb-1')" :active="store.active_kind == ''" :key="'ov-home'" :size="'lg'" @click="SelectOverview">
+              <button :class="(store.active_kind == '' ? 'nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors h-[50px] mb-1' : 'nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary h-[50px] mb-1')" :active="store.active_kind == ''" :key="'ov-home'" :size="'lg'" @click="SelectOverview">
                 <div class="flex flex-row items-center gap-2">
                   <span>🏠</span>
                   <div class="flex flex-col gap-4 items-start">
-                    <span>System Overview</span>
+                    <span class="nav-name">System Overview</span>
                     <span class="text-xs text-muted-foreground">System information dashboard</span>
                   </div>
                 </div>
@@ -66,11 +66,11 @@ function ToggleGroup(gid: any): void {
             </div>
             <template v-if="store.search == ''">
               <div v-for="m in store.view_standalone" :key="(((m as any)?.id ?? m))">
-                <button :class="(store.active_id == m.id ? 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
+                <button :class="(store.active_id == m.id ? 'nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
                   <div class="flex flex-row items-center gap-2">
                     <span>{{ m.icon }}</span>
                     <div class="flex flex-col gap-4 items-start">
-                      <span>{{ m.name }}</span>
+                      <span class="nav-name">{{ m.name }}</span>
                       <span class="text-xs text-muted-foreground">{{ m.description }}</span>
                     </div>
                   </div>
@@ -94,11 +94,11 @@ function ToggleGroup(gid: any): void {
                   <div>
                     <div>
                       <div v-for="m in g.members" :key="(((m as any)?.id ?? m))">
-                        <button :class="(store.active_id == m.id ? 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
+                        <button :class="(store.active_id == m.id ? 'nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
                           <div class="flex flex-row items-center gap-2">
                             <span>{{ m.icon }}</span>
                             <div class="flex flex-col gap-4 items-start">
-                              <span>{{ m.name }}</span>
+                              <span class="nav-name">{{ m.name }}</span>
                               <span class="text-xs text-muted-foreground">{{ m.description }}</span>
                             </div>
                           </div>
@@ -112,11 +112,11 @@ function ToggleGroup(gid: any): void {
             <template v-if="store.search != ''">
               <div>
                 <div v-for="m in g.members" :key="(((m as any)?.id ?? m))">
-                  <button :class="(store.active_id == m.id ? 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
+                  <button :class="(store.active_id == m.id ? 'nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors' : 'nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary')" :active="store.active_id == m.id" :key="m.id" :size="'lg'" @click="SelectModule(m.id)">
                     <div class="flex flex-row items-center gap-2">
                       <span>{{ m.icon }}</span>
                       <div class="flex flex-col gap-4 items-start">
-                        <span>{{ m.name }}</span>
+                        <span class="nav-name">{{ m.name }}</span>
                         <span class="text-xs text-muted-foreground">{{ m.description }}</span>
                       </div>
                     </div>
