@@ -1,10 +1,10 @@
 ---
 plan_id: PLAN-010
-status: execution_done
+status: reviewed
 feature_name: VM 轨一致性——Auto/VM 版对齐 Auto/Vue 版
 author: [zcode]
 created_at: 2026-08-27T12:00:00+08:00
-updated_at: 2026-09-07T15:00:00+08:00
+updated_at: 2026-09-07T16:30:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
@@ -418,13 +418,75 @@ HTTP 客户端**。
 5. [流程] 完成后重验 G1/G2/G6（用户验收）,再行复审。
    → **T14 已完成上述 1-5**（2026-08-28,c4df24b/354b6a9;重验 vue PASS + e2e-vm 15/15 两连绿 + css-era 零回归;U8 已入附录表）。计划交还 `/auto-plan:review` 复审;G6 用户验收在复审通过后、merge 前进行。
 
+### 复审（2026-09-07，reviewer: zcode）——**判定：通过，status=reviewed**
+
+复审前情：2026-08-28 复审退回（R10）→ T14 修复闭环；其后计划经 F 相扩围（T15-T19）
++ T17 接续轮（worktree plan-010-dev，9deccf9）于 2026-09-07 达 execution_done。
+
+**载体与 diff**：worktree `.wt/auto-os-010/auto-os-config`，分支单提交 9deccf9，
+产品改动仅 `scripts/e2e-vm.mjs`（+22/-4）；docs 记账在主检出（d363901），merge 时
+天然合流（改动静区不相交）。
+
+**验收标准逐条重验（worktree 内复审重跑取证）**：
+
+1. **G1 — ✅** 本轮（F 相后段+T17 轮）视图源零改动（T17 仅动测试断言），css-era
+   条款按条件句不强制；复审重跑 vue 三套件全 PASS + `npm run build` 绿（vue-tsc
+   含内）+ regen 零漂。css-era 基准形态已被 562 取代，双轨新基线已立（见 §重基线）。
+2. **G2 — ✅（超配）** e2e-vm 断言 14→18（010 后续 013 演进），复审重跑 **两遍
+   18/18 PASSED**（另第三遍复证），含 T17 新断言「file module auto-load
+   (editor inputs=15, no manual Load)」。
+3. **G3 — ✅** L1 结构走查（T4/T13）+ L2 台账全归因（T9 终稿，无未归因行）在案；
+   本轮盘点无新增未归因行（06/07 首败定性 U3/U6 族 per-boot 抖动，二轮 8/8）。
+4. **G4 — ✅** 残差台账终稿 + 「双端一致性」章（T9/T11）在案；本轮追加 §重基线
+   （8 视图数字表）。
+5. **G5 — ✅** 文档三件套（T11）+ probe 三撤（T12）在案；KNOWN-DEBT 本轮再更新
+   （562 行闭合、013 vue 部署债精确化、e2e-vm aaid 依赖登记）。
+6. **G6 — ◐ 按计划自身定义留 merge 前签核**：双端 7 模块实机走查完成（T13 +
+   本轮 8 视图双轨重走查全可达）；**用户验收确认**待签字——T14 既定「复审通过后、
+   merge 前进行」，本判定不阻塞 reviewed，merge 前需用户点头（旧 sheet 为 nav 族
+   形态，如需可按 tmp/track-parity 现行 capture 产物重生成并排图）。
+
+**遗漏 / 延后 / workaround 猎捕**：
+
+- **T17 实现路径偏离（用户点名方案未照做，效果等价）**：用户指令「file 模块
+  Select 预载 + Load 转手动刷新」——实际未做 store 预载：上游 437 P2（子组件
+  Init 补发）+ 536 T3（收敛挂载语义，每 keyed 实例一次、不随脏重建重放）已使
+  ConfigEditor 渲染即自动 Init，预载失去必要性；正向断言实证单击即见
+  （inputs=15）。执行报告已明示偏差，用户随后径行 review 无异议——记为知情
+  接受；Load 语义（Reload=手动刷新，!loaded_once Load=失败重试入口）符合指令
+  后半句。
+- **Test press 窗口 2s→5s**：测试容差放宽，根因（Init 取数内联挂载渲染期）
+  已注记，非掩盖回归（同断言在 aaid 在线时稳定过）。
+- **worktree back cdylib 镜像**：back 的 Cargo 路径依赖 `../../auto-lang` 在
+  组 worktree 布局下不可解析（组内无 auto-lang 兄弟），构建不可行——将主检出
+  同源 DLL（auto-lang crates 零未提交改动，产物等价）镜像进 worktree
+  target/debug/。环境操作非代码 workaround；**登记**：组 worktree 布局下
+  外部 back 项目的可构建性是流程缺口（依赖项目 worktree 应在组内，见 skill
+  Step 2 依赖项目条款——011 时代的 back 未按此布局），留待流程债。
+- **U8 上游回传仍开放**：U1-U7 已入 446（T11），U8（AskDelete 冻结）在附录表
+  待下次增补一并写入——延后已在案（台账+附录），非静默。
+- **013 vue 部署缺口物化**：复审轮 regen 物化 App.vue/AutoTermPage/
+  useAutoTermStore（裸 Term 引用 vue-tsc 必红）照例回退——013 债在册（012
+  复审 D2 精确化），本轮维持主干绿处置一致。
+
+**待澄清批注（复审人）**：事项 1「一致」口径——**维持 L1/L2/L3 不设全局像素
+硬阈值**：跨渲染器（浏览器 vs iced）存在字体光栅底噪（L3），硬阈值必然要么
+虚设要么常红；新基线（00=6.04…07=2.13）的用途是**回归参照**（回升即查），非
+达标线。事项 5 见 G6。
+
+**spec-impact 元数据**：supersedes_spec_components / new_spec_components /
+touched_goals 全空——ledger 现有条目（P007-P013）无一被本轮修改或取代（010
+重基线与 009 的 css-era 对拍口径不同域），010 自身六节由 merge 时首次沉淀。
+
+**裁定：G1-G5 全过、G6 按既定窗口留 merge 前签核、无 blocking 债 → status=reviewed，就绪 /auto-plan:merge（merge 时请用户完成 G6 签字）。**
+
 ## 待澄清事项
 
-1. **「一致」口径**（已按 009 沿用口径执行）：L1 结构 + L2 清偿/归因 + L3 登记，未设全局像素阈值；终值 00=0.97 / 最高 6.72，若需硬阈值请在 review 批注。
+1. ~~**「一致」口径**~~（复审批注 2026-09-07：**维持 L1/L2/L3 不设全局硬阈值**——跨渲染器字体光栅底噪使硬阈值必然虚设或常红；基线用途=回归参照非达标线）：L1 结构 + L2 清偿/归因 + L3 登记，未设全局像素阈值；终值 00=0.97 / 最高 6.72，若需硬阈值请在 review 批注。
 2. ~~T2 盘点为 B 相前置~~（已被 T3 消解）。
 3. ~~vm 窗口尺寸可控性未知~~（T6/T7 定案：AUTO_VM_WINDOW 可控；T7 修正口径为 1440x900 逻辑几何）。
 4. ~~上游缺陷回报~~（T11 已执行：auto-lang 446 §P 增补 commit e06fb31e0，U1-U7；T13 新增 U8 待下次增补一并写入）。
-5. **用户验收（G6）待确认**：走查与 sheet 已就绪（tmp/track-parity/sheet.png），验收记录行待用户确认后追加。
+5. **用户验收（G6）待确认**：走查与 sheet 已就绪（tmp/track-parity/sheet.png），验收记录行待用户确认后追加。（复审批注 2026-09-07：按 T14 既定窗口于 merge 前签字；旧 sheet 为 nav 族形态，可按 tmp/track-parity 现行 capture 产物重生成）
 
 ## 附录：auto-lang 上游缺口回报稿（T9 拟定，T11 正式写入 446 现场报告增补）
 
