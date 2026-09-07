@@ -259,7 +259,8 @@ pub fn json_to_value(json: &Json) -> Option<Value> {
                     }
                 }
             }
-            Value::Obj(obj)
+            // auto-lang 566 装箱迁移:Value::Obj 变体持 Box<Obj>。
+            Value::Obj(Box::new(obj))
         }
     })
 }

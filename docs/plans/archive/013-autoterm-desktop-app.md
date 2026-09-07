@@ -1,6 +1,6 @@
 ---
 plan_id: OS-013
-status: reviewed
+status: archived
 feature_name: 虚拟桌面加载 AutoTerm 复刻应用
 author: [zcode]
 created_at: 2026-09-07

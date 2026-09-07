@@ -48,11 +48,19 @@ for f in "$DLL" "$CTRLC" "$TERM_AT" "$TERM_VM_AT"; do
 done
 [ $fail -eq 1 ] && { echo "  (auto-term 侧先 cargo build -p autoterm-core;auto-lang 侧需含 OS-013 T2 的 stdlib/auto/term{,.vm}.at)"; exit 1; }
 
-cp -f "$DLL" "$TARGET/"
-cp -f "$CTRLC" "$TARGET/"
+cp -f "$DLL" "$CTRLC" "$TARGET/"
+# stdlib 安装副本可能是主检出 stdlib 的联接(实测本机即是)——同文件时
+# cp 报错,以落位检查代替强拷。
 STD_LIBS="${HOME:-/c/Users/$USERNAME}/.auto/libs/stdlib/auto"
 mkdir -p "$STD_LIBS"
-cp -f "$TERM_AT" "$TERM_VM_AT" "$STD_LIBS/"
+for f in "$TERM_AT" "$TERM_VM_AT"; do
+  base="$(basename "$f")"
+  if [ -f "$STD_LIBS/$base" ] && [ "$(cmp -s "$f" "$STD_LIBS/$base" && echo same || echo diff)" = "same" ]; then
+    echo "  - $base 已同内容在位($STD_LIBS)"
+  else
+    cp -f "$f" "$STD_LIBS/"
+  fi
+done
 
 echo "✓ 引擎件 → $TARGET"
 echo "  - $(basename "$DLL") ($(stat -c%s "$DLL") bytes)"
