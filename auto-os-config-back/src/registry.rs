@@ -373,6 +373,17 @@ modules {
 
     module {
         kind : file
+        id : "autoterm"
+        file : "apps/autoterm/config.at"
+        root : "autoterm"
+        name : "AutoTerm"
+        icon : "⌨️"
+        description : "Terminal replica: in-process PTY sessions (engine via autoterm_core.dll)"
+        view : "autoterm_page"
+    }
+
+    module {
+        kind : file
         id : "ai-daemon"
         file : "ai-daemon.at"
         root : "daemon"
