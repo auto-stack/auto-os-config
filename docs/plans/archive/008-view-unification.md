@@ -1,6 +1,6 @@
 ---
 plan_id: OS-008
-status: reviewed
+status: archived
 feature_name: view-unification
 author: [zcode]
 created_at: 2026-08-25

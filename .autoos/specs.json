@@ -44,6 +44,16 @@
             "OS-007"
           ],
           "file": "docs/plans/archive/007-frontend-vm-desktop.md"
+        },
+        {
+          "id": "P008-2",
+          "title": "view-unification — 目标 / 非目标",
+          "content": "### 目标\n\n1. **单一视图源**：7 个 widget 一套 `.at` 视图，vue（`auto gen` + regen 部署）与 vm（`auto run -r vm`）消费同一份；`*_vm.at` ×5 全部退役删除；\n2. **观感对齐**：以旧版 vue（Win11 浅色 + indigo accent 家族）为基准——同结构、同色板、同间距节奏；类串相同处两端渲染\"接近一致\"，残余差异收敛到\"默认样式层\"（字体渲染、控件形态）并显式登记；\n3. **设计令牌双端同源**：accent 族经 `primary` 语义 token 单源驱动（vue=Tailwind config CSS 变量、vm=ACCENT_NAME thread-local，5 色板两端同款——007 已实证 vm 侧链路）；中性色用确定性色值（两端零模式漂移）；\n4. **门禁全绿且扩面**：vue 28 断言 + 截图对拍、vm 9→14 断言（补：分组折叠、搜索过滤、主题持久化），双绿为完成标准。\n\n### 非目标（明确不做）\n\n- **不追像素级逐点一致**：浏览器与 iced 的字体光栅、控件内距、抗锯齿天然不同；验收 = 侧栏/卡片/按钮/表单的类串一致 + 实机截图人工对拍\"同一设计语言\"，不做逐像素 diff 工具；\n- **不动 store/api 契约**（007 已定型，仅增量加预计算字段）；\n- **不做 vm 深色模式**（两端统一浅色为基准；深色作为后续候选登记）；\n- **不做 `auto build -r vm` 独立分发**（延续 007 非目标）；\n- **不修 auto-lang 上游缺陷**（发现新缺口按 007 惯例：workaround + gap 登记 + P0 回报，不阻塞本仓）。\n\n---",
+          "status": "proposed",
+          "related": [
+            "OS-008"
+          ],
+          "file": "docs/plans/archive/008-view-unification.md"
         }
       ],
       "status": "Proposed",
@@ -94,6 +104,16 @@
             "OS-007"
           ],
           "file": "docs/plans/archive/007-frontend-vm-desktop.md"
+        },
+        {
+          "id": "P008-3",
+          "title": "view-unification — 关键架构决策（D1-D8）",
+          "content": "**D1 单一视图源 + `style:` 唯一属性语法**：共享 widget 视图只用 `style:`（两端已证映射：vue→`class=\"...\"`、vm→StyleClass IR）；`class:` 与内嵌 `style {}` 块全面退役。视图纪律沿用 038：零函数调用（白名单除外）、零动态索引、样式串静态或字段直读。\n\n**D2 双词汇样式体系（关键决策）**：\n- **accent 族 → 语义 token**：`bg-primary`（实心）、`bg-primary/10`（soft tint，即 `--accent-light`）、`text-primary`、`border-primary`——两端 accent 同源（vue 端 Tailwind config 把 primary 映到 `hsl(var(--primary))`，运行时换 accent = 主题 store 写 CSS 变量，沿用现机制；vm 端 renderer thread-local，007 T11/T12 已实证）；\n- **中性色 → 确定性类**：`bg-[#f3f3f3]`（app 底）、`bg-[#f9f9f9]`（sidebar 底）、`bg-white`（卡片）、`text-[#1a1a1a]`、`text-gray-500`（`--text-muted #8a8a8a`≈）、`border-[#e0e0e0]`、`text-red-600`/`text-green-600`（状态色）——**禁用** `background/card/foreground` 等模式自适应 token（vm 深浅漂移不可控，两端连模式都不一致），也禁 `secondary`（vm 解析为 indigo 品牌色）；\n- **hover 增强**：`hover:bg-gray-100` 等允许写入共享视图（vue 生效、vm 静默跳过——已实证容错），但**核心状态（active/dirty/error）不得依赖 hover**；\n- 对照表（styles.css 令牌 → 类串）落 `auto/README.md`，Phase 2 交付。\n\n**D3 条件样式进描述符（038 模式）**：凡随状态变化的类串（`nav-item active`、`swatch active`、`btn dirty`…）由 store 预计算**完整 class 串**存字段（`row_class`/`btn_class` 型），视图 `style: x.row_class` 字段直读。**探针 P1 先验证** vm 视图 `style:` 是否接受字段路径（现 vm 视图全是静态串）；若不支持，降级方案 = 视图内 `if` 双分支写两份静态串（sidebar 已有此形态，可行但冗长）。\n\n**D4 computed 逻辑下沉 store**：widget 级 `computed`（含 ext fn 调用）全部下沉对应共享 store（modules_store 补搜索过滤投影、展开态投影）。视图只读 store 字段。ext 中转文件相应裁撤（composable 门面保留——vue codegen 需要）。\n\n**D5 vue 工程接入 Tailwind**：`tailwindcss@3.4` + `postcss` + config（`content: src/components/**` + `src/stores/auto/**`；primary 族映射 `hsl(var(--primary) [/N])`；**默认字体改 Inter** 与 vm `default_font` 对齐，消最大默认差异；基准字号 14px = `text-sm`）。`src/styles.css` 缩为：CSS 变量令牌（`--primary` 家族运行时主题入口）+ reset + 滚动条。`.btn/.card/input` 基线退役 → D6 类串。\n\n**D6 组件基线显式化（系统性缓解\"默认样式不统一\"）**：两端控件默认形态（浏览器 button/input vs iced）不指望上游统一——**公共基线全部显式声明**，规范类串（写入 README 对照表）：\n\n| 组件 | 基线类串（草案，Phase 2 校准） |\n|---|---|\n| 按钮 | `px-3 py-1.5 rounded text-sm border border-[#e0e0e0] bg-white` |\n| 主按钮 | 基线 + `bg-primary text-white border-primary` |\n| 危险按钮 | 基线 + `bg-red-600 text-white border-red-600` |\n| 输入框 | `px-2.5 py-1.5 rounded text-sm border border-[#e0e0e0] bg-white w-full` |\n| 卡片 | `bg-white border border-[#e0e0e0] rounded-lg p-4` |\n| muted 文字 | `text-sm text-gray-500` |\n\n**D7 统一降级优于后端分叉**：vue 专属能力（原生 select、表格单元格输入、markdown 富渲染、svg）**不做视图层目标门控**——探针 P2 若发现 `X.web.at` 型机制适用于视图文件可重开此决策，v1 一律两端统一降级形态：select→自由文本+提示（007 已定型）、表格→v1 保持 vm 只读 JSON **但 vue 侧同步改只读展示 + 单元格编辑入口收敛**（若 vue 交互体验损失不可接受，该组件保留双文件并登记——**唯一允许的分叉例外，上限 2 个组件**）、markdown→纯文本、svg→文本符号。块增删（Plan 005 特性）v1 不暴露（延续 007）。\n\n**D8 门禁与截图归档**：每统一一个 widget 跑双轨门禁；vm 侧实机截图存 `screenshots/vm-*.png` 与 vue 版并排人工对拍（12 张 vue 基准照常）；e2e-vm.mjs 断言 9→14（补：分组折叠展开、搜索过滤空态、accent 持久化重启保持）。**流程教训沿用 007：regen 显式检查退出码，勿经管道**。\n\n---",
+          "status": "stable",
+          "related": [
+            "OS-008"
+          ],
+          "file": "docs/plans/archive/008-view-unification.md"
         }
       ],
       "status": "Stable",
@@ -184,6 +204,16 @@
             "OS-007"
           ],
           "file": "docs/plans/archive/007-frontend-vm-desktop.md"
+        },
+        {
+          "id": "P008-4",
+          "title": "view-unification — 验证清单（Phase0-4 + 探针结论 P1-P4 + 上游缺陷登记）",
+          "content": "- [x] Phase 0（2026-08-25，worktree `plan-008-view-unification`）：vue 基线两连绿（ALL E2E PASS ×2；首轮失败为 worktree 冷启动竞态 + 环境僵尸 vite/daemon 混占端口，清场后两绿——**教训：服务必须确认来路再复用**）；vm 基线暴露**上游崩溃缺陷**（见下）——`scripts/e2e-vm.mjs` 自愈化改造后 6 连跑全绿（含 1 次崩溃自愈重跑，正是设计行为）；P1-P4 结论回填（见 §Phase 0 探针结论）\n- [x] Phase 1（2026-08-25）：Tailwind 3.4 + postcss + autoprefixer + @fontsource/inter（400/500/600/700）落地；`tailwind.config.cjs`——primary token 用 `hsl(var(--primary) / <alpha-value>)` 形态（`bg-primary/10` alpha 修饰可用，实测 rgb(100,103,242)=靛蓝）、content 直扫 `auto/src/front/**/*.at`（类串第一现场，免疫 regen 滞后）、safelist 仅 primary 族骨干 5 类；`main.ts` 引入链 = fontsource → tailwind.css → styles.css（令牌层最后加载压 preflight）；styles.css `--font-family` 改 Inter-first；Inter 加载/工具类/preflight/命名类优先级四项 playwright 实证 ✓。vue 门禁 ALL PASS（Tailwind 激活态）。12 张截图基准重拍（旧基准归档 `tmp/phase1-baseline-old/`；像素 diff 侧栏 2.2%/集合页 4.1-4.4%/daemon 页 14.3-14.4%——daemon 为密文本表单对字体度量敏感，目检确认差异全为字体级重排、零结构破坏/控件丢失，可安全作新基准）。顺手修正 `screenshot-ui.mjs` OUT 为脚本相对路径（原硬编码主仓路径，worktree 下会写错位置）\n- [x] Phase 2（2026-08-25）：D2 对照表 + D6 基线串定稿入 `auto/README.md`（含 store 迁移配方）；双端定稿探针实证——**新词汇硬规则：间距禁小数**（`py-1.5`/`gap-1.5` 在 vm 被 u16 解析静默丢弃，`gap-0.5` 在 007 vm 代码已实际漏入——Phase 3 批 1 顺带清理；6/10px 用 `py-[6px]` 任意值）；定稿对照图 `tmp/phase2-dual-baseline.png`（web=Tailwind 参考实现 vs vm=iced，按钮/输入框/卡片/三级文字/active 态同一设计语言，唯一系统差异即小数间距规则本身）\n- [x] Phase 3 批 1-6（2026-08-26）：批 1-3 双端绿；批 4 vue ✅ / vm ⛔ 上游 J1（二分矩阵定案，446 J 批增补）；批 5 由批 3/4 吸收；批 6 双端落地（vue 全绿 + vm 根级断言 1-5 绿；vm 截图对拍候 J1）。`*_vm.at`/app_shell/ext 全部清零\n- [x] Phase 3 遗留：批 4 vm 详情区 + 下游断言（上游 J1 解锁后复验） ✅ 经 009/010 接管链收口（2026-09-07 复审核验）——010 T3 重判\"批4 全灭\"为失真快照+模块未加载的复合假象，U1/U2 真缺陷确诊登记；010 T10 将原批 4 卡点（detail inputs/applies 常驻）固化为 e2e-vm 断言\n- [x] Phase 4：`*_vm.at` 清零；e2e-vm 14 断言两连绿；文档三件套；双端 7 模块实机走查 ✅ 清零于批 6 当场落（现行树 `ls auto/src/front/*_vm.at` 为空 + app_shell 退役）；e2e-vm 断言演进 14→18（含 013）2026-09-07 当日绿在案；文档三件套 = 010 T11、实机走查 = 010 T13（009/010 接管，用户知情的两段式决策在 009 定稿在案）\n- [x] 终态：`auto/src/front/` 一套 widget 双后端消费；`./scripts/e2e.sh` + `node scripts/e2e-vm.mjs` 双绿为仓库门禁 ✅ 现行事实——统一 .at 源 + regen 双端部署；双门禁 2026-09-07 重跑双绿（012 复审连带取证）\n\n### Phase 0 探针结论（2026-08-25，tmp/vm-probes2/ 实机 MCP + 视觉验证）\n\n- **P1 字段直读类串：✅ 三形态全过**——根模型标量（`style: .row_class`）✓、循环变量 map 字段（`style: m.klass`）✓（实机视觉确认红/绿/灰三色均生效）、if 表达式字面量（`style: if .on { … } else { … }`）✓。任意值 hex（`bg-[#f3f3f3]`/`border-[#e0e0e0]`/`text-[#1a1a1a]`）与 `bg-primary/10` alpha 修饰均生效。**D3 主方案（预计算类串进 store/描述符）成立，无需降级**。快照口径注意：`autoui_snapshot` 的 `style:` 行对循环项**不上报**（静态/根模型位置正常上报）——vm 侧样式断言以根模型字段位置为准，循环项靠视觉对拍。\n- **P2 视图层目标门控：❌ 不存在**——`X.at → X.vm.at → X.web.at` adapter 链仅作用于 `use` 模块导入解析（lib.rs `load_ext_imports_for_vm`），vm 加载器（rust_ui.rs）枚举 widget 文件不经过任何目标过滤。D7 维持\"统一降级优于后端分叉\"。\n- **P3 排版定标：✅ 全阶梯生效**——text-xs→xl 逐级、font-medium/bold 三级递进清晰、rounded→xl 逐级（rounded-lg ≈8px 对应 `--radius`）、Inter 无衬线渲染清晰无锯齿；D6 基线类串（按钮/主按钮/危险按钮/输入框占位/卡片/muted）vm 端全部渲染正常，primary 实心=靛蓝、danger=红底白字、白底灰边卡片成立。D6 草案类串直接定稿进 Phase 2 对照表。\n- **P4 中性色模式无关性：✅**——确定性类（`bg-white`/`bg-[#f3f3f3]`/`text-[#1a1a1a]`）在 vm 默认深色模式下渲染为浅色（P1/P3 探针窗口实证）；对照主应用深色窗口（语义 token 呈深色）证实：**中性色走确定性类可完全绕开 DARK_MODE 漂移，语义 token 仅用于 primary 族**——D2 决策实证成立。\n- **上游缺陷登记（P0 回报 auto-lang）**：vm 进程在 MCP 轮询下**硬崩溃**——exit code 0xFFFFFFFF（-1）、无 stderr/panic 输出（日志止于 \"AutoUI MCP: first state sync\"）、监听随进程消失。触发条件：**零交互空闲 app + ≥500ms 或 2s 周期的 autoui_snapshot/state 轮询，约 30s 内 40-60% 概率**；无轮询流量时可存活 30min+（本日实机对照）。与本仓代码无关（探针最小工程复现，tmp/probe-mcp-health.mjs 为复现脚本，Phase 4 收尾决定去留）。**缓解**：e2e-vm.mjs 自愈化——mid-run 通道死亡判定为基础设施崩溃，重启 app 重跑（最多 3 次）；真实断言失败/boot 失败不重试照常 FAIL；6 连跑验证全绿。另修 Test connection 断言为 30s 轮询（/api/action/test-daemon 是真实 LLM provider 往返，实测 1.3-5.4s 波动，固定 7s sleep 会假阴性）。\n- **流程教训**：多实例调试后必须核验端口占用者身份再复用（本轮双 vite 双 daemon 混战消耗大量定位时间）；`netstat -ano` + `wmic` 核对 PID/命令行是标准动作。\n\n---",
+          "status": "verified",
+          "related": [
+            "OS-008"
+          ],
+          "file": "docs/plans/archive/008-view-unification.md"
         }
       ],
       "status": "Verified",
@@ -274,6 +304,16 @@
             "OS-007"
           ],
           "file": "docs/plans/archive/007-frontend-vm-desktop.md"
+        },
+        {
+          "id": "P008-5",
+          "title": "view-unification — 复审记录",
+          "content": "**载体说明**：008 早于 plan 技能流程；实施载体 worktree `plan-008-view-unification`\n已于 2026-08-27 经 `2266beb` 全量折叠 main（worktree/分支均已不存，幂等跳过）。\n本复审在主检出做账实核对。\n\n### 验证清单逐条重验\n\n1. **Phase 0/1/2/批 1-6 — ✅（历史在案）** 原勾选项 git 历史逐条有落（Phase 0 自愈\n   门禁 6 连跑/Phase 1 Tailwind+Inter 落地+新基准/Phase 2 D2+D6 定稿+小数间距硬规则/\n   批 1-3 双端绿/批 4 vue 达标+vm J1 上报 446/批 6 根合一+`*_vm.at` 清零）。\n2. **Phase 3 遗留（J1 复验）— ✅ 经 009/010 接管链收口** 010 T3 重判原\"批 4 全灭\"\n   为失真快照+模块未加载的复合假象；真缺陷 U1（事件冻结 P0，门禁段序绕行）/U2\n   （type×onchange）确诊并登记 446 §P；010 T10 把原卡点（detail inputs/applies\n   常驻）固化为 e2e-vm 断言。接管为用户知情决策（009 定稿两段式，2026-08-26 在案）。\n3. **Phase 4 + 终态 — ✅（现行存活核验）** `*_vm.at`/app_shell 现行树清零；Tailwind\n   管线在位（tailwind.config.cjs+postcss）；e2e-vm 断言 14→18 演进、2026-09-07 当日\n   全绿；`./scripts/e2e.sh` 三套件同日 ALL PASS（012 复审连带取证）；文档三件套与\n   实机走查由 010 T11/T13 落账。\n4. **现行统一源事实 — ✅** `auto/src/front/` 一套 .at 双端消费为现行架构地基，\n   009（像素对拍）/010（vm parity 清偿）/562（sidebar 族）均在此地基上演进。\n\n### 遗漏 / 延后 / workaround 猎捕\n\n- **遗漏**：无——批 5 吸收进批 3/4 为计划内文字在案；批 4 vm 侧阻塞有二分矩阵\n  定案 + 446 上报（ae26034），非静默。\n- **延后（用户知情）**：两段式接管（009）+ J1 复验顺延（009 §0.2）——009 定稿\n  文本在案；§6 后续候选四项转 KNOWN-DEBT 惯例（其中深色模式双端同源已由\n  plan011 四期 be70131 落地；api.at 接入已由 011/559 收口）。\n- **workaround**：e2e-vm 自愈门禁（MCP 崩溃重启 ≤3 次）为上游缺陷的显性缓解，\n  计划文本+台账双在案；D7 降级例外（上限 2 组件）后经 009 二阶段全部还原。\n- **上游缺陷终态**：P0 回报的 MCP 轮询硬崩溃（J4）经 010 全程未再现 + 探针三撤\n  结案（台账 007 行在案）。\n\n### spec-impact 元数据\n\n- supersedes_spec_components: []（ledger 始于 011，008 早于之）\n- new_spec_components: []（008 成果=统一视图源+类串词汇体系，由 009/010 承接演进）\n- touched_goals: []\n\n**裁定：验证清单全过（含接管链三项）、无未清 blocking 债 → status=reviewed，就绪 /auto-plan:merge。**",
+          "status": "published",
+          "related": [
+            "OS-008"
+          ],
+          "file": "docs/plans/archive/008-view-unification.md"
         }
       ],
       "status": "Published",
@@ -334,6 +374,16 @@
             "OS-007"
           ],
           "file": "docs/plans/archive/007-frontend-vm-desktop.md"
+        },
+        {
+          "id": "P008-1",
+          "title": "view-unification — 摘要（动因/接管链）",
+          "content": "> **状态**：已执行完毕并折叠 main（2026-08-27 `2266beb` 全量合入：批 1-4 + 批 6 根合一 + 009 接管/J1 攻坚/阶段一验收包；尾部三项由 009/010 接管链收口——2026-09-07 复审账实核对确认，见文末复审记录；frontmatter 归一化亦补于此时）\n> **前置**：Plan 007 已完成（逻辑层单一真源：3 store + `use back.api:` 双解析；vm 桌面版功能可用，9 断言门禁绿）。但 007 的 D2\"视图分叉\"决策导致 vue/vm 两套视图永久双维护，且 vm 视图层从未做设计移植，观感与 web 版断层（用户验收判定：不可接受）。\n> **本计划动因**（2026-08-25 用户质询链）：AutoUI 本身按\"一套代码多后端\"设计（038-minesweeper 实证单 widget 文件跑 `auto run` + `auto run --render vm`）；本仓两套视图是 Plan 006 手写工程（styles.css + 命名类，无 Tailwind）的历史包袱 + Plan 007 保 vue 零回归的风险决策，**不是框架必然**。本计划回归框架标准姿势。\n> **仓库**：auto-os-config（frontend only；`backend/` daemon 零改动）",
+          "status": "published",
+          "related": [
+            "OS-008"
+          ],
+          "file": "docs/plans/archive/008-view-unification.md"
         }
       ],
       "status": "Published",
