@@ -1,10 +1,10 @@
 ---
 plan_id: PLAN-010
-status: executing
+status: execution_done
 feature_name: VM 轨一致性——Auto/VM 版对齐 Auto/Vue 版
 author: [zcode]
 created_at: 2026-08-27T12:00:00+08:00
-updated_at: 2026-08-28T17:30:00+08:00
+updated_at: 2026-09-07T15:00:00+08:00
 
 # Leave these EMPTY here — /auto-plan:review fills them:
 supersedes_spec_components: []
@@ -176,7 +176,7 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 - [x] T14b (用户报告修复) 侧栏三问题 ✅ 已完成 [2026-08-28]（9133334）。**根因:上游 CLI 漂移**——auto-lang master 推进 42 提交（1487b5c5d→05b9362af,446 批三+归档）,button 渲染路径变化:子树从「折叠 label」变「结构竖排渲染」,button 内布局类失效;分组内文字缺失为新 CLI 回归。修复:①nav button 子树包显式 `row` 容器（vm row 横排可靠,field-row 先例;6 处 nav item + group-header ▾/label）②去 items-start/items-center（iced 对齐行为异常,默认对齐正确）③去分组 `contents` 容器（key 在 button 上,vue 端 loop key 提升机制接管）。结果:左右布局 ✓/分组头正常高度 ✓/分组内名称可见 ✓;css-era 00=0.00% 零回归 + e2e-vm 15/15 两连绿。**残留登记**:分组内 desc 缺失（双层 for 内 text 高度钳制,上游 P9 待回报）+ 行距偏大（L2）。**教训**:A 相锚定纪律须覆盖"轮内 CLI 被并行会话重建"——复审/用户验收前应重验 `auto --version` 与锚定哈希一致。
 
 - [x] T14c (用户报告二轮) 高度/desc 终修 ✅ 已完成 [2026-08-28]（5062510）。用户实机反馈:h-auto 在 row 包裹下高度倍数膨胀(standalone/Harness 头 2-3 倍);去 h-auto 则 preset h-10 裁掉 desc。实测矩阵(h-fit 不识别/去 items 类/items-start 组合)后定案:**去 h-auto + 显式 h-[50px]**(vue 端 offsetHeight 实测 50 等值,vm 端两行全容);row 对齐采「无 items 类」(items-start+flex-1 组合是 30px 错位元凶,单独 items-start 无恙)。结果:**desc 全恢复(含分组二级项)+高度正常+左右布局**,vm 00=0.99%。已知残差:css-era 侧栏文字整体上移 ~9px(00=0.82%,各视图 +0.8-1.1%)——上游漂移期 button 高度语义变化的 L2 权衡(vm 可用性优先),py-3/py-10 双向验证不可归零,登记待上游布局类语义稳定后复核。门禁:vue ALL PASS + e2e-vm 15/15 两连绿。
-- [ ] T19 (G 合入) plan011 后端合入——前端切换与全链回归：
+- [x] T19 (G 合入) plan011 后端合入——前端切换与全链回归：
   前提:plan011 T1-T8 完成(外部 back 三路径可用 + 双模式启动固化,见 011 计划)。
   操作(vue-first 顺序):
   a. 启动/脚本切换:`scripts/e2e.sh` 与日常启动方式的服务源从 `backend/` Cargo daemon
@@ -188,6 +188,12 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
   d. 全链回归:e2e.sh 三套件 + e2e-vm 15 断言连续两遍全绿;css-era 对拍复核。
   e. 与 plan011 T11(Rust daemon 退役)联动确认后,G6 用户验收。
   验证:双门禁两连绿;概要页双端信息一致;残差台账更新。
+  [✅] 已随 **plan011 自身执行/复审/归档全链完成**(011 已 archived,ledger P011-1..7 在册):
+  a=e2e.sh 头注"Plan 011 T8:服务源 = auto-os-config-back"在案,`backend/` 退役归档
+  (6723160);b=system_info 端点随 011 交付且概要页消费(见 T18 注);c=U1 在零 HTTP 后端
+  下仍复现(013 复审期 smoke 实录:200ms tick 重建 vnode id 致陈旧 press,已登记 013 债),
+  U8 维持在册;d=双门禁经 011/012/013 各复审多轮重跑绿,2026-09-07 当日双绿在案
+  (e2e-vm 断言已演进 15→18);e=G6 用户验收由 010 归档前统一收口。
 - [x] T14 (复审修复) 修复清单 5 项 ✅ 已完成 [2026-08-28]（c4df24b + 354b6a9）：
   ① **[P1] read_only 集合 vm 实体加载**——方案①落地:`Modules.Select` 命中集合时 `Collection.Open(si.id)` 预载（store→store 调用;vm synthesis+运行时实测通,skills `names` 7 实体+Pick 详情链路全通;vue 端幂等——mount Init 同 id 再 Open）。vue 产物跨 store 裸引用由 regen.sh 后处理改写 `useCollectionStore().Open()`+import（又一例多store facade 上游缺口,446 §P 同族）。e2e-vm 固化第 **15 断言**（skills 预载,断言后受控重启避开 U1 污染）;Roles 段 Load 改条件式（预载后空态按钮自然消失=设计行为）;Test 轮询条件补 `"loaded"` 中间态;capture 04-skills 补首实体选中口径（diff 11.48→3.52%）。② U8 补进附录 §P 表。③ metrics.mjs 入库 scripts/track-parity/（路径适配+头注）。④ nav_class 死代码清理（4 处声明/重赋值/push 字段,产物零引用）。⑤ 重验:vue ALL E2E PASS + e2e-vm **15/15 两连绿** + css-era 00=0.00%（零回归）。**待办**:G6 用户验收（/auto-plan:review 复审通过后、merge 前签字）。
 
@@ -210,16 +216,37 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
 > Auto 可调任意 Rust(stdlib sys.at/env.at/process.at 及 `.rs.at`/`.vm.at` 双端变体),
 > 系统信息(OS 版本/设备名/CPU/MEM/存储)的获取能力不受限。vue/vm 双端消费同一 api.at。
 
-- [ ] T15 (F1) vm 深浅色主题配置（用户问题 1:Search 框字体浅色适配暗色主题,与浅色 UI 不符）：
+- [x] T15 (F1) vm 深浅色主题配置（用户问题 1:Search 框字体浅色适配暗色主题,与浅色 UI 不符）：
   操作:调研 AutoUI 主题机制(AUTOUI_* env/Theme store/上游默认 dark 的指定方式)——app 级显式声明 light;检查 Theme.Init 链是否需同步设 mode。
   验证:vm 截图 Search 框文字/placeholder 为深色可读;vue 轨零回归。
-- [ ] T16 (F2) accent 切换的 primary 动态刷新（用户问题 2:点击色板 nav/主按钮仍 indigo;vue 版 e2e 已证可用 → vm 端未实现）：
+  [✅] 已由 **plan011 四期接管交付**(be70131,2026-09-04,超出原方案):不止 app 级声明
+  light,而是深浅色**双端完整切换**——theme_store.at 增 dark_mode/SetMode(renderer 同步
+  块 read_state("dark_mode")→set_dark_mode,语义调色板随翻)+左下角 Settings 齿轮弹窗
+  (autoos-ui.json 持久化,dark_mode 默认 true);regen.sh 部署侧 watcher 同步 vue
+  documentElement.dark + localStorage,index.html 防首帧闪烁。Search 框配色随语义调色板
+  走,原可读性问题不复存在;vue 轨 e2e 全绿在案(012 复审 2026-09-07 重跑)。
+- [x] T16 (F2) accent 切换的 primary 动态刷新（用户问题 2:点击色板 nav/主按钮仍 indigo;vue 版 e2e 已证可用 → vm 端未实现）：
   操作:定位 vm 端 primary 解析时机(编译期 vs SetAccent 动态);视图源/store 侧修复或上游登记。
   验证:vm 端点色板后 nav active 底色与主按钮随 accent 变化;e2e-vm accent 断言保持绿。
-- [ ] T17 (F3) 模块页按需自动加载 + 打开失败盘点（用户问题 3+4:不要手动 Load,页面打开即首次加载）：
+  [✅] 已解决(上游 renderer 同步机制):theme_store.at 头注在案——renderer.rs 同步块每帧
+  read_state("accent_color")→语义调色板翻转("primary … actually flips the semantic
+  palette + iced window"),SetAccent 动态生效非编译期;e2e-vm accent 双断言(switch→
+  coral + persists across restart)2026-09-07 重跑绿在案。尾差登记:e2e-vm 断言只锚
+  model 态,无像素级 accent 断言(视觉验证靠 track-parity 恒定 indigo 口径,不阻塞)。
+- [x] T17 (F3) 模块页按需自动加载 + 打开失败盘点（用户问题 3+4:不要手动 Load,页面打开即首次加载）：
   操作:R10 预载模式扩展——Modules.Select 对 file 模块同样触发对应配置加载(Collection.Open 同款 store 预载);Load 按钮转为双端一致的手动刷新语义(去留随实现定);逐模块盘点"打不开"清单并入残差台账。
   验证:vm 端逐模块单击即见内容;e2e-vm 相应断言更新;vue 轨零回归。
-- [ ] T18 (F4) 默认落地页改「系统概要」（用户问题 5;**需求升级:概要页 ≠ 纯跳转**）：
+  [✅] 已完成 [2026-09-07]（worktree plan-010-dev,9deccf9）。**实现路径与计划文本偏差（上游
+  演进使然,效果等价）**:原设想的 store 预载未做——上游 auto-lang 437 P2（子组件 Init 补发）
+  + 536 T3（收敛为挂载语义:每 keyed 实例只发一次,不随脏重建重放）使 ConfigEditor 在
+  app.at 渲染即自动 Init,Modules.Select 无需预载分支;Load 按钮语义已由既有形态承担——
+  loaded_once 后工具栏 Reload 即双端一致的手动刷新,!loaded_once 的 Load 仅作失败重试
+  入口（成功路径不出现,与 vue 形态对齐）。e2e-vm 断言转正:手动 Load press 退役,改正向
+  断言（轮询快照至编辑器 inputs≥1,实测 inputs=15）;Test 按钮 press 窗口 2s→5s（Init
+  取数内联挂载渲染期,冷启动竞态）。逐模块盘点:8 视图双轨全可达（06/07 首轮流败=U3/U6
+  族 per-boot 时序抖动,二轮 8/8）;562 后 parity 新基线随本轮重立（见 §残差台账·重基线）。
+  取证:e2e-vm 18/18 PASSED + vue 三套件 PASS + npm run build 绿 + regen 零漂。
+- [x] T18 (F4) 默认落地页改「系统概要」（用户问题 5;**需求升级:概要页 ≠ 纯跳转**）：
   内容组成(用户 2026-08-28 二轮反馈定案):
   a. **系统信息卡**——操作系统、OS 版本、设备名称、CPU、内存(MEM)、存储信息;
   b. 模块入口卡片(icon+名称+描述,点击跳转对应模块)——保留但非主体。
@@ -230,6 +257,11 @@ e2e-vm 断言扩容目标（+5）：搜索过滤生效、分组折叠切换、ac
   vue 端为准;骨架的 row/text-prop 词汇经验可复用)。
   验证:vue 端信息卡数据真实呈现;vm 端与 vue 显示一致;双门禁绿;css-era 空态基准随设计变更重拍。
   ⤷ 数据接入段(桩→真数据)在 **T19**(依赖 plan011 T3/T8);UI 段(vue-first)不等待,可先行。
+  [✅] 已由 **plan011 三期/四期接管交付**(79c46c0 可视化组件化+卡片等高 → be70131 深浅
+  色+Settings 弹窗,2026-09-03~04):默认落地页 = System Overview(boot title 断言在
+  e2e-vm/capture 就绪串在案),系统信息卡真数据(system_info 端点,OS/设备名/CPU/MEM/
+  Storage 水位分级色+progress/Donut)、模块入口卡片俱备;纯跳转废稿按用户否决处理。
+  vue-first 纪律全程执行(先 vue 后 vm 对拍)。双端信息一致经 capture 00 视图双轨取证。
 
 ### G 相 · Auto 后端架构演进（2026-08-28 用户提案；方案记录，执行待确认）
 
@@ -300,7 +332,30 @@ HTTP 客户端**。
 | R6 | 进程卫生 | 工具纪律 | node 崩溃遗留僵尸 auto.exe 占 MCP 端口——后续所有 boot 截图拍到旧画面 | libuv 断言退出不留清场 | capture 已加逐次 taskkill 清场 ✅ | ✅ 已修 |
 | R7 | 窗口定标 | 工具纪律（已修） | T6 定标 720x450 只对齐 PNG 物理尺寸（1440x900），**逻辑几何是 vue 半幅**——侧栏占宽 40% vs vue 20%，布局比例全失配，diff% 系统性虚高（26 vs 真实 10-20） | DPR 语义混用：vm 720 逻辑 @2x = vue 1440 逻辑 @1x | capture 改 AUTO_VM_WINDOW=1440x900 + normalizeSize 重采样归一（4c8c8a9） | ✅ 已修 |
 
+### 重基线（T17 连带，2026-09-07；562 sidebar 族 + 概要页三/四期后的现行形态）
+
+双轨 8/8 捕获（worktree plan-010-dev；同 accent/同视口纪律沿 T5-T7）。vue-vs-vm 新基线：
+
+| 视图 | 旧终值(T8, nav 族形态) | 新基线(562 sidebar 族+概要页后) |
+|---|---|---|
+| 00-sidebar | 0.97 | **6.04** |
+| 01-ai-daemon | 6.72 | 7.59 |
+| 02-auto-musk | 2.99 | 2.75 |
+| 03-roles | (U3 跳过) | 2.77 |
+| 04-skills | 3.64 | 3.73 |
+| 05-ai-client | 4.16 | 3.66 |
+| 06-modes | 2.25 | 3.00 |
+| 07-harness-roles | 1.69 | 2.13 |
+
+00 涨幅主项=562 侧栏族形态差（sidebar_menu_button 契约样式 vs vue Plain mode style 串）+
+概要页内容改版（00 视图现为 System Overview 落地页）；01 残差含 daemon_view Test 行。
+全行 bbox 全幅但幅度维持个位数——无结构性红块，作为 562 后门禁外参考基线。
+**逐模块「打不开」盘点结论（T17）**：8 视图双轨全部可达可截；vm 首轮流 06（截图零窗）
+/07（NAV FAIL）复测即过——定性 per-boot 时序抖动（U3/U6 同族），非应用缺陷，无新增
+「打不开」行。file 模块单击即见内容（editor inputs=15 断言在 e2e-vm 固化）。
+
 ## 已知 GAP 汇总（e2e-vm 运行时输出，共 2 项常驻）
+
 
 见台账 U1/U2——均属上游能力缺口而非本仓回归；vm 门禁判定不受影响，实机键盘路径在 T13 走查验证。
 
