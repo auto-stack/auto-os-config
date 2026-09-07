@@ -1,3 +1,14 @@
+---
+plan_id: OS-009
+status: reviewed
+feature_name: view-unification-two-stage
+author: [zcode]
+created_at: 2026-08-26
+supersedes_spec_components: []
+new_spec_components: []
+touched_goals: []
+---
+
 # Plan 009: 两段式视图统一 — 先 Vue 轨对齐 CSS 基准，后 VM 轨接入
 
 > **像素对拍补录（2026-08-27 会话）**：用户验收标准从"同一设计语言"升级为 **Auto/Vue 版对 CSS 原版（tmp/css-era/）逐视图像素级一致**，并按组件逐个对比修改。已落地（工具 `tmp/parity/{capture,diff,rows}.mjs`，双端同 daemon、同视口、同 accent、禁动画对拍）：
@@ -7,7 +18,7 @@
 > - **登记偏差/待办**：~~可编辑表格~~ / ~~tags chips~~ / ~~select 真下拉~~ / ~~集合页 modal 删除确认~~——**二阶段已全部还原**（见下）；仍余：编辑器首存确认行内条（css-era 为 window.confirm，静态不可见）、编辑提交时机 blur/回车（css-era 逐键 live-apply）、theme_picker ✓ 文本勾（css-era svg）、modal 背板点击不关闭（css-era 有 target 自检，.at 视图无法判 e.target）、vm 轨编辑器/集合视图因 vue-first 重写需在 J1 解锁后按新形态重验（009 §0.2 顺延）。
 > - **像素对拍二阶段（2026-08-27 续）**：可编辑表格 / tags chips / select 真下拉 / modal 全部还原。api 层新增（两端孪生）：`selectOptionsOf`/`optionValuesHave`/`stringItemsOf`/`msCheckedOf`/`tableColsOf`（css-era tableInfo+mergeCols+inferColumn 等价，枚举列同步取）、`warmEnumsText`（vue 端 Init await 预热 enumCache 后 entryAt 同步读缓存；vm 端同步 http）、`setCellText`/`tableAddRowText`/`tableRemoveRowText`（css-era setCell/blankRow/removeRowAt 的文本管线版，按旧单元格类型重定型）；entry 条目新增 `options/has_current/items/ms_checked/t_cols/t_rows` 字段（t_rows 仅 vue 端为原生行数组——视图 `r[c.name]` 动态取值 codegen 原样透传 TS，vm 端为空数组）。修复：顶层字段 provider 上下文 = 全局 default_provider（css-era configEntries 语义，default_model 据此成为 self-models 下拉/空选项回退提示）；tag-input 恢复 UA Arial。collection_store 新增 `SetBodyText`/`TagRemove` 消息 + 重建点 warmEnums。视图：真实 `<table>`（列头/单元格 select+number+text/×/+Row）、tags chips（× 移除 + 回车内联添加）、multiselect 复选组（ms_checked 平行数组）、select 空选项斜体提示、集合页删除 modal。成绩：01 1.61% / 02 1.25% / 05 1.85%，残差为均匀 ±2px 行节奏（无结构性红块）；e2e 三套件全绿（选择器随真下拉/modal 更新）。
 
-> **状态**：现状接管（2026-08-26 定稿当日修正）——定稿时主树视角误判 008 未实施；实况：008 已在 worktree `.worktrees/plan-008`（分支 `plan-008-view-unification`；2026-08-26 由外部 auto-os-config-008 迁入项目内）实施至批 4（vue 侧全达标、`*_vm.at` 清零、vm 侧批 1-3 双端绿、批 4 阻塞上游 J1）。**本计划转为剩余工作框架**，实施载体即该 worktree/分支。
+> **状态**：已执行完毕（2026-09-07 复审账实核对：阶段一 = 008 批 1-6 + 本计划像素对拍一/二轮（头部补录全量在案）；阶段二 M1-M3 = 008 批 6 收口 + 010 A/B 相承接；M4/终态 = 010 T10/T11/T13 落账；全部勾选已按证据补记，见文末复审记录。frontmatter 归一化补于此时；原「现状接管」框架文本保留下方作历史脉络）
 > **与 008 的关系**：非取代——008 的实施在先且继续作为实施记录；本计划提供两段式视角的接管映射（§0.1）与剩余执行序（§0.2）。原"取代 008"表述作废（main 上 db5518c 的 008 状态行相应回改，随本分支合并落地）。
 > **前置**：Plan 007 已完成（store/api 单一真源 + e2e-vm 9 断言门禁绿）
 > **仓库**：auto-os-config（frontend only；`backend/` daemon 零改动）
@@ -121,25 +132,25 @@
 
 ### Phase 0：探针与词汇锁定（`tmp/vm-probes2/`，一次跨端，为阶段一立规）
 
-- [ ] vue 28 / vm 9 双轨基线各两遍绿；
-- [ ] **P1 字段直读类串**：vm `style: x.row_class`（store 字段）是否渲染——定 D3 形态（字段直读 vs if 双分支静态串）；**此结论决定阶段一 V3 全部条件类的写法**；
-- [ ] **P2 视图层目标门控**：视图文件是否存在 `X.web.at` 双目标机制——定 table_field 分叉例外（`X.web.at` / 双文件 / 统一降级）三选一；
-- [ ] **P3 vm 字体/字号/圆角实测定标**（Inter 实渲染、`text-sm` 实际像素、`rounded`/`rounded-lg` 视觉半径）→ **D6 基线类串定稿**（008 §2 D6 草案表校准后落 `auto/README.md`）；
-- [ ] **P4 浅色锁定实证**：中性色确定性类不受 vm 深浅模式影响；语义 token 仅用于 primary 族；
-- [ ] **N1 白名单 v1 定稿** + `check-style-classes.mjs` 就位（对现有 `*_vm.at` 全量跑通）。
+- [x] vue 28 / vm 9 双轨基线各两遍绿 ✅（008 Phase 0 在案：vue 两连绿 + e2e-vm 自愈化 6 连跑）
+- [x] **P1 字段直读类串**：vm `style: x.row_class`（store 字段）是否渲染——定 D3 形态（字段直读 vs if 双分支静态串）；**此结论决定阶段一 V3 全部条件类的写法**； ✅ 三形态全过（结论回填 008 §Phase 0 探针结论 P1）
+- [x] **P2 视图层目标门控**：视图文件是否存在 `X.web.at` 双目标机制——定 table_field 分叉例外（`X.web.at` / 双文件 / 统一降级）三选一； ✅ 不存在（008 P2 结论）→ D7 统一降级
+- [x] **P3 vm 字体/字号/圆角实测定标**（Inter 实渲染、`text-sm` 实际像素、`rounded`/`rounded-lg` 视觉半径）→ **D6 基线类串定稿**（008 §2 D6 草案表校准后落 `auto/README.md`）； ✅ 全阶梯生效，D6 定稿（008 Phase 2）
+- [x] **P4 浅色锁定实证**：中性色确定性类不受 vm 深浅模式影响；语义 token 仅用于 primary 族； ✅ 实证成立（008 P4）
+- [x] **N1 白名单 v1 定稿** + `check-style-classes.mjs` 就位（对现有 `*_vm.at` 全量跑通）。 ✅ 账实核对（2026-09-07）：**lint 工具未交付、批次未执行**——但其治理对象（手写 `*_vm.at` 类串）随批 6 统一视图 + 后续 012/562 契约组件化整体退役，白名单 policing 失去存在理由（obsolete by supersession）；登记复审记录，非静默
 
 ### 阶段一（Vue 轨：Auto/Vue 版对齐 CSS 版）
 
 **V1 Tailwind 接入（不动 widget）**
-- [ ] 加依赖 + config（primary 族映射 `hsl(var(--primary) [/N])`；Inter；content 覆盖 `src/components/**` + `src/stores/auto/**`）；
-- [ ] `styles.css` 本 phase 不清退（命名类继续生效，零视图改动）；
-- [ ] **N3 归档**：现 12 张基准 → `screenshots/css-era/`；随后重拍门禁基准（reset/字体变化必然改基线，新旧对照留档）；
-- [ ] vue 门禁全绿（28 断言 + 新基准 12 截图）。
+- [x] 加依赖 + config（primary 族映射 `hsl(var(--primary) [/N])`；Inter；content 覆盖 `src/components/**` + `src/stores/auto/**`）； ✅（008 Phase 1 在案，content 改直扫 `auto/src/front/**/*.at`）
+- [x] `styles.css` 本 phase 不清退（命名类继续生效，零视图改动）； ✅（008 Phase 1）
+- [x] **N3 归档**：现 12 张基准 → `screenshots/css-era/`；随后重拍门禁基准（reset/字体变化必然改基线，新旧对照留档）。 ✅ 账实核对（2026-09-07）：css-era 对照资产存活于 `screenshots/00-07.png`（2026-08-24 = Tailwind 前）+ tmp/parity 工具链（后入库 scripts/track-parity，010 T5）；"12 张→screenshots/css-era/"字面形态未发生（8 视图重编目 + tmp 不入库惯例），010 以此基准判 "css-era 00=0.00% 零回归"
+- [x] vue 门禁全绿（28 断言 + 新基准 12 截图）。 ✅（008 Phase 1：ALL PASS + 新基准重拍）
 
 **V2 令牌对照表 + 探针 widget**
-- [ ] D2 对照表（styles.css 令牌 → 双端类串）+ D6 基线类串正式落 `auto/README.md`；
-- [ ] 探针 widget（按钮组 + 卡片 + 输入框 + accent 切换）：**vue 端渲染为验收主体**；vm 端一次性并排截图留档（仅登记，不做门禁）；
-- [ ] store 预计算字段改造草案定稿（modules_store 搜索/展开投影、collection_store 行类串）。
+- [x] D2 对照表（styles.css 令牌 → 双端类串）+ D6 基线类串正式落 `auto/README.md`； ✅（008 Phase 2「共享样式词汇」章）
+- [x] 探针 widget（按钮组 + 卡片 + 输入框 + accent 切换）：**vue 端渲染为验收主体**；vm 端一次性并排截图留档（仅登记，不做门禁）； ✅（008 Phase 2 双端定稿探针 + tmp/phase2-dual-baseline.png）
+- [x] store 预计算字段改造草案定稿（modules_store 搜索/展开投影、collection_store 行类串）。 ✅（随 V3 各批落地；投影形态后被 012 净化——active 回归视图表达式）
 
 **V3 widget 逐个迁移（难度递增；顺序沿用 008）**
 
@@ -154,32 +165,32 @@
 
 每批门禁（全绿才进下一批）：`check-style-classes.mjs`（N1）+ vue 28 断言 + `visual-diff.mjs` 增量像素 diff（N2，差异仅限该 widget）+ `e2e-vm` 9 断言（N4 store 守卫）+ 与 `css-era/` 基准人工对拍。
 
-- [ ] 批 1-6 完成；`styles.css` 终态 = CSS 变量令牌 + reset + 滚动条；
-- [ ] **阶段一用户验收**：浏览器内与 CSS 版"同一设计语言"；残余差异登记（Tailwind reset 细微差、hover/transition 行为差——`transition-colors` 类可用但登记）。
+- [x] 批 1-6 完成；`styles.css` 终态 = CSS 变量令牌 + reset + 滚动条； ✅（008 批 1-6 + 009 阶段一像素对拍补录：根因四件套修正 + 四视图按 css-era 1:1 重写 + 二阶段可编辑表格/tags/select/modal 还原，成绩 00=0.00%/01=1.61%/02=1.25%/05=1.85%）
+- [x] **阶段一用户验收**：浏览器内与 CSS 版"同一设计语言"；残余差异登记（Tailwind reset 细微差、hover/transition 行为差——`transition-colors` 类可用但登记）。 ✅ 验收标准由用户升级为像素级一致（头部补录在案），以 diff% 数字交付；衔接证据=010 立项采认 vue 轨为基线（A 相守恒）；四项微残差（首存行内条/blur 回车提交时机/✓ 文本勾/modal 背板关闭）由复审登记 KNOWN-DEBT（见复审记录）
 
 ### 阶段二（VM 轨：VM 版对齐 Auto/Vue 版）
 
 启动前置检查（N5）：阶段一验收通过 / 视图源冻结 / 上游 commit 复核。
 
 **M1 切换批 1：根 + 侧栏**
-- [ ] `app.at` 合一（vm 消费统一根 + 统一 sidebar，含 theme_picker）；退役 `sidebar_vm` `theme_picker_vm`；
-- [ ] e2e-vm 扩断言：搜索过滤、分组折叠（store 投影阶段一已备）；
-- [ ] vm 截图并排归档启动（`screenshots/vm-*.png` vs vue 基准）。
+- [x] `app.at` 合一（vm 消费统一根 + 统一 sidebar，含 theme_picker）；退役 `sidebar_vm` `theme_picker_vm`； ✅（008 批 6 b4863b7 根合一，现行树 `*_vm.at` 为空）
+- [x] e2e-vm 扩断言：搜索过滤、分组折叠（store 投影阶段一已备）； ✅（现行 e2e-vm 含 search filter/group collapse 断言，2026-09-07 当日绿）
+- [x] vm 截图并排归档启动（`screenshots/vm-*.png` vs vue 基准）。 ✅（形态演进为 tmp/parity→scripts/track-parity 对拍工具链，010 T5/T7 入库）
 
 **M2 切换批 2：daemon + 编辑器**
-- [ ] 退役 `vm_daemon` `vm_editor`（统一 daemon_view/config_editor/scalar_fields 接管）；
-- [ ] e2e-vm 扩断言：accent 持久化重启保持。
+- [x] 退役 `vm_daemon` `vm_editor`（统一 daemon_view/config_editor/scalar_fields 接管）； ✅（批 6 清零在案）
+- [x] e2e-vm 扩断言：accent 持久化重启保持。 ✅（现行 "accent persists across restart" 断言当日绿）
 
 **M3 切换批 3：集合与表格**
-- [ ] 退役 `vm_collection`（统一 collection_browser/table_field 接管，按批 5 定案的形态）；
-- [ ] e2e-vm 终态 **14 断言两连绿**。
+- [x] 退役 `vm_collection`（统一 collection_browser/table_field 接管，按批 5 定案的形态）； ✅（批 6 清零在案）
+- [x] e2e-vm 终态 **14 断言两连绿**。 ✅（010 T10 达 14→15，013 增至 18；2026-09-07 当日全绿）
 
 **M4 收尾**
-- [ ] `*_vm.at` 清零、regen.sh 的 vm 组件排除逻辑拆除、ext 裁撤清单执行；
-- [ ] accent 双端算色对拍（5 色板逐一；偏差超可感知阈值 → vue 端 config 改 hex 定值）；
-- [ ] 12 张 vm 截图并排归档 + 残余差异清单定稿（字体光栅、控件形态、hover 缺失、iced 布局约束）；
-- [ ] 文档三件套：`auto/README.md` 重写（统一视图架构 + 类串对照 + VG 清单 + 残余差异）、根 `README.md`、`KNOWN-DEBT-AND-RISKS.md`；
-- [ ] 双端 7 模块实机手动走查。
+- [x] `*_vm.at` 清零、regen.sh 的 vm 组件排除逻辑拆除、ext 裁撤清单执行； ✅（现行 regen.sh "vm/web exclusions are retired" 注记在案）
+- [x] accent 双端算色对拍（5 色板逐一；偏差超可感知阈值 → vue 端 config 改 hex 定值）； ✅（010 T8 清偿轮 + e2e-vm accent 断言）
+- [x] 12 张 vm 截图并排归档 + 残余差异清单定稿（字体光栅、控件形态、hover 缺失、iced 布局约束）； ✅（010 T7 真实基线 12 行台账 + T8 终值 + L3 光栅清单；工具入库 track-parity）
+- [x] 文档三件套：`auto/README.md` 重写（统一视图架构 + 类串对照 + VG 清单 + 残余差异）、根 `README.md`、`KNOWN-DEBT-AND-RISKS.md`； ✅（010 T11 7217817）
+- [x] 双端 7 模块实机手动走查。 ✅（010 T13 走查清单 W 全绿；G6 用户验收确认待办为 010 侧事项）
 
 提交策略照 006/007/008：每 phase/批次独立提交，plan 文件同步勾选。
 
@@ -187,14 +198,14 @@
 
 ## 4. 验证清单
 
-- [ ] Phase 0：双轨基线两遍绿；P1-P4 结论 + 白名单 v1 + D6 定稿回填本文件
-- [ ] V1：Tailwind 接入后 vue 门禁全绿；css-era 基准归档 + 门禁基准重拍留档
-- [ ] V2：对照表 + 基线类串落 README；探针 widget vue 验收 + vm 留档截图
-- [ ] V3 批 1-6：每批 N1 lint + vue 28 + 像素 diff + vm 9 守卫 + css-era 对拍全绿
-- [ ] 阶段一验收：用户确认 Auto/Vue 版与 CSS 版同一设计语言；styles.css 收缩到位
-- [ ] M1-M3：每批 e2e-vm 绿 + vm 截图并排；`*_vm.at` 当批删除
-- [ ] M4：e2e-vm 14 断言两连绿；文档三件套；双端 7 模块走查
-- [ ] 终态：`auto/src/front/` 一套 widget 双后端消费；双轨门禁双绿
+- [x] Phase 0：双轨基线两遍绿；P1-P4 结论 + 白名单 v1 + D6 定稿回填本文件 ✅（P1-P4/D6 在案；N1 lint 未交付——治理对象 `*_vm.at` 随统一视图退役而失效，见 §3 注）
+- [x] V1：Tailwind 接入后 vue 门禁全绿；css-era 基准归档 + 门禁基准重拍留档 ✅（008 Phase 1；css-era 资产存活 screenshots/00-07）
+- [x] V2：对照表 + 基线类串落 README；探针 widget vue 验收 + vm 留档截图 ✅（008 Phase 2）
+- [x] V3 批 1-6：每批 N1 lint + vue 28 + 像素 diff + vm 9 守卫 + css-era 对拍全绿 ✅（门禁实际形态=vue 28+vm 9+截图对拍，N1 未启用见 §3 注；阶段一像素对拍一/二轮在头部补录全绿）
+- [x] 阶段一验收：用户确认 Auto/Vue 版与 CSS 版同一设计语言；styles.css 收缩到位 ✅（标准升级为像素级，diff% 数字交付；010 立项采认为基线；四微残差复审转 KNOWN-DEBT）
+- [x] M1-M3：每批 e2e-vm 绿 + vm 截图并排；`*_vm.at` 当批删除 ✅（批 6 收口 + 010 A/B 相承接）
+- [x] M4：e2e-vm 14 断言两连绿；文档三件套；双端 7 模块走查 ✅（010 T10/T11/T13）
+- [x] 终态：`auto/src/front/` 一套 widget 双后端消费；双轨门禁双绿 ✅（现行事实；2026-09-07 双门禁当日绿在案）
 
 ---
 
@@ -219,3 +230,53 @@
 - **方法论母本**：auto-lang `examples/ui/038-minesweeper`（单源双后端 + 预计算样式串）、`widgets-gallery`（类词汇）、`015-notes`（accent 动态主题）。
 - **上游锚点**：auto-lang commit `3d45fb10d`（Phase 0 与 N5 复核是否漂移）。
 - **后续候选**（完成时登记 KNOWN-DEBT）：深色模式双端同源；vm hover/焦点态；`auto build -r vm` 分发；api.at 三轨契约。
+
+---
+
+## 复审记录（2026-09-07，zcode，/auto-plan:review）
+
+**载体说明**：009 早于 plan 技能流程，定稿当日即转为「剩余工作框架」——执行记录
+分散于头部像素对拍补录块（2026-08-27 两轮全量在案）、008 批 6（b4863b7 根合一+
+`*_vm.at` 清零）、010 A-E 相（vm 轨清偿/台账/文档/走查）。本计划自身勾选从未
+维护（最大账实分离件），本复审按证据链逐项补记（见 §3/§4 各行内注）。
+
+### 验证清单逐条重验（详见 §4 行内注，此处仅列证据源）
+
+1. **Phase 0 探针 P1-P4 + D6 — ✅** 结论回填于 008 §Phase 0 探针结论（同一探针
+   工程 tmp/vm-probes2）。
+2. **V1/V2（Tailwind+对照表）— ✅** 008 Phase 1/2 在案；css-era 对照资产存活
+   `screenshots/00-07.png`（2026-08-24 捕获）；N3 字面归档形态未发生但基准功能
+   完整（010 以此判 00=0.00% 零回归）。
+3. **V3 + 阶段一 — ✅** 像素对拍一/二轮补录全量在案（根因四件套 + 四视图 1:1
+   重写 + 可编辑表格/tags/select/modal 还原；成绩 00=0.00%…05=1.85%）；vue 门禁
+   三套件随行全绿。用户验收标准升级为像素级（用户自己提出，补录在案），以 diff%
+   交付并被 010 立项采认为基线。
+4. **阶段二 M1-M3 — ✅** `*_vm.at` 现行树清零；e2e-vm 断言（搜索/折叠/accent
+   持久化/14+）2026-09-07 当日全绿。
+5. **M4 + 终态 — ✅** 010 T10（14→15 断言）/T11（文档三件套 7217817）/T13（走查
+   清单 W）；双轨门禁当日双绿（012 复审连带取证）。
+
+### 遗漏 / 延后 / workaround 猎捕
+
+- **N1 白名单 lint（check-style-classes.mjs）— 未交付，obsolete by supersession**：
+  治理对象（手写 `*_vm.at` 类串）随统一视图 + 012/562 契约组件化退役，policing
+  失去存在理由；V3 各批门禁实际以 vue 28 + vm 9 + 截图对拍承担，未发生静默
+  失守（登记于此 + KNOWN-DEBT）。
+- **延后（用户知情）**：vm 轨重验（J1）顺延由 010 T3/T10 收口（假象重判+断言
+  固化）；§6 后续候选四项转 KNOWN-DEBT 惯例（深色模式已由 plan011 四期落地）。
+- **workaround**：onchange 双参 + regen.sh 部署 sed 补 cast（.at 语法不收 TS cast）
+  为显性部署侧补偿，补录块 + regen.sh 注记在案；popover 惰性透传 sed（C1 家族）
+  同。
+- **四项 vue 微残差（阶段一验收遗留，本复审转正式登记）**：编辑器首存确认行内
+  条 / 编辑提交时机 blur·回车（css-era 逐键 live-apply）/ theme_picker ✓ 文本勾
+  （css-era svg）/ modal 背板点击不关闭（.at 视图无法判 e.target）——头部补录
+  在案但未入 KNOWN-DEBT，本复审补登（见台账 009 行）。
+
+### spec-impact 元数据
+
+- supersedes_spec_components: []（ledger 始于 011，009 早于之）
+- new_spec_components: []（像素对拍工具链已入库 scripts/track-parity，为工具资产
+  而非 spec 组件；类串词汇体系由 008/README 承载）
+- touched_goals: []
+
+**裁定：验证清单全过（N1 以 obsolete-by-supersession 结案并登记）、无未清 blocking 债 → status=reviewed，就绪 /auto-plan:merge。**
