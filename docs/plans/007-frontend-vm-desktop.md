@@ -1,6 +1,17 @@
+---
+plan_id: OS-007
+status: reviewed
+feature_name: frontend-vm-desktop
+author: [zcode]
+created_at: 2026-08-25
+supersedes_spec_components: []
+new_spec_components: []
+touched_goals: []
+---
+
 # Plan 007: 前端 Auto 化（第二步）— VM 桌面版
 
-> **状态**：待实施（设计定稿 2026-08-25）
+> **状态**：已执行完毕（2026-08-25 当日闭环：Phase 0-5 全落 + 收尾 workaround 审计；归一化 frontmatter 于 2026-09-07 复审时补——本计划早于 plan 技能流程，状态行原停留在「待实施」为漏回写，账实核对见文末复审记录）
 > **前置**：Plan 006 已归档（`.at` 是前端单一真源；D4 描述符驱动 / D5 不可变重建已成规范）。Plan 006 §6 列的三个前置条件现状：① defineModel 深变异 🔴 **已修**（auto-lang Plan 443，当日闭环）；② vm store facade——**已基本解决**（auto-lang Plan 370：store 字段合并根 state、`.store.X` 扁平化、`store.Method` 改写，015-notes 以 `--mode vm` 跑通 13 场景；musk 028 T21 报的 Undefined variable 仅指 vue 合成的 composable 门面，vm 轨改用原生 store 语法即绕开）；③ vm view-builder 禁函数调用——**本仓 D4 已预留**（view 零函数调用、零动态索引，Phase 1 探针复验）。
 > **仓库**：auto-os-config（frontend only；`backend/` daemon 零改动）
 > **目的**：在 vue web 版之外提供 **VM 桌面版**——`auto run -r vm`（在 `auto/vm/` 工程）拉起 iced 自绘原生窗口，直连 daemon `:17701`，功能与 web 版对等（模块导航 / 通用编辑 / 集合 CRUD / daemon 连接测试 / 主题切换）。逻辑层（推断引擎 / 投影 / 重建 / 传输）升级为**双后端单一真源 `.at`**，vue 轨同步切换消费且零回归。
@@ -166,7 +177,7 @@ vm 工程不产 codegen、不进 regen.sh，vue 工程完全不扫 `auto/vm/`—
 ## 4. 验证清单
 
 - [x] Phase 0：vue 基线两遍全绿；vm 空壳窗口 + MCP 通道冒烟；auto-lang commit 记录（2026-08-25：`auto/vm/` 空壳起窗口，MCP 端点 `/mcp`，`autoui_action` press → handler `.App.Bump` → state `count: 10 → 11` 闭环；快照元素 id 为 `vnode_N` 形态。基线在主仓同 commit 跑（服务复用），e2e 四套两遍 ALL PASS）
-- [ ] Phase 1：五项探针结论（V1-V5）记录进本文件，降级项登记
+- [x] Phase 1：五项探针结论（V1-V5）记录进本文件，降级项登记 ✅ 结论全量在档（V1-V5 逐项 + gotcha VG1-VG14 + 架构修正，2026-08-25 实机 MCP 驱动；本勾选于 2026-09-07 复审补记——当时漏勾，账实分离）
 - [x] Phase 2（按 D1/D3 修订执行）：`auto/src/back/api.at`（vm 全文本实现，63 pub fn）+ 3 store vm-safe 重写（model 形状不变、vue widget 零改动）+ api.ts 增补同名扁平面（vue 实现）；vue regen + build 0 错 + e2e 三套全绿；vm 侧 MCP 实证：modules 加载/分组/选择 ✓、collection list/select/edit/save/create/remove ✓（editField 文本手术落盘 `tier : "pro"` 实证）。types.ts/api.ts 保留（双实现架构，不再"退役"）。追加 gotcha：**VG16** 一 widget 一 store（Init/Select 等方法名跨 store 撞名，多 store 消歧按方法名匹配）；**VG17** `json.keys` 返回**裸 key**（不带引号；输出时需 quote_json 重包）；**VG18** `.Select` 依赖 `.module_id` 由 `Init` 先置（漏 Init 时静默空 URL）。截断级 gotcha：map 字面量内空数组崩溃（二次构建规避）、map 字面量内 `.len()` 求值为 0、`json.get_at` 仅文本、substr 闭区间
 - [x] Phase 3（并入 Phase 2 完成）：`use back.api:` 单导入行双后端解析（vue→@/lib/api、vm→src/back/api.at）实证生效——store 源零改动双轨共享；vm store 数据加载/编辑/保存 MCP 断言全过
 - [x] Phase 4：vm 视图层落地——app.at 真根（fire_init 自动加载）+ sidebar_vm/theme_picker_vm/vm_editor/vm_daemon/vm_collection；实机全流程验证：模块导航 ✓、集合 list/select/edit/save（文件落盘）✓、Test connection ✓、主题切换 ✓、文件编辑器 Load/渲染 ✓。期间的架构性发现：**VG16 强化**——store 方法名必须全工程唯一（Collection 改名 Open/Pick/NewEntity/SaveEntity/DelEntity）；store 列表循环的事件参数（字段访问或 map 实参）会打死 MCP 通道——store 增平行 `names`/`entry_keys` 字符串数组 + `for i, e` 索引参数模式；`popover` 为解析毒药（确认层用普通 if 块）；msg 声明必须含全部 handler
@@ -261,3 +272,51 @@ Phase 2 实施中以 vm harness（临时 app.at + 真实共享 store）逐层实
   - markdown sidecar 的 vm 渲染后端（等 auto-lang 平台协议 `platform:markdown` 的 comrak 实现后回填）；
   - api.at 接入（三轨共用契约，延续 006 遗留）；
   - rust render 第三轨（vm 轨稳定后再评估）。
+
+---
+
+## 复审记录（2026-09-07，zcode，/auto-plan:review）
+
+**载体说明**：007 早于 plan 技能流程（无 frontmatter/状态行漏回写）；实施于 2026-08-25
+当日闭环并直接落 main（ed7aa04 Phase 4+5 等，含 e471634/a981350 两轮收尾审计）。
+本复审在主检出做账实核对：git 历史对计划逐条、交付物存活验证、现行门禁重跑。
+
+### 验证清单逐条重验
+
+1. **Phase 0-5 + 收尾审计 + 终态 — 全 ✅（历史在案 + 现行存活）**
+   - Phase 0/2/3/4/5/审计/终态原已勾选，git 历史逐条有落（Phase 2 的 api.at 双实现、
+     Phase 4 的 vm 视图五件、Phase 5 的 e2e-vm 9 断言两连绿 + 文档三件套、收尾两轮
+     workaround 审计 commit e471634/a981350——v-for key 修复 regen 静默失败/api.ts
+     契约补齐，双轨门禁真部署态复绿）。
+   - Phase 1 勾选缺失但结论全量在档（V1-V5 + VG1-VG14 + 架构修正），本复审补勾。
+2. **核心交付物现行存活 — ✅**
+   - `use back.api:` 单导入行双后端解析（007 D1 核心）：现行 modules_store.at:17
+     等三 store 仍为此形态，是 008/009/010/559/562 全部后续演进的地基；
+   - `scripts/e2e-vm.mjs`：现行 vm 轨门禁（断言 9→18 演进，含 013 AutoTerm）；
+   - `auto/src/back/api.at`：经 011/559 演进为 #[api] 契约层真源（演进非灭失）；
+   - `auto/README.md` vm 章节：现行在案（49 处 vm 相关段落）。
+3. **双轨门禁（007 终态验收）现行重跑 — ✅** 2026-09-07 同日取证（012 复审连带）：
+   `./scripts/e2e.sh` 三套件 ALL PASS + `node scripts/e2e-vm.mjs` 全断言 PASSED
+   （aaid 在线态）。
+
+### 遗漏 / 延后 / workaround 猎捕
+
+- **遗漏**：无——五 Phase + 收尾均有 commit 对应；Phase 1 勾选漏为账实分离已补。
+- **延后（用户知情链在案）**：007 §6 后续候选五项（exe 分发/ui_config 全量/markdown
+  vm 渲染/api.at 接入/rust 第三轨）——计划文本明示"本计划不做，完成时登记
+  KNOWN-DEBT"，台账 007 行在册。其中 api.at 接口已由 011/559 实现收口。
+- **workaround**：收尾两轮审计已在案（vm_collection 硬编码修复/api.at 调试残留
+  剪除/v-for key 静默 stale-deploy 修复）；VM 轨已知偏差与上游缺口全部转出至
+  KNOWN-DEBT 007 行 + auto-lang 446 §P（终态见台账，无静默）。
+- **supersession 链（设计内演进，非缺陷）**：007 D2"视图分叉"（vue/vm 两套视图）
+  为 008 立项动因（用户质询链在 008 头部在案），*_vm.at 视图层经 008 批 6/009
+  统一视图退役——007 的逻辑层/门禁/规范成果全部存活，仅视图分叉决策被后续取代。
+
+### spec-impact 元数据
+
+- supersedes_spec_components: []（ledger 始建于 011，007 早于之，无条目可代）
+- new_spec_components: []（007 成果为架构地基而非独立 spec 组件；演进链由
+  008/009/010 承接）
+- touched_goals: []
+
+**裁定：验证清单全过、无未清 blocking 债 → status=reviewed，就绪 /auto-plan:merge。**
