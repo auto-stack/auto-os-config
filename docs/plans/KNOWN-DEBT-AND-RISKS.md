@@ -33,6 +33,11 @@
 | 007 | 已知限制 | vue codegen 对 widget 内 `use XStore: Store` 直连导入生成错误路径（`@/stores/useXStore` 应为 `src/stores/auto/`）——vm 专属组件已从 web 部署排除（regen.sh VM_ONLY 清单）规避；vue widget 若需直连 store 仍会踩（006 惯例 ext facade 即为此）。 | `auto/gen/regen.sh` |
 | 007 | 已知限制 | e2e-vm 依赖 MCP 通道时序（快速连发偶发丢响应），等待阈值已加固；vm 实例偶发闲置死亡（疑似环境/GPU，非代码路径）。**010 补充**：autoui_snapshot 偶发空壳树（105B，空壳期可 >8s，446 §P6）——capture/e2e 已加非空重试缓冲。 | `scripts/e2e-vm.mjs`、`scripts/track-parity/capture.mjs` |
 | 010 | 已知限制 | **vm 轨对拍残差**（css-era 基准 00 视图 0.00% 零回归前提）：侧栏 0.97%、最复杂编辑器视图 6.72%；残差主项=上游缺口（446 §P）+ L3 光栅层（字体光栅/hover 缺失/select 形态/滚动条/emoji fallback，登记不入门禁）。U1 事件冻结以门禁段序绕行（集合段排最后）；roles 详情态截图超时（U3）capture 跳过、实机走查覆盖。 | `docs/plans/010-*` §残差台账/§附录 |
+| 013 | 已知限制 | **AutoTerm vue 轨未适配**：本计划验收面=vm 桌面（OS-013 §变更摘要）；registry 新增模块对双轨侧栏均可见，但 vue 部署树（regen 未跑）App.vue 无 autoterm_page 分发臂——vue 侧点击 AutoTerm 项无自定义视图（回退通用表单面）。收口需：regen 前核验 app.at 新增臂的 vue codegen 兼容（`<terminal>` 标签 vue 侧未接线）。 | `auto/src/front/app.at`、`auto/gen/regen.sh` |
+| 013 | 已知限制 | **stdlib 运行期安装副本同步**：`use auto.term` 模块文件解析真根=~/.auto/libs/stdlib/auto（find_std_lib 落点，非仓内 stdlib/）；上游无分发机制，`scripts/deploy-autoterm.sh` 收编（幂等）。auto-lang 侧 term{,.vm}.at 更新后需重跑部署。 | `scripts/deploy-autoterm.sh` |
+| 013 | 已知限制 | **MCP 陈旧 vnode id press 竞态**：.Tick 200ms 重建滚动 vnode id，快照→action 窗口内 id 失效——单次 press 可能落空或误触（实测误触导航离页）。smoke 以重试+ensureTermPage 复位绕开；上游候选=id 锚定（元素稳定键）。 | `scripts/autoterm-vm-smoke.mjs` |
+| 013 | 已知限制 | **宿主直关窗口的引擎子进程清理未显式验证**：Close=free 在案；用户直接关桌面窗口时的 cmd 子进程孤儿化行为未测（ConPTY 随进程退出的清理预期成立，观察项）。 | `auto/src/front/autoterm_store.at` |
+| 013 | 已知限制 | **interrupt 双投递对 cmd 的击穿副作用**：桌面实测 interrupt 后会话可整体退出（Control-Break 双投递）而非仅中断当前命令——003 §4.1 语义边界内，smoke 以统计/Control-Break/退出三态证据判定。 | `scripts/autoterm-vm-smoke.mjs` |
 
 ## 📋 未来增强
 
