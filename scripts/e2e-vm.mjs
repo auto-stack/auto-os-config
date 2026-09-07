@@ -275,11 +275,25 @@ async function runAttempt() {
   // too). Poll the status for up to ~30s instead of asserting after one
   // fixed sleep.
   if (!(await pressNav('AI Daemon', 4500))) fail('AI Daemon nav not found');
-  // stage-1 form: file modules render content only after a manual Load on
-  // the vm track (no auto-Init) — including the connection-test row.
-  if (!(await press('Load', 4000))) console.log('[e2e-vm] note: no Load button (already loaded?)');
+  // T17 (plan010): file modules auto-load on the vm track now — upstream
+  // 437 P2 + 536 T3 child-Init mount semantics fire ConfigEditor.Init once
+  // per keyed instance when app.at renders it, so the manual Load press is
+  // retired. Positive assertion: poll the snapshot until editor fields
+  // render (inputs only exist after the entries projection builds).
+  {
+    let inputs = 0;
+    for (let i = 0; i < 10 && inputs < 1; i++) {
+      const s = await snapshot();
+      inputs = (s.match(/(^|\n)\s*input #/g) || []).length;
+      if (inputs < 1) await sleep(1000);
+    }
+    if (inputs >= 1) pass(`file module auto-load (editor inputs=${inputs}, no manual Load)`);
+    else fail('file module auto-load: no editor inputs rendered');
+  }
   // batch 2: the unified card follows the vue design — button label is 'Test'
-if (!(await press('Test', 2000))) fail('Test button not found');
+  // (T17: window 2s→5s — Init fetch runs inline during the mount render, the
+  // old 2s window raced it on cold boots, observed 2026-09-07)
+  if (!(await press('Test', 5000))) fail('Test button not found');
   for (let i = 0; i < 15 && (!st.conn_state || st.conn_state === '"idle"' || st.conn_state === '""' || st.conn_state === '"loaded"'); i++) {
     st = await state('conn_state');
     if (!st.conn_state || st.conn_state === '"idle"' || st.conn_state === '""' || st.conn_state === '"loaded"') await sleep(2000);
