@@ -54,6 +54,16 @@
             "OS-008"
           ],
           "file": "docs/plans/archive/008-view-unification.md"
+        },
+        {
+          "id": "P009-2",
+          "title": "view-unification-two-stage — 目标 / 非目标",
+          "content": "### 目标\n\n1. **阶段一**：7 个 widget 全部改写为 `style:` 类串视图（双端纪律），vue 门禁全绿，与 CSS 时代基准人工对拍通过；`styles.css` 缩为令牌层 + reset + 滚动条；\n2. **阶段二**：vm 消费同一套视图源，`*_vm.at` ×5 全部退役删除；e2e-vm 9→14 断言两连绿；12 张 vm 截图与 vue 基准并排归档；\n3. 设计令牌双端同源（008 D2/D5 原样继承）；终态门禁：`./scripts/e2e.sh` + `node scripts/e2e-vm.mjs` 双绿。\n\n### 非目标（沿用 008）\n\n- 不追像素级逐点一致（阶段二）；不做 vm 深色模式；不动 store/api 契约（仅 additive 预计算字段）；不做 `auto build -r vm` 独立分发；不修 auto-lang 上游缺陷（workaround + gap 登记 + P0 回报）。\n\n---",
+          "status": "proposed",
+          "related": [
+            "OS-009"
+          ],
+          "file": "docs/plans/archive/009-view-unification-two-stage.md"
         }
       ],
       "status": "Proposed",
@@ -114,6 +124,16 @@
             "OS-008"
           ],
           "file": "docs/plans/archive/008-view-unification.md"
+        },
+        {
+          "id": "P009-3",
+          "title": "view-unification-two-stage — 决策（继承 008 + 新增）",
+          "content": "### 2.1 继承 008 的决策（不重述，以 008 文本为准）\n\n| 决策 | 内容 | 本计划调整 |\n|---|---|---|\n| D1 | `style:` 唯一属性语法；`class:` 与内嵌 `style {}` 块退役；视图零函数调用 | 阶段一即生效 |\n| D2 | accent 族→语义 token；中性色→确定性类；禁 `background/card/foreground/secondary`；`hover:` 仅作增强 | 无 |\n| D3 | 条件类串 store 预计算为完整 class 字段 | P1 探针**提前到 Phase 0 定形态** |\n| D4 | computed/ext fn 逻辑下沉共享 store | 阶段一完成（字段 additive） |\n| D5 | vue 工程接入 Tailwind 3.4；Inter；`text-sm`=14px | 无 |\n| D6 | 组件基线显式类串（按钮/输入/卡片…） | **Phase 0 定稿**（008 原排在 Phase 2——阶段一开工前就要用） |\n| D7 | 双端统一降级（select→文本、markdown→纯文本、svg→✓、表格→只读/编辑入口收敛）；分叉例外上限 2 个 | **降级形态必须在阶段一落地**：阶段一产出即双端目标形态，阶段二不得再改视图语义 |\n\n### 2.2 新增决策\n\n**N1 vm 安全类白名单 + 静态 lint（阶段一的核心护栏）**：Phase 0 从 `ui/style/class.rs` 词表 + 探针实测定稿\"vm 安全类白名单\"（允许的 vue-only 增强类——`hover:`、`transition-*`、`focus:`——单独列节）。新增 `scripts/check-style-classes.mjs`：静态提取 `auto/src/front/*.at` 视图的 `style:` 串，逐类对白名单校验，未知类直接 fail。V3 起每批必跑。**这是\"阶段一不看 vm 门禁\"的补偿机制**——vm 兼容性由开工前契约 + lint 保证，而非每批跨端验证。\n\n**N2 同后端逐像素 diff（辅助工具，不替代人工）**：新增 `scripts/visual-diff.mjs`：每批迁移后截图与上一状态 diff，**只允许被迁移 widget 的区域有差异**，其余区域必须零差异（阈值容忍抗锯齿；截图前等过渡动画结束或禁用 transition）。把回归检测从\"12 张全靠人眼\"变成\"机器圈范围 + 人眼看语义\"。人工对拍仍是验收标准。\n\n**N3 CSS 时代基准归档为验收锚点**：V1 接 Tailwind（reset 必然改变基线）重拍门禁基准之前，先把现 12 张基准归档到 `screenshots/css-era/`——这是**阶段一的验收参考**（类串版最终要和它\"同一设计语言\"），重拍后的门禁基准只做回归检测用，两者角色分开。\n\n**N4 两段门禁互冻结**：\n- 阶段一：vm 轨冻结——`*_vm.at` 零改动；每批照跑 `e2e-vm` 9 断言，**只作 store 兼容守卫**（additive 字段不得破坏 vm 现有视图），不做 vm 观感验证；\n- 阶段二：vue 轨冻结——28 断言 + 基准截图不动；vm 侧问题只允许在\"默认样式层/残余差异清单\"解决，**不得倒灌改视图源**；确需改视图源 = 该批回阶段一门禁（vue 28 + 像素 diff + CSS 基准对拍）。\n\n**N5 阶段二启动前置条件**：① 阶段一用户验收通过；② 视图源冻结（此后改视图源走 N4 回退规则）；③ 上游 auto-lang commit 复核（沿用 007 D10 锚定纪律，漂移则先 vue regen + e2e 再动 vm）。\n\n---",
+          "status": "stable",
+          "related": [
+            "OS-009"
+          ],
+          "file": "docs/plans/archive/009-view-unification-two-stage.md"
         }
       ],
       "status": "Stable",
@@ -214,6 +234,16 @@
             "OS-008"
           ],
           "file": "docs/plans/archive/008-view-unification.md"
+        },
+        {
+          "id": "P009-4",
+          "title": "view-unification-two-stage — 验证清单（含复审证据补记）",
+          "content": "- [x] Phase 0：双轨基线两遍绿；P1-P4 结论 + 白名单 v1 + D6 定稿回填本文件 ✅（P1-P4/D6 在案；N1 lint 未交付——治理对象 `*_vm.at` 随统一视图退役而失效，见 §3 注）\n- [x] V1：Tailwind 接入后 vue 门禁全绿；css-era 基准归档 + 门禁基准重拍留档 ✅（008 Phase 1；css-era 资产存活 screenshots/00-07）\n- [x] V2：对照表 + 基线类串落 README；探针 widget vue 验收 + vm 留档截图 ✅（008 Phase 2）\n- [x] V3 批 1-6：每批 N1 lint + vue 28 + 像素 diff + vm 9 守卫 + css-era 对拍全绿 ✅（门禁实际形态=vue 28+vm 9+截图对拍，N1 未启用见 §3 注；阶段一像素对拍一/二轮在头部补录全绿）\n- [x] 阶段一验收：用户确认 Auto/Vue 版与 CSS 版同一设计语言；styles.css 收缩到位 ✅（标准升级为像素级，diff% 数字交付；010 立项采认为基线；四微残差复审转 KNOWN-DEBT）\n- [x] M1-M3：每批 e2e-vm 绿 + vm 截图并排；`*_vm.at` 当批删除 ✅（批 6 收口 + 010 A/B 相承接）\n- [x] M4：e2e-vm 14 断言两连绿；文档三件套；双端 7 模块走查 ✅（010 T10/T11/T13）\n- [x] 终态：`auto/src/front/` 一套 widget 双后端消费；双轨门禁双绿 ✅（现行事实；2026-09-07 双门禁当日绿在案）\n\n---",
+          "status": "verified",
+          "related": [
+            "OS-009"
+          ],
+          "file": "docs/plans/archive/009-view-unification-two-stage.md"
         }
       ],
       "status": "Verified",
@@ -314,6 +344,16 @@
             "OS-008"
           ],
           "file": "docs/plans/archive/008-view-unification.md"
+        },
+        {
+          "id": "P009-5",
+          "title": "view-unification-two-stage — 复审记录",
+          "content": "**载体说明**：009 早于 plan 技能流程，定稿当日即转为「剩余工作框架」——执行记录\n分散于头部像素对拍补录块（2026-08-27 两轮全量在案）、008 批 6（b4863b7 根合一+\n`*_vm.at` 清零）、010 A-E 相（vm 轨清偿/台账/文档/走查）。本计划自身勾选从未\n维护（最大账实分离件），本复审按证据链逐项补记（见 §3/§4 各行内注）。\n\n### 验证清单逐条重验（详见 §4 行内注，此处仅列证据源）\n\n1. **Phase 0 探针 P1-P4 + D6 — ✅** 结论回填于 008 §Phase 0 探针结论（同一探针\n   工程 tmp/vm-probes2）。\n2. **V1/V2（Tailwind+对照表）— ✅** 008 Phase 1/2 在案；css-era 对照资产存活\n   `screenshots/00-07.png`（2026-08-24 捕获）；N3 字面归档形态未发生但基准功能\n   完整（010 以此判 00=0.00% 零回归）。\n3. **V3 + 阶段一 — ✅** 像素对拍一/二轮补录全量在案（根因四件套 + 四视图 1:1\n   重写 + 可编辑表格/tags/select/modal 还原；成绩 00=0.00%…05=1.85%）；vue 门禁\n   三套件随行全绿。用户验收标准升级为像素级（用户自己提出，补录在案），以 diff%\n   交付并被 010 立项采认为基线。\n4. **阶段二 M1-M3 — ✅** `*_vm.at` 现行树清零；e2e-vm 断言（搜索/折叠/accent\n   持久化/14+）2026-09-07 当日全绿。\n5. **M4 + 终态 — ✅** 010 T10（14→15 断言）/T11（文档三件套 7217817）/T13（走查\n   清单 W）；双轨门禁当日双绿（012 复审连带取证）。\n\n### 遗漏 / 延后 / workaround 猎捕\n\n- **N1 白名单 lint（check-style-classes.mjs）— 未交付，obsolete by supersession**：\n  治理对象（手写 `*_vm.at` 类串）随统一视图 + 012/562 契约组件化退役，policing\n  失去存在理由；V3 各批门禁实际以 vue 28 + vm 9 + 截图对拍承担，未发生静默\n  失守（登记于此 + KNOWN-DEBT）。\n- **延后（用户知情）**：vm 轨重验（J1）顺延由 010 T3/T10 收口（假象重判+断言\n  固化）；§6 后续候选四项转 KNOWN-DEBT 惯例（深色模式已由 plan011 四期落地）。\n- **workaround**：onchange 双参 + regen.sh 部署 sed 补 cast（.at 语法不收 TS cast）\n  为显性部署侧补偿，补录块 + regen.sh 注记在案；popover 惰性透传 sed（C1 家族）\n  同。\n- **四项 vue 微残差（阶段一验收遗留，本复审转正式登记）**：编辑器首存确认行内\n  条 / 编辑提交时机 blur·回车（css-era 逐键 live-apply）/ theme_picker ✓ 文本勾\n  （css-era svg）/ modal 背板点击不关闭（.at 视图无法判 e.target）——头部补录\n  在案但未入 KNOWN-DEBT，本复审补登（见台账 009 行）。\n\n### spec-impact 元数据\n\n- supersedes_spec_components: []（ledger 始于 011，009 早于之）\n- new_spec_components: []（像素对拍工具链已入库 scripts/track-parity，为工具资产\n  而非 spec 组件；类串词汇体系由 008/README 承载）\n- touched_goals: []\n\n**裁定：验证清单全过（N1 以 obsolete-by-supersession 结案并登记）、无未清 blocking 债 → status=reviewed，就绪 /auto-plan:merge。**",
+          "status": "published",
+          "related": [
+            "OS-009"
+          ],
+          "file": "docs/plans/archive/009-view-unification-two-stage.md"
         }
       ],
       "status": "Published",
@@ -384,6 +424,16 @@
             "OS-008"
           ],
           "file": "docs/plans/archive/008-view-unification.md"
+        },
+        {
+          "id": "P009-1",
+          "title": "view-unification-two-stage — 执行记录（像素对拍两轮补录全量）",
+          "content": "> **像素对拍补录（2026-08-27 会话）**：用户验收标准从\"同一设计语言\"升级为 **Auto/Vue 版对 CSS 原版（tmp/css-era/）逐视图像素级一致**，并按组件逐个对比修改。已落地（工具 `tmp/parity/{capture,diff,rows}.mjs`，双端同 daemon、同视口、同 accent、禁动画对拍）：\n> - **根因四件套**：① vue codegen 对 row/col 无条件注入 `gap-4`，而 Tailwind CSS 里 `.gap-4` 排在 `.gap-0` 之后 → 源码 gap-0 全部失効（根布局 16px 缝/导航名描述 16px 距）——**硬规则：row/col 源码 gap 一律任意值形式 `gap-[Npx]`**（任意值排序在 scale 之后，稳定获胜）；② css-era 无 preflight，button/input/select 的 UA 字体是 **Arial 13.33px**（按钮内文字全在 Arial 度量，14px 行盒 16px；Segoe 是 19px，每行 +3px 逐项累积）——styles.css 恢复 `button,input,select,textarea{font:400 13.3333px Arial}`；③ preflight `html{line-height:1.5}` + text-\\* 固定行高 → fontSize 全字号覆盖回 `normal`；④ 占位符 preflight gray-400 → UA `#757575`。\n> - **编辑器/集合页回归 css-era 形态**：config_editor.at / daemon_view.at / collection_browser.at / theme_picker.at 视图与 DOM 结构按 tmp/css-era 组件 1:1 重写；scoped CSS 以命名空间块（`.config-editor`/`.daemon-view`/`.collection`）原值拷入 styles.css（伪类如 `.toggle input:checked + .toggle-track` 类串表达不了）；`Init` 消息回归（vue onMounted 自动加载，vm 无 auto-Init 仍见 Load 按钮）；编辑提交改 onchange 双参（`.Apply(e, $event.target.value)`——单参 handler 会被 codegen 换成纯文本值；cast 断言由 regen.sh 部署 sed 统一补，.at 事件表达式语法不收 TS cast）；Save 禁用态（!dirty 半透明）；swatch 色点+黑圈白勾回归（文字胶囊废除）；api 层新增 `is_provider`/`box_class`(first/last) 孪生字段（api.at + src/lib/api.ts）用平铺行拼 subform 盒；collection_store 新增 `view_entities` 投影（列表行带描述行；vm 继续用 view_names）。\n> - **成绩**（1440x900，diff% = 与 css-era 同视图逐像素差异）：00 侧栏 **0.00%**（完全一致）；06-modes 0.13% / 07-harness-roles 0.15% / 03-roles 0.18% / 04-skills 0.68% / 02-auto-musk 1.13% / 01-ai-daemon 1.88% / 05-ai-client 2.04%（初轮 1.47-3.33%）。vue 28 断言门禁三套件全绿（测试选择器随 DOM 回归同步更新）。\n> - **登记偏差/待办**：~~可编辑表格~~ / ~~tags chips~~ / ~~select 真下拉~~ / ~~集合页 modal 删除确认~~——**二阶段已全部还原**（见下）；仍余：编辑器首存确认行内条（css-era 为 window.confirm，静态不可见）、编辑提交时机 blur/回车（css-era 逐键 live-apply）、theme_picker ✓ 文本勾（css-era svg）、modal 背板点击不关闭（css-era 有 target 自检，.at 视图无法判 e.target）、vm 轨编辑器/集合视图因 vue-first 重写需在 J1 解锁后按新形态重验（009 §0.2 顺延）。\n> - **像素对拍二阶段（2026-08-27 续）**：可编辑表格 / tags chips / select 真下拉 / modal 全部还原。api 层新增（两端孪生）：`selectOptionsOf`/`optionValuesHave`/`stringItemsOf`/`msCheckedOf`/`tableColsOf`（css-era tableInfo+mergeCols+inferColumn 等价，枚举列同步取）、`warmEnumsText`（vue 端 Init await 预热 enumCache 后 entryAt 同步读缓存；vm 端同步 http）、`setCellText`/`tableAddRowText`/`tableRemoveRowText`（css-era setCell/blankRow/removeRowAt 的文本管线版，按旧单元格类型重定型）；entry 条目新增 `options/has_current/items/ms_checked/t_cols/t_rows` 字段（t_rows 仅 vue 端为原生行数组——视图 `r[c.name]` 动态取值 codegen 原样透传 TS，vm 端为空数组）。修复：顶层字段 provider 上下文 = 全局 default_provider（css-era configEntries 语义，default_model 据此成为 self-models 下拉/空选项回退提示）；tag-input 恢复 UA Arial。collection_store 新增 `SetBodyText`/`TagRemove` 消息 + 重建点 warmEnums。视图：真实 `<table>`（列头/单元格 select+number+text/×/+Row）、tags chips（× 移除 + 回车内联添加）、multiselect 复选组（ms_checked 平行数组）、select 空选项斜体提示、集合页删除 modal。成绩：01 1.61% / 02 1.25% / 05 1.85%，残差为均匀 ±2px 行节奏（无结构性红块）；e2e 三套件全绿（选择器随真下拉/modal 更新）。\n\n> **状态**：已执行完毕（2026-09-07 复审账实核对：阶段一 = 008 批 1-6 + 本计划像素对拍一/二轮（头部补录全量在案）；阶段二 M1-M3 = 008 批 6 收口 + 010 A/B 相承接；M4/终态 = 010 T10/T11/T13 落账；全部勾选已按证据补记，见文末复审记录。frontmatter 归一化补于此时；原「现状接管」框架文本保留下方作历史脉络）\n> **与 008 的关系**：非取代——008 的实施在先且继续作为实施记录；本计划提供两段式视角的接管映射（§0.1）与剩余执行序（§0.2）。原\"取代 008\"表述作废（main 上 db5518c 的 008 状态行相应回改，随本分支合并落地）。\n> **前置**：Plan 007 已完成（store/api 单一真源 + e2e-vm 9 断言门禁绿）\n> **仓库**：auto-os-config（frontend only；`backend/` daemon 零改动）",
+          "status": "published",
+          "related": [
+            "OS-009"
+          ],
+          "file": "docs/plans/archive/009-view-unification-two-stage.md"
         }
       ],
       "status": "Published",

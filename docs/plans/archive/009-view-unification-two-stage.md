@@ -1,6 +1,6 @@
 ---
 plan_id: OS-009
-status: reviewed
+status: archived
 feature_name: view-unification-two-stage
 author: [zcode]
 created_at: 2026-08-26
