@@ -1,6 +1,17 @@
+---
+plan_id: OS-008
+status: reviewed
+feature_name: view-unification
+author: [zcode]
+created_at: 2026-08-25
+supersedes_spec_components: []
+new_spec_components: []
+touched_goals: []
+---
+
 # Plan 008: 视图统一——单一 widget 源双后端
 
-> **状态**：实施中（2026-08-26：Phase 0-2 ✅；批 1-3 双端绿；批 4 vue ✅ / vm 阻塞上游 auto-lang 446 J1；批 5 由批 3/4 吸收；批 6 与 Phase 4 待做）。载体：worktree `.worktrees/plan-008`（分支 `plan-008-view-unification`；2026-08-26 由外部 auto-os-config-008 迁入项目内）。剩余工作框架见 [Plan 009](009-view-unification-two-stage.md) §0.1-0.2（2026-08-26 现状接管）。
+> **状态**：已执行完毕并折叠 main（2026-08-27 `2266beb` 全量合入：批 1-4 + 批 6 根合一 + 009 接管/J1 攻坚/阶段一验收包；尾部三项由 009/010 接管链收口——2026-09-07 复审账实核对确认，见文末复审记录；frontmatter 归一化亦补于此时）
 > **前置**：Plan 007 已完成（逻辑层单一真源：3 store + `use back.api:` 双解析；vm 桌面版功能可用，9 断言门禁绿）。但 007 的 D2"视图分叉"决策导致 vue/vm 两套视图永久双维护，且 vm 视图层从未做设计移植，观感与 web 版断层（用户验收判定：不可接受）。
 > **本计划动因**（2026-08-25 用户质询链）：AutoUI 本身按"一套代码多后端"设计（038-minesweeper 实证单 widget 文件跑 `auto run` + `auto run --render vm`）；本仓两套视图是 Plan 006 手写工程（styles.css + 命名类，无 Tailwind）的历史包袱 + Plan 007 保 vue 零回归的风险决策，**不是框架必然**。本计划回归框架标准姿势。
 > **仓库**：auto-os-config（frontend only；`backend/` daemon 零改动）
@@ -163,9 +174,9 @@
 - [x] Phase 1（2026-08-25）：Tailwind 3.4 + postcss + autoprefixer + @fontsource/inter（400/500/600/700）落地；`tailwind.config.cjs`——primary token 用 `hsl(var(--primary) / <alpha-value>)` 形态（`bg-primary/10` alpha 修饰可用，实测 rgb(100,103,242)=靛蓝）、content 直扫 `auto/src/front/**/*.at`（类串第一现场，免疫 regen 滞后）、safelist 仅 primary 族骨干 5 类；`main.ts` 引入链 = fontsource → tailwind.css → styles.css（令牌层最后加载压 preflight）；styles.css `--font-family` 改 Inter-first；Inter 加载/工具类/preflight/命名类优先级四项 playwright 实证 ✓。vue 门禁 ALL PASS（Tailwind 激活态）。12 张截图基准重拍（旧基准归档 `tmp/phase1-baseline-old/`；像素 diff 侧栏 2.2%/集合页 4.1-4.4%/daemon 页 14.3-14.4%——daemon 为密文本表单对字体度量敏感，目检确认差异全为字体级重排、零结构破坏/控件丢失，可安全作新基准）。顺手修正 `screenshot-ui.mjs` OUT 为脚本相对路径（原硬编码主仓路径，worktree 下会写错位置）
 - [x] Phase 2（2026-08-25）：D2 对照表 + D6 基线串定稿入 `auto/README.md`（含 store 迁移配方）；双端定稿探针实证——**新词汇硬规则：间距禁小数**（`py-1.5`/`gap-1.5` 在 vm 被 u16 解析静默丢弃，`gap-0.5` 在 007 vm 代码已实际漏入——Phase 3 批 1 顺带清理；6/10px 用 `py-[6px]` 任意值）；定稿对照图 `tmp/phase2-dual-baseline.png`（web=Tailwind 参考实现 vs vm=iced，按钮/输入框/卡片/三级文字/active 态同一设计语言，唯一系统差异即小数间距规则本身）
 - [x] Phase 3 批 1-6（2026-08-26）：批 1-3 双端绿；批 4 vue ✅ / vm ⛔ 上游 J1（二分矩阵定案，446 J 批增补）；批 5 由批 3/4 吸收；批 6 双端落地（vue 全绿 + vm 根级断言 1-5 绿；vm 截图对拍候 J1）。`*_vm.at`/app_shell/ext 全部清零
-- [ ] Phase 3 遗留：批 4 vm 详情区 + 下游断言（上游 J1 解锁后复验）
-- [ ] Phase 4：`*_vm.at` 清零；e2e-vm 14 断言两连绿；文档三件套；双端 7 模块实机走查
-- [ ] 终态：`auto/src/front/` 一套 widget 双后端消费；`./scripts/e2e.sh` + `node scripts/e2e-vm.mjs` 双绿为仓库门禁
+- [x] Phase 3 遗留：批 4 vm 详情区 + 下游断言（上游 J1 解锁后复验） ✅ 经 009/010 接管链收口（2026-09-07 复审核验）——010 T3 重判"批4 全灭"为失真快照+模块未加载的复合假象，U1/U2 真缺陷确诊登记；010 T10 将原批 4 卡点（detail inputs/applies 常驻）固化为 e2e-vm 断言
+- [x] Phase 4：`*_vm.at` 清零；e2e-vm 14 断言两连绿；文档三件套；双端 7 模块实机走查 ✅ 清零于批 6 当场落（现行树 `ls auto/src/front/*_vm.at` 为空 + app_shell 退役）；e2e-vm 断言演进 14→18（含 013）2026-09-07 当日绿在案；文档三件套 = 010 T11、实机走查 = 010 T13（009/010 接管，用户知情的两段式决策在 009 定稿在案）
+- [x] 终态：`auto/src/front/` 一套 widget 双后端消费；`./scripts/e2e.sh` + `node scripts/e2e-vm.mjs` 双绿为仓库门禁 ✅ 现行事实——统一 .at 源 + regen 双端部署；双门禁 2026-09-07 重跑双绿（012 复审连带取证）
 
 ### Phase 0 探针结论（2026-08-25，tmp/vm-probes2/ 实机 MCP + 视觉验证）
 
@@ -200,3 +211,47 @@
 - **方法论母本**：auto-lang `examples/ui/038-minesweeper`（单源双后端 + 预计算样式串纪律）、`widgets-gallery`（类词汇参考）、`015-notes`（accent 动态主题）。
 - **上游锚点**：auto-lang commit `3d45fb10d`（沿用 007，Phase 0 复核是否漂移）；语义 token 体系（style/color.rs、theme.rs、Plan 370/409/411/413）。
 - **后续候选**（完成时登记 KNOWN-DEBT）：深色模式双端同源（语义 token 已备，缺模式切换入口）；vm `hover:`/焦点态交互反馈（上游能力）；`auto build -r vm` 独立分发；api.at 接入（三轨契约，延续 006/007 遗留）。
+
+---
+
+## 复审记录（2026-09-07，zcode，/auto-plan:review）
+
+**载体说明**：008 早于 plan 技能流程；实施载体 worktree `plan-008-view-unification`
+已于 2026-08-27 经 `2266beb` 全量折叠 main（worktree/分支均已不存，幂等跳过）。
+本复审在主检出做账实核对。
+
+### 验证清单逐条重验
+
+1. **Phase 0/1/2/批 1-6 — ✅（历史在案）** 原勾选项 git 历史逐条有落（Phase 0 自愈
+   门禁 6 连跑/Phase 1 Tailwind+Inter 落地+新基准/Phase 2 D2+D6 定稿+小数间距硬规则/
+   批 1-3 双端绿/批 4 vue 达标+vm J1 上报 446/批 6 根合一+`*_vm.at` 清零）。
+2. **Phase 3 遗留（J1 复验）— ✅ 经 009/010 接管链收口** 010 T3 重判原"批 4 全灭"
+   为失真快照+模块未加载的复合假象；真缺陷 U1（事件冻结 P0，门禁段序绕行）/U2
+   （type×onchange）确诊并登记 446 §P；010 T10 把原卡点（detail inputs/applies
+   常驻）固化为 e2e-vm 断言。接管为用户知情决策（009 定稿两段式，2026-08-26 在案）。
+3. **Phase 4 + 终态 — ✅（现行存活核验）** `*_vm.at`/app_shell 现行树清零；Tailwind
+   管线在位（tailwind.config.cjs+postcss）；e2e-vm 断言 14→18 演进、2026-09-07 当日
+   全绿；`./scripts/e2e.sh` 三套件同日 ALL PASS（012 复审连带取证）；文档三件套与
+   实机走查由 010 T11/T13 落账。
+4. **现行统一源事实 — ✅** `auto/src/front/` 一套 .at 双端消费为现行架构地基，
+   009（像素对拍）/010（vm parity 清偿）/562（sidebar 族）均在此地基上演进。
+
+### 遗漏 / 延后 / workaround 猎捕
+
+- **遗漏**：无——批 5 吸收进批 3/4 为计划内文字在案；批 4 vm 侧阻塞有二分矩阵
+  定案 + 446 上报（ae26034），非静默。
+- **延后（用户知情）**：两段式接管（009）+ J1 复验顺延（009 §0.2）——009 定稿
+  文本在案；§6 后续候选四项转 KNOWN-DEBT 惯例（其中深色模式双端同源已由
+  plan011 四期 be70131 落地；api.at 接入已由 011/559 收口）。
+- **workaround**：e2e-vm 自愈门禁（MCP 崩溃重启 ≤3 次）为上游缺陷的显性缓解，
+  计划文本+台账双在案；D7 降级例外（上限 2 组件）后经 009 二阶段全部还原。
+- **上游缺陷终态**：P0 回报的 MCP 轮询硬崩溃（J4）经 010 全程未再现 + 探针三撤
+  结案（台账 007 行在案）。
+
+### spec-impact 元数据
+
+- supersedes_spec_components: []（ledger 始于 011，008 早于之）
+- new_spec_components: []（008 成果=统一视图源+类串词汇体系，由 009/010 承接演进）
+- touched_goals: []
+
+**裁定：验证清单全过（含接管链三项）、无未清 blocking 债 → status=reviewed，就绪 /auto-plan:merge。**
