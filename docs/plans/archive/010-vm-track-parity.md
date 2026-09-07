@@ -1,6 +1,6 @@
 ---
 plan_id: PLAN-010
-status: reviewed
+status: archived
 feature_name: VM 轨一致性——Auto/VM 版对齐 Auto/Vue 版
 author: [zcode]
 created_at: 2026-08-27T12:00:00+08:00
