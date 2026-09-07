@@ -29,12 +29,20 @@ use desktop_page: DesktopPage
 // Plan 551 T5:字段级 widget 注册表(内置具名组件,wallpaper_picker 等)。
 use widgets: WallpaperPicker
 use theme_store: Theme
+// OS-013 T3:AutoTerm 终端会话页(registry view : "autoterm_page" 插件
+// 视图,desktop_page 同款分发)+ 其 store(根 .Tick 200ms 节拍转发,
+// 收割引擎输出快照)。
+use autoterm_page: AutoTermPage
+use autoterm_store: AutoTerm
 use back.api: system_info, fetchModulesRaw, modulesCount, moduleAt
 
 widget App {
-    msg Msg { Init, SelectModule(str) }
+    msg Msg { Init, SelectModule(str), Tick }
 
     model {
+        // OS-013 T3:根 widget .Tick 节拍周期(ms;extract 将其从 state
+        // 剥离,只进 tick_interval 订阅——stopwatch/minesweeper 同款)。
+        var interval int = 200
         // Plan 011 T9/T12:概要页 Dashboard(system_info 真数据;App 直调形态,
         // 015-notes App handler 直调 back.api 先例——免三 store 消歧)。
         // 概要页二期(本次):软件信息面(os_edition/kernel/arch/uptime,
@@ -281,6 +289,11 @@ widget App {
                         if .store.active_view_name == "desktop_page" {
                             DesktopPage(key: .store.active_id) { }
                         }
+                        // OS-013 T3:AutoTerm 插件视图(会话 store 自持,
+                        // 进页面不自动开——New Session 按需 spawn)。
+                        if .store.active_view_name == "autoterm_page" {
+                            AutoTermPage(key: .store.active_id) { }
+                        }
                         if .store.active_view_name == "" && .store.active_kind == "file" {
                             if .store.active_id == "ai-daemon" {
                                 DaemonView(module_id: .store.active_id, key: .store.active_id) { }
@@ -390,6 +403,11 @@ widget App {
         // 446 撤绕行 VG16/A1：Collection.Select 回归后同名，须显式限定。
         .SelectModule(mid) -> {
             Modules.Select(mid)
+        }
+        // OS-013 T3:根 .Tick 节拍转发——AutoTerm store 内自判
+        // (handle==0 时 no-op,200ms 空转零渲染影响)。
+        .Tick -> {
+            AutoTerm.Tick()
         }
     }
 }

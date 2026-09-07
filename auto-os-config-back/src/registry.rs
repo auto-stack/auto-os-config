@@ -373,6 +373,17 @@ modules {
 
     module {
         kind : file
+        id : "autoterm"
+        file : "apps/autoterm/config.at"
+        root : "autoterm"
+        name : "AutoTerm"
+        icon : "⌨️"
+        description : "Terminal replica: in-process PTY sessions (engine via autoterm_core.dll)"
+        view : "autoterm_page"
+    }
+
+    module {
+        kind : file
         id : "ai-daemon"
         file : "ai-daemon.at"
         root : "daemon"
@@ -459,8 +470,10 @@ mod tests {
     #[test]
     fn default_registry_loads() {
         let r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
-        assert_eq!(r.modules.len(), 8);
+        // OS-013:autoterm 终端会话模块入册(9)。
+        assert_eq!(r.modules.len(), 9);
         assert!(matches!(r.find("ai-daemon"), Some(Module::File(_))));
+        assert!(matches!(r.find("autoterm"), Some(Module::File(_))));
         assert!(matches!(r.find("auto-musk"), Some(Module::File(_))));
         assert!(matches!(r.find("roles"), Some(Module::Collection(_))));
         assert!(matches!(r.find("skills"), Some(Module::Collection(_))));
@@ -585,7 +598,7 @@ mod tests {
         let mut r = Registry::from_atom_baseline(DEFAULT_REGISTRY_ATOM).unwrap();
         let n = r.merge_dropins(std::path::Path::new("/nonexistent/path/xyz")).unwrap();
         assert_eq!(n, 0);
-        assert_eq!(r.modules.len(), 8); // unchanged
+        assert_eq!(r.modules.len(), 9); // unchanged (OS-013: 8+autoterm)
     }
 
     #[test]
