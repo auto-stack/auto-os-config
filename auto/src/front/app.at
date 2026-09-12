@@ -78,11 +78,13 @@ widget App {
     view {
         row (style: "app-layout h-full w-full flex flex-row gap-[0px]") {
             Sidebar { }
-            col (style: "flex-1 flex flex-col gap-[0px]") {
+            // PLAN-012 F2：底色+底角圆角挂不滚动的父列（content-body
+            // 是滚动容器，圆角挂它身上在视口底不可见——实机 09-12）。
+            col (style: "flex-1 flex flex-col gap-[0px] bg-background rounded-b-2xl") {
                 row (style: "content-header h-[48px] w-full shrink-0 flex flex-row items-center gap-[0px] px-6 border-b border-border bg-background") {
                     text (text: .store.title, style: "text-xl font-semibold text-foreground") {}
                 }
-                col (style: "content-body flex-1 flex flex-col gap-[0px] overflow-auto p-6 bg-background rounded-b-2xl") {
+                col (style: "content-body flex-1 flex flex-col gap-[0px] overflow-auto p-6") {
                     if .store.loading {
                         col (style: "state-msg flex-1 flex flex-col items-center justify-center gap-[0px]") {
                             text (text: "Loading configuration...", style: "text-base text-muted") {}
