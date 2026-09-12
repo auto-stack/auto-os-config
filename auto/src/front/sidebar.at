@@ -33,7 +33,7 @@ widget Sidebar {
     msg Msg { SearchChanged(str), SelectModule(str), ToggleGroup(str), SelectOverview }
 
     view {
-        aside (style: "sidebar flex flex-col w-[280px] shrink-0 bg-card border-r border-border") {
+        aside (style: "sidebar flex flex-col w-[280px] h-full shrink-0 bg-card border-r border-border rounded-b-2xl") {
             div (style: "flex items-center gap-2 px-5 py-4 text-base font-semibold text-foreground h-[50px]") {
                 span (text: "⚙️", style: "text-xl") {}
                 text (text: "AutoOS Settings") {}

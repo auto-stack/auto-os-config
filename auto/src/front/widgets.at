@@ -68,7 +68,16 @@ widget WallpaperPicker(module_id: str, field: str, dir: str, current: str) {
 
     on {
         // 扫描臂(VG 平铺:Init/Load 各自驱动同一批状态写)。
+        // PLAN-012 F2：空目录跳过扫描——缺省 wallpapers_dir 为空，Init 即
+        // 扫描必失败且错误经共享根状态污染整页（用户实机 09-12「目录枚举
+        // 失败」）；填目录后手动「扫描目录」或重进页面。
         .Init -> {
+            if .dir == "" {
+                .images = []
+                .error = ""
+                .scanned = true
+                return
+            }
             let r = listImagesSafe(.dir)
             if r.ok {
                 var arr = []
