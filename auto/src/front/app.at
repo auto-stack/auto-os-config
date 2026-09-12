@@ -67,11 +67,11 @@ widget App {
         var sys_mod_total int = 0
         var sys_mod_files int = 0
         var sys_mod_coll int = 0
-        // PLAN-012 F2/F4：打开提速两哨兵——landed = 缺省落地 Desktop 模块
-        // （modules 列表就绪前 Tick 重试）；sys_loaded = 概要页系统信息懒
-        // 加载（首次切回概要时一次性探系统，原 Init 全量探活含磁盘枚举
-        // 是「打开卡 ~1s」主因——用户实机 2026-09-12）。
-        var landed bool = false
+        // PLAN-012 F2/F4：概要页系统信息懒加载哨兵（首次切回概要时一次性
+        // 探系统，原 Init 全量探活含磁盘枚举是「打开卡 ~1s」主因——用户
+        // 实机 2026-09-12）。缺省落地改由 modules_store Init 尾部激活首项
+        // （Desktop 升侧栏首项，用户裁定——Tick 重选方案有 ?str 比较/回弹
+        // 两坑，退役）。
         var sys_loaded bool = false
     }
 
@@ -349,15 +349,6 @@ widget App {
         // system_info 全量探活（磁盘枚举等重源只在用户真看概要时花）。
         .Tick -> {
             AutoTerm.Tick()
-            if .landed == false {
-                Modules.Select("desktop")
-                // active_id 是 ?str（Option）——handler 内与字面量比较恒假
-                // （用户实机：Tick 每 200ms 重选 Desktop 把导航拽回），改判
-                // active_kind 平面串。
-                if .store.active_kind == "desktop_page" {
-                    .landed = true
-                }
-            }
             if .store.active_kind == "" && .sys_loaded == false {
                 .sys_loaded = true
                 var r = system_info()

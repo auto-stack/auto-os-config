@@ -47,24 +47,6 @@ widget Sidebar {
                     input { value: .store.search, oninput: .SearchChanged, placeholder: "Search settings", style: "w-full text-sm px-2.5 py-1.5 rounded-md border border-border bg-background outline-none focus:border-primary transition-colors" }
                 }
                 sidebar_content (style: "nav-list flex-1 overflow-auto px-2 pt-2 flex flex-col") {
-                    // Plan 011 T12:首页入口置顶(选中态 = active_kind == "")
-                    sidebar_menu {
-                        sidebar_menu_item {
-                            sidebar_menu_button (onclick: .SelectOverview, active: .store.active_kind == "", size: "lg", key: "ov-home",
-                                style: if .store.active_kind == "" {
-                                    "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors h-[50px] mb-1"
-                                } else {
-                                    "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary h-[50px] mb-1"
-                                }) {
-                                row (style: "items-center gap-2") {
-                                    text "🏠" {}
-                                    col (style: "items-start") {
-                                        text "System Overview" (style: "nav-name") {}
-                                        text "System information dashboard" (style: "text-xs text-muted-foreground") {}
-                                    }
-                                }
-                            }
-                        }
                         if .store.search == "" {
                             for m in .store.view_standalone {
                                 sidebar_menu_item {
@@ -87,6 +69,25 @@ widget Sidebar {
                         }
                     }
 
+                    // PLAN-012 F2（用户裁定）：Desktop 升首项，Overview 移此
+                    // （选中态 = active_kind == ""）
+                    sidebar_menu {
+                        sidebar_menu_item {
+                            sidebar_menu_button (onclick: .SelectOverview, active: .store.active_kind == "", size: "lg", key: "ov-home",
+                                style: if .store.active_kind == "" {
+                                    "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-primary font-medium bg-primary/10 select-none cursor-pointer transition-colors h-[50px] mb-1"
+                                } else {
+                                    "nav-item flex w-full items-start justify-start gap-3 rounded-md px-3 py-[10px] text-sm text-left text-foreground select-none cursor-pointer transition-colors hover:bg-secondary h-[50px] mb-1"
+                                }) {
+                                row (style: "items-center gap-2") {
+                                    text "🏠" {}
+                                    col (style: "items-start") {
+                                        text "System Overview" (style: "nav-name") {}
+                                        text "System information dashboard" (style: "text-xs text-muted-foreground") {}
+                                    }
+                                }
+                            }
+                        }
                     for g in .store.view_groups {
                         if .store.search == "" {
                             // Plan 562:nav-group 折叠组平移——组头 =

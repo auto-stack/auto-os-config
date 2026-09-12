@@ -39,7 +39,8 @@ store Modules {
         var read_only bool = false
         var loading bool = false
         var error str = ""
-        // 概要页是落地页:默认 title 与 .Overview 落点一致(用户实报:内容头
+        // PLAN-012 F2:缺省激活首项后 title 由 Init 尾部 Select 同构体重写;
+        // 回退值保持概要(模块列表拉取失败时仍落地 Overview)。(用户实报:内容头
         // 标题应随内容区走);品牌名 "AutoOS Settings" 常驻侧栏顶部,两处分工。
         var title str = "System Overview"
         // Plan 007: authoritative raw modules text (vm selection without fetch)
@@ -154,6 +155,41 @@ store Modules {
                                 }
                                 out2.push(gid)
                                 .expanded = out2
+                            }
+                        }
+                    }
+                }
+                // PLAN-012 F2（用户裁定）：缺省激活首项——Desktop 为
+                // registry 基线首位，恢复"首项默认激活"逻辑（原落地页 =
+                // System Overview）。选择体与 deep-link 同构；desktop_page
+                // 无 auto-Init，命中即预载 DesktopCfg（vue 端幂等）。
+                if h == "" {
+                    if .modules.len() > 0 {
+                        let first = .modules[0]
+                        .active_id = first.id
+                        .active_kind = first.kind
+                        .active_view_name = first.view_name
+                        .active_widgets = first.widgets
+                        .read_only = first.format == "frontmatter-md"
+                        .title = first.name
+                        if first.view_name == "desktop_page" {
+                            DesktopCfg.Init(first.id)
+                        }
+                        var gid0 = groupOfModule(.raw, first.id)
+                        if gid0 != "" {
+                            var has3 = false
+                            for x in .expanded {
+                                if x == gid0 {
+                                    has3 = true
+                                }
+                            }
+                            if has3 == false {
+                                var out3 = []
+                                for x in .expanded {
+                                    out3.push(x)
+                                }
+                                out3.push(gid0)
+                                .expanded = out3
                             }
                         }
                     }
