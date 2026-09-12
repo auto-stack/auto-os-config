@@ -351,7 +351,10 @@ widget App {
             AutoTerm.Tick()
             if .landed == false {
                 Modules.Select("desktop")
-                if .store.active_id == "desktop" {
+                // active_id 是 ?str（Option）——handler 内与字面量比较恒假
+                // （用户实机：Tick 每 200ms 重选 Desktop 把导航拽回），改判
+                // active_kind 平面串。
+                if .store.active_kind == "desktop_page" {
                     .landed = true
                 }
             }
