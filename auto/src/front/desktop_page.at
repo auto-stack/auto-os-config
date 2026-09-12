@@ -13,7 +13,7 @@ use desktop_store: DesktopCfg
 widget DesktopPage {
     msg Msg { Nav(str),
               PickPosition(str), PickEnabled(str), DraftPinned(str), SavePinned,
-              PickNotes(str),
+              PickNotes(str), PickAccent(str),
               DraftWallpaper(str), SaveWallpaper,
               DraftWallpapersDir(str), SaveWallpapersDir,
               PickTheme(str), PickTransparency(str) }
@@ -341,6 +341,7 @@ widget DesktopPage {
         .DraftWallpapersDir(v) -> { DesktopCfg.DraftWallpapersDir(v) }
         .SaveWallpapersDir -> { DesktopCfg.SaveWallpapersDir() }
         .PickTheme(v) -> { DesktopCfg.PickTheme(v) }
+        .PickAccent(name) -> { DesktopCfg.PickAccent(name) }
         .PickTransparency(v) -> { DesktopCfg.PickTransparency(v) }
     }
 }
