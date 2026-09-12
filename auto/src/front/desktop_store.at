@@ -11,14 +11,23 @@
 // 子页四枚:Dock / 通知 / 外观 / 关于——「系统」子页随 ⚙️ 直开 os-config
 // 退役(auto-lang Plan 551 用户裁定:os-config 本体即设置中心)。
 use back.api: fetchDesktopCfgSafe, putConfigSafe, editField, cfgField
+// PLAN-012 F6：主题双写链——显示页深浅色按钮经 Theme.SetMode 进程内即时
+// 生效（renderer 每帧读根状态 dark_mode/accent_color）+ config.at 双写
+// （dark_theme/theme_source=manual，宿主 boot 真源；原 cfg_theme 为宿主
+// 不读的幽灵字段——F6 根因）。
+use theme_store: Theme
 
 store DesktopCfg {
     model {
         var module_id str = "desktop"
         var loading bool = false
         var error str = ""
-        // 二级导航:dock | notes | appearance | about
-        var section str = "dock"
+        // 二级导航:dock | notes | appearance | about。PLAN-012 F5：缺省
+        // 落「显示」(appearance)——主题/accent 最高频。
+        var section str = "appearance"
+        // accent 选中镜像（真源在 Theme store/autoos-ui.json；Init 不回读，
+        // 首次点击后即镜像——v1 取舍）。
+        var accent str = "indigo"
 
         // ---- 单源快照(GET 投影,unquote 后显示值;缺席回退宿主内置默认)----
         var cfg_dock_position str = "bottom"   // bottom | top
@@ -46,7 +55,7 @@ store DesktopCfg {
               PickNotes(str),
               DraftWallpaper(str), SaveWallpaper,
               DraftWallpapersDir(str), SaveWallpapersDir,
-              PickTheme(str), PickTransparency(str) }
+              PickTheme(str), PickTransparency(str), PickAccent(str) }
 
     on {
         .Init(id) -> {
@@ -56,28 +65,41 @@ store DesktopCfg {
             let r = fetchDesktopCfgSafe(id)
             if r.ok {
                 .body = r.body
-                .cfg_dock_position = cfgField(.body, "cfg_dock_position")
+                // PLAN-012 F6：读侧字段名勘正——daemon body 键 = 宿主
+                // config.at 叶名（dock_position/dark_theme/...），原 cfg_*
+                // 前缀键永不命中（幽灵字段——实机 config.at 里躺着的
+                // cfg_theme/cfg_transparency 即本页旧写污染）。
+                .cfg_dock_position = cfgField(.body, "dock_position")
                 if .cfg_dock_position == "" {
                     .cfg_dock_position = "bottom"
                 }
-                .cfg_dock_enabled = cfgField(.body, "cfg_dock_enabled")
-                if .cfg_dock_enabled == "" {
+                .cfg_dock_enabled = cfgField(.body, "dock_enabled")
+                if .cfg_dock_enabled == "true" {
                     .cfg_dock_enabled = "1"
                 }
-                .cfg_dock_pinned = cfgField(.body, "cfg_dock_pinned")
-                .cfg_wallpaper = cfgField(.body, "cfg_wallpaper")
-                .cfg_wallpapers_dir = cfgField(.body, "cfg_wallpapers_dir")
-                .cfg_theme = cfgField(.body, "cfg_theme")
-                if .cfg_theme == "" {
+                if .cfg_dock_enabled == "" || .cfg_dock_enabled == "false" {
+                    .cfg_dock_enabled = "0"
+                }
+                .cfg_dock_pinned = cfgField(.body, "dock_pinned")
+                .cfg_wallpaper = cfgField(.body, "wallpaper_path")
+                .cfg_wallpapers_dir = cfgField(.body, "wallpapers_dir")
+                .cfg_theme = cfgField(.body, "dark_theme")
+                if .cfg_theme == "true" {
                     .cfg_theme = "dark"
                 }
-                .cfg_transparency = cfgField(.body, "cfg_transparency")
+                if .cfg_theme == "" || .cfg_theme == "false" {
+                    .cfg_theme = "light"
+                }
+                .cfg_transparency = cfgField(.body, "transparency")
                 if .cfg_transparency == "" {
                     .cfg_transparency = "off"
                 }
-                .cfg_notes_enabled = cfgField(.body, "cfg_notes_enabled")
-                if .cfg_notes_enabled == "" {
+                .cfg_notes_enabled = cfgField(.body, "notes_enabled")
+                if .cfg_notes_enabled == "true" {
                     .cfg_notes_enabled = "1"
+                }
+                if .cfg_notes_enabled == "" || .cfg_notes_enabled == "false" {
+                    .cfg_notes_enabled = "0"
                 }
             } else {
                 .error = r.error
@@ -91,7 +113,7 @@ store DesktopCfg {
 
         .PickPosition(v) -> {
             .cfg_dock_position = v
-            .body = editField(.body, "cfg_dock_position", v)
+            .body = editField(.body, "dock_position", v)
             let r = putConfigSafe(.module_id, .body)
             if r.ok == false {
                 .error = r.error
@@ -100,7 +122,9 @@ store DesktopCfg {
 
         .PickEnabled(v) -> {
             .cfg_dock_enabled = v
-            .body = editField(.body, "cfg_dock_enabled", v)
+            // 宿主 bool 字段：view "1"/"0" → 写 "true"/"false"（editField
+            // 旧 bool 类型保形；原 cfg_dock_enabled 幽灵键退役）。
+            .body = editField(.body, "dock_enabled", if v == "1" { "true" } else { "false" })
             let r = putConfigSafe(.module_id, .body)
             if r.ok == false {
                 .error = r.error
@@ -114,7 +138,7 @@ store DesktopCfg {
         .SavePinned -> {
             if .pinned_draft != "" {
                 .cfg_dock_pinned = .pinned_draft
-                .body = editField(.body, "cfg_dock_pinned", .pinned_draft)
+                .body = editField(.body, "dock_pinned", .pinned_draft)
                 let r = putConfigSafe(.module_id, .body)
                 if r.ok == false {
                     .error = r.error
@@ -125,7 +149,7 @@ store DesktopCfg {
 
         .PickNotes(v) -> {
             .cfg_notes_enabled = v
-            .body = editField(.body, "cfg_notes_enabled", v)
+            .body = editField(.body, "notes_enabled", if v == "1" { "true" } else { "false" })
             let r = putConfigSafe(.module_id, .body)
             if r.ok == false {
                 .error = r.error
@@ -139,7 +163,7 @@ store DesktopCfg {
         .SaveWallpaper -> {
             if .wallpaper_draft != "" {
                 .cfg_wallpaper = .wallpaper_draft
-                .body = editField(.body, "cfg_wallpaper", .wallpaper_draft)
+                .body = editField(.body, "wallpaper_path", .wallpaper_draft)
                 let r = putConfigSafe(.module_id, .body)
                 if r.ok == false {
                     .error = r.error
@@ -156,7 +180,7 @@ store DesktopCfg {
         .SaveWallpapersDir -> {
             if .wallpapers_dir_draft != "" {
                 .cfg_wallpapers_dir = .wallpapers_dir_draft
-                .body = editField(.body, "cfg_wallpapers_dir", .wallpapers_dir_draft)
+                .body = editField(.body, "wallpapers_dir", .wallpapers_dir_draft)
                 let r = putConfigSafe(.module_id, .body)
                 if r.ok == false {
                     .error = r.error
@@ -166,16 +190,30 @@ store DesktopCfg {
 
         .PickTheme(v) -> {
             .cfg_theme = v
-            .body = editField(.body, "cfg_theme", v)
+            // ① 进程内即时生效（renderer 每帧读根状态 dark_mode——
+            // ThemePicker 同链；原 cfg_theme 幽灵键 = F6「切换无效」根因）。
+            Theme.SetMode(v)
+            // ② config.at boot 真源双写：dark_theme（bool 保形）+ 
+            // theme_source=manual（否则宿主 load 按 system 从 OS 重派生
+            // 覆盖——单写 dark_theme 会被回滚）。
+            .body = editField(.body, "dark_theme", if v == "dark" { "true" } else { "false" })
+            .body = editField(.body, "theme_source", "manual")
             let r = putConfigSafe(.module_id, .body)
             if r.ok == false {
                 .error = r.error
             }
         }
 
+        // PLAN-012 F5：accent 五圆点（ThemePicker 同链中转——desktop_page
+        // 视图不做跨 store 绑定，镜像选中态存 .accent）。
+        .PickAccent(name) -> {
+            .accent = name
+            Theme.SetAccent(name)
+        }
+
         .PickTransparency(v) -> {
             .cfg_transparency = v
-            .body = editField(.body, "cfg_transparency", v)
+            .body = editField(.body, "transparency", v)
             let r = putConfigSafe(.module_id, .body)
             if r.ok == false {
                 .error = r.error
