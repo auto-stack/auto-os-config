@@ -27,17 +27,16 @@
 //     VM track styling comes from the 561 contract, user classes are web-only).
 //
 use modules_store: Modules
-use theme_picker: ThemePicker
+// PLAN-012 F2（用户裁定）：ThemePicker（底部 Settings 触发钮）退役——
+// 主题/accent 已收编进「显示」页（PickTheme 双写 + PickAccent）。
 
 widget Sidebar {
     msg Msg { SearchChanged(str), SelectModule(str), ToggleGroup(str), SelectOverview }
 
     view {
         aside (style: "sidebar flex flex-col w-[280px] h-full shrink-0 bg-card border-r border-border rounded-b-2xl") {
-            div (style: "flex items-center gap-2 px-5 py-4 text-base font-semibold text-foreground h-[50px]") {
-                span (text: "⚙️", style: "text-xl") {}
-                text (text: "AutoOS Settings") {}
-            }
+            // PLAN-012 F2（用户裁定）：顶部 AutoOS Settings 标题栏删除——
+            // 侧栏空间让给导航清单（窗口 title 已有 auto-os-config-front）。
             // Plan 562: nav(search:) 容器平移——provider 独子直返（VM）/包装
             // div（Vue，class 覆盖默认 min-h-svh w-full）；搜索行 =
             // sidebar_header + 原生 input；列表进 sidebar_content（契约自带
@@ -170,7 +169,6 @@ widget Sidebar {
                 }
             }
 
-            ThemePicker { }
         }
     }
 
