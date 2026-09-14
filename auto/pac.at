@@ -1,4 +1,6 @@
 name: "auto-os-config-front"
+title: "OS Config"
+title_zh: "系统设置"
 version: "0.1.0"
 scene: "ui"
 render: "vue"
