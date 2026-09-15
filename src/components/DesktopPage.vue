@@ -1,7 +1,5 @@
 <!-- DesktopPage component - Auto-generated from Auto language -->
 <script setup lang="ts">
-import WallpaperPicker from '@/components/WallpaperPicker.vue'
-
 
 const emit = defineEmits<{
   Nav: [string]
@@ -10,10 +8,10 @@ const emit = defineEmits<{
   DraftPinned: [string]
   SavePinned: []
   PickNotes: [string]
-  DraftWallpaper: [string]
-  SaveWallpaper: []
+  PickAccent: [string]
   DraftWallpapersDir: [string]
   SaveWallpapersDir: []
+  RequestWallpaperPick: []
   PickTheme: [string]
   PickTransparency: [string]
 }>()
@@ -28,12 +26,6 @@ function DraftPinned(v: any): void {
   emit('DraftPinned', v)
 }
 
-function DraftWallpaper(v: any): void {
-  store.DraftWallpaper(v);
-
-  emit('DraftWallpaper', v)
-}
-
 function DraftWallpapersDir(v: any): void {
   store.DraftWallpapersDir(v);
 
@@ -44,6 +36,12 @@ function Nav(s: any): void {
   store.Nav(s);
 
   emit('Nav', s)
+}
+
+function PickAccent(name: any): void {
+  store.PickAccent(name);
+
+  emit('PickAccent', name)
 }
 
 function PickEnabled(v: any): void {
@@ -76,16 +74,16 @@ function PickTransparency(v: any): void {
   emit('PickTransparency', v)
 }
 
+function RequestWallpaperPick(): void {
+  store.RequestWallpaperPick();
+
+  emit('RequestWallpaperPick')
+}
+
 function SavePinned(): void {
   store.SavePinned();
 
   emit('SavePinned')
-}
-
-function SaveWallpaper(): void {
-  store.SaveWallpaper();
-
-  emit('SaveWallpaper')
 }
 
 function SaveWallpapersDir(): void {
@@ -98,7 +96,7 @@ function SaveWallpapersDir(): void {
 </script>
 
 <template>
-    <div class="flex flex-col flex-1 p-4 gap-2">
+    <div class="flex flex-col gap-4 flex-1">
       <template v-if="store.loading">
         <span class="text-xs text-muted">Loading desktop config...</span>
       </template>
@@ -106,80 +104,80 @@ function SaveWallpapersDir(): void {
         <span class="text-sm text-destructive">{{ store.error }}</span>
       </template>
       <template v-if="store.loading == false && store.error == ''">
-        <div class="flex flex-row gap-1 pb-2 border-b border-border">
-          <template v-if="store.section == 'dock'">
-            <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">Dock</button>
+        <div class="flex flex-row w-fit inline-flex h-9 items-center gap-[4px] rounded-lg bg-muted p-[4px] mb-[16px]">
+          <template v-if="store.section == 'appearance'">
+            <button class="h-7 px-3 text-xs font-medium rounded-md bg-background text-foreground border-0 shadow-sm">显示</button>
           </template>
           <template v-else>
-            <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="Nav('dock')">Dock</button>
+            <button class="h-7 px-3 text-xs font-medium rounded-md bg-muted text-muted-foreground border-0" @click="Nav('appearance')">显示</button>
+          </template>
+          <template v-if="store.section == 'dock'">
+            <button class="h-7 px-3 text-xs font-medium rounded-md bg-background text-foreground border-0 shadow-sm">Dock</button>
+          </template>
+          <template v-else>
+            <button class="h-7 px-3 text-xs font-medium rounded-md bg-muted text-muted-foreground border-0" @click="Nav('dock')">Dock</button>
           </template>
           <template v-if="store.section == 'notes'">
-            <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">通知</button>
+            <button class="h-7 px-3 text-xs font-medium rounded-md bg-background text-foreground border-0 shadow-sm">通知</button>
           </template>
           <template v-else>
-            <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="Nav('notes')">通知</button>
-          </template>
-          <template v-if="store.section == 'appearance'">
-            <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">外观</button>
-          </template>
-          <template v-else>
-            <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="Nav('appearance')">外观</button>
+            <button class="h-7 px-3 text-xs font-medium rounded-md bg-muted text-muted-foreground border-0" @click="Nav('notes')">通知</button>
           </template>
           <template v-if="store.section == 'about'">
-            <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">关于</button>
+            <button class="h-7 px-3 text-xs font-medium rounded-md bg-background text-foreground border-0 shadow-sm">关于</button>
           </template>
           <template v-else>
-            <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="Nav('about')">关于</button>
+            <button class="h-7 px-3 text-xs font-medium rounded-md bg-muted text-muted-foreground border-0" @click="Nav('about')">关于</button>
           </template>
         </div>
-        <div class="flex flex-col flex-1 p-4 gap-3">
+        <div class="flex flex-col gap-4 flex-1">
           <template v-if="store.section == 'dock'">
-            <div class="flex flex-col gap-2 p-4 bg-card rounded-xl border border-border">
+            <div class="flex flex-col gap-[10px] p-4 bg-card rounded-xl border border-border mb-[16px]">
               <span class="text-sm font-medium text-foreground">位置</span>
-              <div class="flex flex-row gap-2">
+              <div class="flex flex-row items-center rounded-lg bg-muted p-[3px] gap-[3px] w-fit">
                 <template v-if="store.cfg_dock_position == 'bottom'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">底部</button>
+                  <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">底部</button>
                 </template>
                 <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickPosition('bottom')">底部</button>
+                  <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickPosition('bottom')">底部</button>
                 </template>
                 <template v-if="store.cfg_dock_position == 'top'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">顶部</button>
+                  <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">顶部</button>
                 </template>
                 <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickPosition('top')">顶部</button>
+                  <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickPosition('top')">顶部</button>
                 </template>
               </div>
             </div>
-            <div class="flex flex-col gap-2 p-4 bg-card rounded-xl border border-border">
+            <div class="flex flex-col gap-[10px] p-4 bg-card rounded-xl border border-border mb-[16px]">
               <span class="text-sm font-medium text-foreground">显示 Dock</span>
-              <div class="flex flex-row gap-2">
+              <div class="flex flex-row items-center rounded-lg bg-muted p-[3px] gap-[3px] w-fit">
                 <template v-if="store.cfg_dock_enabled == '1'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">开</button>
+                  <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">开</button>
                 </template>
                 <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickEnabled('1')">开</button>
+                  <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickEnabled('1')">开</button>
                 </template>
                 <template v-if="store.cfg_dock_enabled == '0'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">关</button>
+                  <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">关</button>
                 </template>
                 <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickEnabled('0')">关</button>
+                  <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickEnabled('0')">关</button>
                 </template>
               </div>
             </div>
-            <div class="flex flex-col gap-2 p-4 bg-card rounded-xl border border-border">
+            <div class="flex flex-col gap-[10px] p-4 bg-card rounded-xl border border-border">
               <span class="text-sm font-medium text-foreground">固定应用（逗号分隔 app id）</span>
               <input class="flex-1 text-sm text-foreground bg-background rounded-lg border border-border px-2" :placeholder="'011-calculator,013-todo,015-notes'" :value="store.pinned_draft" @input="DraftPinned(($event.target as HTMLInputElement).value)" />
-              <div class="flex flex-row items-center gap-2">
+              <div class="flex flex-row items-center gap-[8px]">
                 <button class="h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg" @click="SavePinned">保存并热同步</button>
-                <span class="text-xs text-muted-foreground">空值 = 复位默认三枚；桌面宿主热应用</span>
+                <span class="text-xs text-muted-foreground">空值 = 清空固定项；桌面宿主热应用</span>
               </div>
               <template v-if="store.pinned_saved == '1'">
                 <span class="text-success text-xs">已保存</span>
               </template>
               <template v-else>
-                <div class="flex flex-row items-center gap-2">
+                <div class="flex flex-row items-center gap-[8px]">
                   <span class="text-xs text-muted-foreground">当前：</span>
                   <span class="text-xs text-foreground">{{ store.cfg_dock_pinned }}</span>
                 </div>
@@ -187,97 +185,115 @@ function SaveWallpapersDir(): void {
             </div>
           </template>
           <template v-if="store.section == 'notes'">
-            <div class="flex flex-col gap-2 p-4 bg-card rounded-xl border border-border">
+            <div class="flex flex-col gap-[10px] p-4 bg-card rounded-xl border border-border">
               <span class="text-sm font-medium text-foreground">通知中心</span>
-              <div class="flex flex-row gap-2">
+              <div class="flex flex-row items-center rounded-lg bg-muted p-[3px] gap-[3px] w-fit">
                 <template v-if="store.cfg_notes_enabled == '1'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">开</button>
+                  <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">开</button>
                 </template>
                 <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickNotes('1')">开</button>
+                  <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickNotes('1')">开</button>
                 </template>
                 <template v-if="store.cfg_notes_enabled == '0'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">关</button>
+                  <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">关</button>
                 </template>
                 <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickNotes('0')">关</button>
+                  <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickNotes('0')">关</button>
                 </template>
               </div>
               <span class="text-xs text-muted-foreground">关闭后桌面 notify 全链路短路（入史/toast/未读）</span>
             </div>
           </template>
           <template v-if="store.section == 'appearance'">
-            <div class="flex flex-col gap-2 p-4 bg-card rounded-xl border border-border">
-              <span class="text-sm font-medium text-foreground">壁纸</span>
-              <span class="text-xs text-muted-foreground">图片路径或 #hex 色值；内置宣纸/水墨可填 builtin:ricepaper / builtin:inkwash</span>
-              <div class="flex flex-row items-center gap-2">
-                <input class="flex-1 text-sm text-foreground bg-background rounded-lg border border-border px-2" :placeholder="'D:\\wallpaper.png 或 #243b55'" :value="store.wallpaper_draft" @input="DraftWallpaper(($event.target as HTMLInputElement).value)" />
-                <button class="h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg" @click="SaveWallpaper">保存</button>
-              </div>
-              <WallpaperPicker :current="store.cfg_wallpaper" :dir="store.cfg_wallpapers_dir" :field="'cfg_wallpaper'" :module_id="'desktop'" :key="'WallpaperPicker-1'" />
-              <template v-if="store.wallpaper_saved == '1'">
-                <span class="text-success text-xs">已保存，桌面宿主热应用</span>
-              </template>
-              <template v-else>
-                <div class="flex flex-row items-center gap-2">
-                  <span class="text-xs text-muted-foreground">当前：</span>
-                  <span class="text-xs text-foreground">{{ store.cfg_wallpaper }}</span>
+            <div class="flex flex-row w-full gap-[16px] mb-[16px]">
+              <div class="flex flex-col flex-1 gap-[10px] p-4 bg-card rounded-xl border border-border">
+                <span class="text-sm font-medium text-foreground">主题</span>
+                <div class="flex flex-row items-center rounded-lg bg-muted p-[3px] gap-[3px] w-fit">
+                  <template v-if="store.cfg_theme == 'dark'">
+                    <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">深色</button>
+                  </template>
+                  <template v-else>
+                    <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickTheme('dark')">深色</button>
+                  </template>
+                  <template v-if="store.cfg_theme == 'light'">
+                    <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">浅色</button>
+                  </template>
+                  <template v-else>
+                    <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickTheme('light')">浅色</button>
+                  </template>
                 </div>
-              </template>
-              <div class="flex flex-row items-center gap-2">
+              </div>
+              <div class="flex flex-col flex-1 gap-[10px] p-4 bg-card rounded-xl border border-border">
+                <span class="text-sm font-medium text-foreground">主色调</span>
+                <div class="flex flex-row swatches items-center gap-[10px] h-8">
+                  <button :class="(store.accent == 'indigo' ? 'swatch w-6 h-6 rounded-full border-2 border-foreground flex flex-row items-center justify-center bg-[#6366f1] cursor-pointer' : 'swatch w-6 h-6 rounded-full border-2 border-transparent flex flex-row items-center justify-center bg-[#6366f1] cursor-pointer')" @click="PickAccent('indigo')">
+                    <template v-if="store.accent == 'indigo'">
+                      <span class="text-xs font-bold text-white leading-none">✓</span>
+                    </template>
+                  </button>
+                  <button :class="(store.accent == 'coral' ? 'swatch w-6 h-6 rounded-full border-2 border-foreground flex flex-row items-center justify-center bg-[#e85d75] cursor-pointer' : 'swatch w-6 h-6 rounded-full border-2 border-transparent flex flex-row items-center justify-center bg-[#e85d75] cursor-pointer')" @click="PickAccent('coral')">
+                    <template v-if="store.accent == 'coral'">
+                      <span class="text-xs font-bold text-white leading-none">✓</span>
+                    </template>
+                  </button>
+                  <button :class="(store.accent == 'ocean' ? 'swatch w-6 h-6 rounded-full border-2 border-foreground flex flex-row items-center justify-center bg-[#3b82f6] cursor-pointer' : 'swatch w-6 h-6 rounded-full border-2 border-transparent flex flex-row items-center justify-center bg-[#3b82f6] cursor-pointer')" @click="PickAccent('ocean')">
+                    <template v-if="store.accent == 'ocean'">
+                      <span class="text-xs font-bold text-white leading-none">✓</span>
+                    </template>
+                  </button>
+                  <button :class="(store.accent == 'sage' ? 'swatch w-6 h-6 rounded-full border-2 border-foreground flex flex-row items-center justify-center bg-[#10b981] cursor-pointer' : 'swatch w-6 h-6 rounded-full border-2 border-transparent flex flex-row items-center justify-center bg-[#10b981] cursor-pointer')" @click="PickAccent('sage')">
+                    <template v-if="store.accent == 'sage'">
+                      <span class="text-xs font-bold text-white leading-none">✓</span>
+                    </template>
+                  </button>
+                  <button :class="(store.accent == 'amber' ? 'swatch w-6 h-6 rounded-full border-2 border-foreground flex flex-row items-center justify-center bg-[#f59e0b] cursor-pointer' : 'swatch w-6 h-6 rounded-full border-2 border-transparent flex flex-row items-center justify-center bg-[#f59e0b] cursor-pointer')" @click="PickAccent('amber')">
+                    <template v-if="store.accent == 'amber'">
+                      <span class="text-xs font-bold text-white leading-none">✓</span>
+                    </template>
+                  </button>
+                </div>
+              </div>
+              <div class="flex flex-col flex-1 gap-[10px] p-4 bg-card rounded-xl border border-border">
+                <span class="text-sm font-medium text-foreground">窗口透明度</span>
+                <div class="flex flex-row items-center rounded-lg bg-muted p-[3px] gap-[3px] w-fit">
+                  <template v-if="store.cfg_transparency == 'off'">
+                    <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">关</button>
+                  </template>
+                  <template v-else>
+                    <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickTransparency('off')">关</button>
+                  </template>
+                  <template v-if="store.cfg_transparency == 'low'">
+                    <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">低</button>
+                  </template>
+                  <template v-else>
+                    <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickTransparency('low')">低</button>
+                  </template>
+                  <template v-if="store.cfg_transparency == 'high'">
+                    <button class="h-7 px-3 text-xs font-medium bg-primary text-primary-foreground rounded-md border-0">高</button>
+                  </template>
+                  <template v-else>
+                    <button class="h-7 px-3 text-xs text-muted-foreground rounded-md border-0" @click="PickTransparency('high')">高</button>
+                  </template>
+                </div>
+              </div>
+            </div>
+            <div class="flex flex-col gap-[10px] p-4 bg-card rounded-xl border border-border">
+              <span class="text-sm font-medium text-foreground">壁纸</span>
+              <div class="flex flex-row items-center gap-[8px]">
                 <input class="flex-1 text-sm text-foreground bg-background rounded-lg border border-border px-2" :placeholder="'壁纸目录，如 D:\\wallpapers'" :value="store.wallpapers_dir_draft" @input="DraftWallpapersDir(($event.target as HTMLInputElement).value)" />
                 <button class="h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg" @click="SaveWallpapersDir">保存目录</button>
-              </div>
-            </div>
-            <div class="flex flex-col gap-2 p-4 bg-card rounded-xl border border-border">
-              <span class="text-sm font-medium text-foreground">主题</span>
-              <div class="flex flex-row gap-2">
-                <template v-if="store.cfg_theme == 'dark'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">深色</button>
-                </template>
-                <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickTheme('dark')">深色</button>
-                </template>
-                <template v-if="store.cfg_theme == 'light'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">浅色</button>
-                </template>
-                <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickTheme('light')">浅色</button>
-                </template>
-              </div>
-            </div>
-            <div class="flex flex-col gap-2 p-4 bg-card rounded-xl border border-border">
-              <span class="text-sm font-medium text-foreground">窗口透明度</span>
-              <div class="flex flex-row gap-2">
-                <template v-if="store.cfg_transparency == 'off'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">关</button>
-                </template>
-                <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickTransparency('off')">关</button>
-                </template>
-                <template v-if="store.cfg_transparency == 'low'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">低</button>
-                </template>
-                <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickTransparency('low')">低</button>
-                </template>
-                <template v-if="store.cfg_transparency == 'high'">
-                  <button class="h-8 px-4 text-xs bg-primary text-primary-foreground rounded-lg">高</button>
-                </template>
-                <template v-else>
-                  <button class="h-8 px-4 text-xs bg-muted text-muted-foreground rounded-lg" @click="PickTransparency('high')">高</button>
-                </template>
+                <button class="h-8 px-3 text-xs bg-primary text-primary-foreground rounded-lg" @click="RequestWallpaperPick">切换壁纸</button>
               </div>
             </div>
           </template>
           <template v-if="store.section == 'about'">
-            <div class="flex flex-col gap-2 p-4 bg-card rounded-xl border border-border">
+            <div class="flex flex-col gap-[10px] p-4 bg-card rounded-xl border border-border">
               <span class="text-sm font-medium text-foreground">关于</span>
-              <div class="flex flex-row items-center gap-2">
+              <div class="flex flex-row items-center gap-[8px]">
                 <span class="text-xs text-muted-foreground">虚拟桌面</span>
                 <span class="text-xs text-foreground">Auto Desktop（auto-lang ui_desktop / desktop-host）</span>
               </div>
-              <div class="flex flex-row items-center gap-2">
+              <div class="flex flex-row items-center gap-[8px]">
                 <span class="text-xs text-muted-foreground">配置单源</span>
                 <span class="text-xs text-foreground">~/.config/autoos/apps/desktop/config.at</span>
               </div>

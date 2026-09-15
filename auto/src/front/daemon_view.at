@@ -23,10 +23,10 @@ widget DaemonView(module_id: str) {
     }
 
     view {
-        col (style: "daemon-view test-card gap-[0px] max-w-[820px]") {
-            row (style: "test-row gap-[14px]") {
-                span (text: "Daemon connection", style: "test-label") {}
-                span (style: "test-status") {
+        col (style: "daemon-view test-card flex flex-col gap-[10px] p-4 bg-card rounded-xl border border-border mb-[16px] max-w-[820px]") {
+            row (style: "test-row flex flex-row items-center gap-[14px]") {
+                span (text: "Daemon connection", style: "test-label text-sm font-medium text-foreground") {}
+                span (style: "test-status text-sm") {
                     if .conn_state == "idle" {
                         text (text: "not tested", style: "text-muted") {}
                     }
@@ -44,7 +44,7 @@ widget DaemonView(module_id: str) {
                     }
                 }
                 div (style: "flex-1") {}
-                button (text: "Test", style: "btn bg-background border border-border rounded px-5 py-2 text-sm text-foreground h-auto", disabled: .conn_state == "checking") {
+                button (text: "Test", style: "btn h-8 px-4 text-xs rounded-md bg-muted text-foreground border-0", disabled: .conn_state == "checking") {
                     onclick: .Test
                 }
             }

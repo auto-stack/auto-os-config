@@ -104,7 +104,12 @@ widget App {
                             // 图形元素走 SVG 直通(442 A4);accent 只经 primary
                             // token;概要页不出现任何 button(446 note:概要页卡片
                             // 文案曾误配 nav 断言——新版无按钮且文案避开导航名)。
-                            col (style: "overview flex-1 flex flex-col gap-[0px] overflow-auto p-8 bg-background") {
+                            // 016 走查(用户 09-15):概要页容器原 p-8 + 自带
+                            // overflow-auto 与外层 content-body 的 p-6 滚动容器
+                            // 叠加,标题栏与首屏(Hero)之间多出 32px 空白——内层
+                            // 去掉自己的 padding 与滚动,统一由 content-body 承担
+                            // (与其他模块页同构,顶距 = 24px 基准)。
+                            col (style: "overview flex-1 flex flex-col gap-[0px] bg-background") {
                                 text (text: "System Overview", style: "text-xs font-semibold text-muted tracking-wider uppercase pb-3") {}
                                 row (style: "w-full flex flex-row items-center gap-5 pb-6") {
                                     col (style: "device-tile h-16 w-16 rounded-2xl bg-primary/10 flex flex-row items-center justify-center gap-[0px] shrink-0") {

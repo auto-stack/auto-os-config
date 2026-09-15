@@ -62,11 +62,13 @@ function applyAccent(name: string, isDark = false): void {
   const hsl = ACCENT_PALETTES[name]
   if (!hsl) return
   let finalHsl = hsl
-  // Dark mode: boost lightness ~4% for contrast against dark backgrounds.
+  // Dark mode: boost lightness for contrast against dark backgrounds.
+  // PLAN-601 D2 归一：+4 → +10（与 Rust/VM 侧 accent_primary_hsl 统一，
+  // coral 校准/stella 对齐实证为准；vue 暗色 accent 视觉微调在案）。
   if (isDark) {
     const match = hsl.match(/^(\d+\s+[\d.]+%)\s+([\d.]+)%$/)
     if (match) {
-      const boosted = Math.min(85, parseFloat(match[2]) + 4)
+      const boosted = Math.min(85, parseFloat(match[2]) + 10)
       finalHsl = match[1] + ' ' + boosted + '%'
     }
   }
@@ -117,8 +119,310 @@ function getAccentNames(): string[] {
   return ACCENT_NAMES
 }
 
+// PLAN-601 T-06: Named theme hot-switch runtime (applyAccent generalized
+// to the full token set). Values mirror the generated index.css registry
+// source (dual-face single source of truth).
+const THEME_PALETTES: Record<string, { light: Record<string, string>, dark: Record<string, string> }> = {
+  'zinc': { light: {
+    'background': '0 0% 100%',
+    'foreground': '222.2 84% 4.9%',
+    'card': '0 0% 100%',
+    'card-foreground': '222.2 84% 4.9%',
+    'popover': '0 0% 100%',
+    'popover-foreground': '222.2 84% 4.9%',
+    'primary': '222.2 47.4% 11.2%',
+    'primary-foreground': '210 40% 98%',
+    'secondary': '40 24% 85.5%',
+    'secondary-foreground': '222.2 47.4% 11.2%',
+    'muted': '210 40% 96.1%',
+    'muted-foreground': '215.4 16.3% 46.9%',
+    'accent': '210 40% 96.1%',
+    'accent-foreground': '222.2 47.4% 11.2%',
+    'destructive': '0 84.2% 60.2%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '214.3 31.8% 91.4%',
+    'input': '214.3 31.8% 91.4%',
+    'ring': '222.2 84% 4.9%'
+  }, dark: {
+    'background': '222.2 47% 7%',
+    'foreground': '210 40% 98%',
+    'card': '222.2 47% 11%',
+    'card-foreground': '210 40% 98%',
+    'popover': '222.2 47% 11%',
+    'popover-foreground': '210 40% 98%',
+    'primary': '210 40% 98%',
+    'primary-foreground': '222.2 47.4% 11.2%',
+    'secondary': '215 25% 27%',
+    'secondary-foreground': '210 40% 98%',
+    'muted': '217.2 32.6% 17.5%',
+    'muted-foreground': '215 20.2% 65.1%',
+    'accent': '217.2 32.6% 17.5%',
+    'accent-foreground': '210 40% 98%',
+    'destructive': '0 62.8% 30.6%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '217.2 32.6% 17.5%',
+    'input': '217.2 32.6% 17.5%',
+    'ring': '212.7 26.8% 83.9%'
+  } },
+  'scaffold': { light: {
+    'background': '0 0% 100%',
+    'foreground': '222.2 84% 4.9%',
+    'card': '0 0% 100%',
+    'card-foreground': '222.2 84% 4.9%',
+    'popover': '0 0% 100%',
+    'popover-foreground': '222.2 84% 4.9%',
+    'primary': '239 84% 67%',
+    'primary-foreground': '210 40% 98%',
+    'secondary': '40 24% 85.5%',
+    'secondary-foreground': '222.2 47.4% 11.2%',
+    'muted': '210 40% 96.1%',
+    'muted-foreground': '215.4 16.3% 46.9%',
+    'accent': '210 40% 96.1%',
+    'accent-foreground': '222.2 47.4% 11.2%',
+    'destructive': '0 84.2% 60.2%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '214.3 31.8% 91.4%',
+    'input': '214.3 31.8% 91.4%',
+    'ring': '239 84% 67%',
+    'sidebar-background': '0 0% 98%',
+    'sidebar-foreground': '222.2 47.4% 11.2%',
+    'sidebar-primary': '239 84% 67%',
+    'sidebar-primary-foreground': '210 40% 98%',
+    'sidebar-accent': '210 40% 96.1%',
+    'sidebar-accent-foreground': '222.2 47.4% 11.2%',
+    'sidebar-border': '214.3 31.8% 91.4%',
+    'sidebar-ring': '239 84% 67%'
+  }, dark: {
+    'background': '222.2 47% 7%',
+    'foreground': '210 40% 98%',
+    'card': '222.2 47% 10%',
+    'card-foreground': '210 40% 98%',
+    'popover': '222.2 47% 10%',
+    'popover-foreground': '210 40% 98%',
+    'primary': '239 84% 77%',
+    'primary-foreground': '222.2 47.4% 11.2%',
+    'secondary': '215 25% 27%',
+    'secondary-foreground': '210 40% 98%',
+    'muted': '217.2 32.6% 15%',
+    'muted-foreground': '215 20.2% 65.1%',
+    'accent': '217.2 32.6% 17.5%',
+    'accent-foreground': '210 40% 98%',
+    'destructive': '0 62.8% 30.6%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '217.2 32.6% 17.5%',
+    'input': '217.2 32.6% 17.5%',
+    'ring': '239 84% 77%',
+    'sidebar-background': '222.2 47% 10%',
+    'sidebar-foreground': '210 40% 98%',
+    'sidebar-primary': '239 84% 77%',
+    'sidebar-primary-foreground': '222.2 47.4% 11.2%',
+    'sidebar-accent': '217.2 32.6% 17.5%',
+    'sidebar-accent-foreground': '210 40% 98%',
+    'sidebar-border': '217.2 32.6% 17.5%',
+    'sidebar-ring': '239 84% 77%'
+  } },
+  'stella': { light: {
+    'background': '42 39% 94%',
+    'foreground': '34 9% 15%',
+    'card': '40 53% 97%',
+    'card-foreground': '34 9% 15%',
+    'popover': '40 53% 97%',
+    'popover-foreground': '34 9% 15%',
+    'primary': '239 84% 67%',
+    'primary-foreground': '210 40% 98%',
+    'secondary': '40 24% 85%',
+    'secondary-foreground': '34 9% 15%',
+    'muted': '39 32% 91%',
+    'muted-foreground': '38 7% 46%',
+    'accent': '39 32% 91%',
+    'accent-foreground': '38 7% 46%',
+    'destructive': '0 84.2% 60.2%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '40 24% 85%',
+    'input': '40 24% 85%',
+    'ring': '239 84% 67%',
+    'success': '142 71% 45%',
+    'warning': '45 93% 47%',
+    'info': '217 91% 60%',
+    'error': '0 84% 60%'
+  }, dark: {
+    'background': '223 34% 12%',
+    'foreground': '210 40% 98%',
+    'card': '222 34% 15%',
+    'card-foreground': '210 40% 98%',
+    'popover': '222 34% 15%',
+    'popover-foreground': '210 40% 98%',
+    'primary': '239 84% 77%',
+    'primary-foreground': '222 47% 11%',
+    'secondary': '215 25% 27%',
+    'secondary-foreground': '210 40% 98%',
+    'muted': '217 33% 17%',
+    'muted-foreground': '216 17% 65%',
+    'accent': '217 33% 17%',
+    'accent-foreground': '216 17% 65%',
+    'destructive': '0 62.8% 30.6%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '222 27% 22%',
+    'input': '222 27% 22%',
+    'ring': '239 84% 77%',
+    'success': '142 71% 45%',
+    'warning': '45 93% 47%',
+    'info': '217 91% 60%',
+    'error': '0 84% 60%'
+  } },
+  'tauri': { light: {
+    'background': '0 0% 100%',
+    'foreground': '222.2 84% 4.9%',
+    'card': '0 0% 100%',
+    'card-foreground': '222.2 84% 4.9%',
+    'popover': '0 0% 100%',
+    'popover-foreground': '222.2 84% 4.9%',
+    'primary': '222.2 47.4% 11.2%',
+    'primary-foreground': '210 40% 98%',
+    'secondary': '40 24% 85.5%',
+    'secondary-foreground': '222.2 47.4% 11.2%',
+    'muted': '210 40% 96.1%',
+    'muted-foreground': '215.4 16.3% 46.9%',
+    'accent': '210 40% 96.1%',
+    'accent-foreground': '222.2 47.4% 11.2%',
+    'destructive': '0 84.2% 60.2%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '214.3 31.8% 91.4%',
+    'input': '214.3 31.8% 91.4%',
+    'ring': '222.2 84% 4.9%'
+  }, dark: {
+    'background': '222.2 84% 4.9%',
+    'foreground': '210 40% 98%',
+    'card': '222.2 84% 4.9%',
+    'card-foreground': '210 40% 98%',
+    'popover': '222.2 84% 4.9%',
+    'popover-foreground': '210 40% 98%',
+    'primary': '210 40% 98%',
+    'primary-foreground': '222.2 47.4% 11.2%',
+    'secondary': '215 25% 27%',
+    'secondary-foreground': '210 40% 98%',
+    'muted': '217.2 32.6% 17.5%',
+    'muted-foreground': '215 20.2% 65.1%',
+    'accent': '217.2 32.6% 17.5%',
+    'accent-foreground': '210 40% 98%',
+    'destructive': '0 62.8% 30.6%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '217.2 32.6% 17.5%',
+    'input': '217.2 32.6% 17.5%',
+    'ring': '212.7 26.8% 83.9%'
+  } },
+  'cli-vue': { light: {
+    'background': '0 0% 100%',
+    'foreground': '222.2 84% 4.9%',
+    'card': '0 0% 100%',
+    'card-foreground': '222.2 84% 4.9%',
+    'popover': '0 0% 100%',
+    'popover-foreground': '222.2 84% 4.9%',
+    'primary': '239 84% 67%',
+    'primary-foreground': '0 0% 100%',
+    'secondary': '40 24% 85.5%',
+    'secondary-foreground': '222.2 47.4% 11.2%',
+    'muted': '210 40% 96.1%',
+    'muted-foreground': '215.4 16.3% 46.9%',
+    'accent': '210 40% 96.1%',
+    'accent-foreground': '222.2 47.4% 11.2%',
+    'destructive': '0 84.2% 60.2%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '214.3 31.8% 91.4%',
+    'input': '214.3 31.8% 91.4%',
+    'ring': '239 84% 67%',
+    'sidebar-background': '0 0% 98%',
+    'sidebar-foreground': '240 5.3% 26.1%',
+    'sidebar-primary': '239 84% 67%',
+    'sidebar-primary-foreground': '0 0% 100%',
+    'sidebar-accent': '240 4.8% 95.9%',
+    'sidebar-accent-foreground': '240 5.9% 10%',
+    'sidebar-border': '220 13% 91%',
+    'sidebar-ring': '239 84% 67%'
+  }, dark: {
+    'background': '222 47% 11%',
+    'foreground': '210 40% 98%',
+    'card': '222 47% 13%',
+    'card-foreground': '210 40% 98%',
+    'popover': '222 47% 13%',
+    'popover-foreground': '210 40% 98%',
+    'primary': '239 84% 77%',
+    'primary-foreground': '222 47% 11%',
+    'secondary': '215 25% 27%',
+    'secondary-foreground': '210 40% 98%',
+    'muted': '217 33% 17%',
+    'muted-foreground': '215 20.2% 65.1%',
+    'accent': '217 33% 17%',
+    'accent-foreground': '210 40% 98%',
+    'destructive': '0 62.8% 30.6%',
+    'destructive-foreground': '210 40% 98%',
+    'border': '217 33% 20%',
+    'input': '217 33% 20%',
+    'ring': '239 84% 77%',
+    'sidebar-background': '222 47% 9%',
+    'sidebar-foreground': '210 40% 90%',
+    'sidebar-primary': '239 84% 77%',
+    'sidebar-primary-foreground': '222 47% 11%',
+    'sidebar-accent': '217 33% 15%',
+    'sidebar-accent-foreground': '210 40% 98%',
+    'sidebar-border': '217 33% 18%',
+    'sidebar-ring': '239 84% 77%'
+  } }
+}
+// pac.at theme{} declared app theme (generator-injected) joins the set.
+if ((window as any).__AUTO_COMPOSED_THEME__) {
+  const ct = (window as any).__AUTO_COMPOSED_THEME__
+  if (ct && ct.name && ct.light && ct.dark) THEME_PALETTES[ct.name] = ct
+}
+const THEME_STORAGE_KEY = 'auto-theme'
+
+/** Active theme: last applied choice persisted in localStorage, else the
+ *  scaffold default (matching the generated index.css :root block). */
+function getActiveTheme(): string {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY)
+    if (saved && THEME_PALETTES[saved]) return saved
+  } catch {}
+  return 'scaffold'
+}
+
+/** Apply a named theme by writing its FULL variable set. Light values go on
+ *  <html> inline (beats every stylesheet); when dark, the dark set is also
+ *  written on every `.dark` element (declarations beat inheritance), so a
+ *  mode flip keeps the active theme instead of falling back to the scaffold
+ *  `.dark` block. Light mode clears stale inline vars from a previous dark
+ *  write. The accent overlay runs LAST so a named --primary rides on top of
+ *  any theme (+10 dark boost inside applyAccent). Unknown names are ignored
+ *  (closed vocabulary). */
+function applyTheme(name: string, isDark = document.documentElement.classList.contains('dark'), accentName = getSavedAccent()): void {
+  const pal = THEME_PALETTES[name]
+  if (!pal) return
+  const root = document.documentElement
+  function writeVars(el: HTMLElement, vars: Record<string, string>) {
+    for (const k in vars) el.style.setProperty('--' + k, vars[k])
+  }
+  writeVars(root, pal.light)
+  function applyDarkPass() {
+    if (isDark) {
+      document.querySelectorAll('.dark').forEach(function (el) { writeVars(el as HTMLElement, pal!.dark) })
+    } else {
+      // Any previous full write carries --background — use it as the marker
+      // for stale inline overrides (documentElement keeps its own value).
+      document.querySelectorAll('.dark, [style*="--background"]').forEach(function (el) {
+        if (el !== root) for (const k in pal!.light) (el as HTMLElement).style.removeProperty('--' + k)
+      })
+    }
+  }
+  applyDarkPass()
+  setTimeout(applyDarkPass, 0)
+  try { localStorage.setItem(THEME_STORAGE_KEY, name) } catch {}
+  if (accentName) applyAccent(accentName, isDark)
+}
+
 // Restore saved accent on module load.
 (function bootstrapAccent() {
+  const __th = getActiveTheme()
+  if (__th !== 'scaffold') applyTheme(__th, document.documentElement.classList.contains('dark'))
   const saved = getSavedAccent()
   accent_color.value = saved || 'indigo'
   const isDark = document.documentElement.classList.contains('dark')

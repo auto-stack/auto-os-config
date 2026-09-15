@@ -30,10 +30,10 @@ async function Test(): Promise<void> {
 </script>
 
 <template>
-    <div class="flex flex-col daemon-view test-card gap-[0px] max-w-[820px]">
-      <div class="flex flex-row test-row gap-[14px]">
-        <span class="test-label">Daemon connection</span>
-        <span class="test-status">
+    <div class="flex flex-col daemon-view test-card gap-[10px] p-4 bg-card rounded-xl border border-border mb-[16px] max-w-[820px]">
+      <div class="flex flex-row test-row items-center gap-[14px]">
+        <span class="test-label text-sm font-medium text-foreground">Daemon connection</span>
+        <span class="test-status text-sm">
           <template v-if="conn_state == 'idle'">
             <span class="text-muted">not tested</span>
           </template>
@@ -51,7 +51,7 @@ async function Test(): Promise<void> {
           </template>
         </span>
         <div class="flex-1" />
-        <button class="btn bg-background border border-border rounded px-5 py-2 text-sm text-foreground h-auto" :disabled="conn_state == 'checking'" @click="Test">Test</button>
+        <button class="btn h-8 px-4 text-xs rounded-md bg-muted text-foreground border-0" :disabled="conn_state == 'checking'" @click="Test">Test</button>
       </div>
       <template v-if="conn_state == 'fail' && test_error != ''">
         <p class="test-err">{{ test_error }}</p>

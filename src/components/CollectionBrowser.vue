@@ -317,7 +317,8 @@ onMounted(() => {
               </template>
             </div>
           </div>
-          <div class="w-72 bg-background border border-border rounded-lg p-4 gap-2" v-if="confirm_open">
+<div v-if="confirm_open" class="fixed inset-0 z-40" @click="ConfirmDeleteNo"></div>
+<div v-if="confirm_open" class="fixed z-50 w-72 bg-background border border-border rounded-lg p-4 gap-2" :style="{ left: 620 + 'px', top: 300 + 'px' }">
             <p>
               <span>Delete </span>
               <span class="strong">{{ store.selected_name }}</span>
@@ -334,7 +335,7 @@ onMounted(() => {
               <button class="btn bg-background border border-border rounded px-[14px] py-[5px] text-xs text-foreground h-auto" @click="ConfirmDeleteNo">Cancel</button>
               <button class="btn danger bg-[#c42b1c] text-white border-[#c42b1c] h-auto" @click="ConfirmDeleteYes">Delete</button>
             </div>
-          </div>
+</div>
           <template v-if="store.error != ''">
             <div class="state-msg error">
               <span>{{ '✗ ' + store.error }}</span>

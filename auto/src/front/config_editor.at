@@ -40,7 +40,7 @@ widget ConfigEditor(module_id: str, widgets: str) {
         Apply(map, str),
         TagAdd(map),
         TagRemove(map, str),
-        Toggle(map, bool),
+        Toggle(map, str),
         TableCell(map, int, str, str),
         TableRowAdd(map),
         TableRowRemove(map, int),
@@ -74,7 +74,7 @@ widget ConfigEditor(module_id: str, widgets: str) {
     }
 
     view {
-        div (style: "config-editor max-w-[820px] gap-[0px]") {
+        div (style: "config-editor flex-1 flex flex-col max-w-[820px] gap-[16px]") {
             if .loading {
                 div (style: "state-msg") {
                     text (text: "Loading…") {}
@@ -88,53 +88,52 @@ widget ConfigEditor(module_id: str, widgets: str) {
                     }
                 }
             }
-            div (style: "toolbar gap-[0px]") {
-                div (style: "meta gap-[0px]") {
-                    span (style: "mono", text: .meta_file) {}
+            // 016 重设计:工具栏单行化——文件标识+状态在左,动作在右(此前
+            // toolbar/meta/actions 只有 vue 命名类 CSS,vm 轨无布局样式导致
+            // 按钮竖排堆叠);按钮全部补显式 utilities + border-0(vm 默认
+            // 按钮边框抢镜)。
+            row (style: "toolbar flex flex-row items-center gap-[8px]") {
+                div (style: "meta flex flex-row items-center gap-[8px] flex-1 min-w-0") {
+                    span (style: "mono text-xs text-muted-foreground bg-muted rounded-md px-2 py-1", text: .meta_file) {}
                     if .dirty {
-                        span (style: "dirty", text: "● unsaved") {}
+                        span (style: "dirty text-xs text-warning", text: "● unsaved") {}
                     }
                 }
-                div (style: "actions gap-[0px]") {
+                div (style: "actions flex flex-row items-center gap-[8px]") {
                     if .block_error != "" {
-                        span (style: "block-error", text: .block_error) {}
+                        span (style: "block-error text-xs text-destructive", text: .block_error) {}
                     }
                     if .adding_block {
-                        input (style: "block-name text-foreground h-auto", placeholder: "block name", value: .new_block_name) {
+                        input (style: "block-name w-[180px] h-7 text-xs text-foreground bg-background border border-border rounded-md px-2", placeholder: "block name", value: .new_block_name) {
                             oninput: .NameDraft
                             onkeydown.enter: .AddBlock
                         }
-                        button (style: "btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto", text: "Add") {
+                        button (style: "h-7 px-3 text-xs rounded-md bg-primary text-primary-foreground border-0", text: "Add") {
                             onclick: .AddBlock
                         }
-                        button (style: "btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto", text: "Cancel") {
+                        button (style: "h-7 px-3 text-xs rounded-md bg-muted text-muted-foreground border-0", text: "Cancel") {
                             onclick: .CancelAddBlock
                         }
                     }
                     if .adding_block == false {
                         if .loaded_once {
-                            button (style: "btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto", text: "＋ Add block") {
+                            button (style: "h-7 px-3 text-xs rounded-md bg-muted text-muted-foreground border-0", text: "＋ Add block") {
                                 onclick: .ToggleAddBlock
                             }
                         }
                     }
                     if .loaded_once {
-                        button (style: "btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto", text: "Reload", disabled: .saving) {
+                        button (style: "h-7 px-3 text-xs rounded-md bg-muted text-muted-foreground border-0", text: "Reload", disabled: .saving) {
                             onclick: .Load
-                        }
-                        button (style: "btn primary", disabled: .saving || .dirty == false) {
-                            onclick: .Save
-                            if .saving {
-                                text (text: "Saving…") {}
-                            }
-                            if .saving == false {
-                                text (text: "Save") {}
-                            }
                         }
                     }
-                    if .loaded_once == false {
-                        button (style: "btn bg-background border border-border rounded px-4 py-1.5 text-xs text-foreground h-auto", text: "Load") {
-                            onclick: .Load
+                    button (style: "h-8 px-4 text-xs font-medium rounded-md bg-primary text-primary-foreground border-0", disabled: .saving || .dirty == false) {
+                        onclick: .Save
+                        if .saving {
+                            text (text: "Saving…") {}
+                        }
+                        if .saving == false {
+                            text (text: "Save") {}
                         }
                     }
                 }
@@ -164,110 +163,112 @@ widget ConfigEditor(module_id: str, widgets: str) {
                 }
             }
             if .body != "" {
-                div (style: "fields gap-[0px]") {
+                div (style: "fields flex flex-col p-4 bg-card rounded-xl border border-border") {
                     for e in .entries {
                         div (style: "contents") {
                             key: e.key
                             if e.kind == "subform" {
-                                div (style: "subform-header gap-[0px]") {
-                                    span (style: "subform-title", text: e.label) {}
+                                div (style: "subform-header flex flex-row items-center gap-[8px] px-1 pt-[14px] pb-[6px] border-b border-border") {
+                                    span (style: "subform-title text-sm font-medium text-foreground", text: e.label) {}
+                                    div (style: "flex-1") {}
                                     if e.is_provider {
-                                        button (style: "btn danger btn-sm bg-[#c42b1c] text-white border-[#c42b1c] px-2 py-0.5 text-xs h-auto", text: "🗑") {
+                                        button (style: "btn danger btn-sm bg-[#c42b1c] text-white border-0 rounded-md px-2 py-0.5 text-xs h-auto", text: "🗑") {
                                             onclick: .AskDelete(e.key)
                                         }
                                     }
                                 }
                             }
-                            // Plan 559 W6: declared field widgets mount their
-                            // picker component instead of the flat input row
-                            // (write path stays the picker's own fresh
-                            // GET→editField→PUT — 551 T5 semantics).
+                            // Plan 559 W6: declared field widgets mount their picker
+                            // component instead of the flat input row.
                             if e.kind == "wallpaper_picker" {
-                                div (class: e.box_class) {
-                                    label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
+                                div (style: "field-row flex flex-row items-center gap-[12px] py-[6px] px-1") {
+                                    label (style: "field-label w-[220px] shrink-0 text-xs text-muted-foreground font-medium") {
                                         text (text: e.label) {}
                                     }
                                     WallpaperPicker(module_id: .module_id, field: e.key, dir: .wallpapers_dir, current: e.value) { }
                                 }
                             }
                             if e.kind != "subform" && e.kind != "wallpaper_picker" {
-                                div (class: e.box_class) {
-                                    label (style: "field-label w-[160px] shrink-0 text-xs text-muted-foreground pt-[6px] font-medium h-auto") {
-                                    text (text: e.label) {}
-                                }
+                                div (style: "field-row flex flex-row items-center gap-[12px] py-[6px] px-1") {
+                                    label (style: "field-label w-[220px] shrink-0 text-xs text-muted-foreground font-medium") {
+                                        text (text: e.label) {}
+                                    }
+                                    // 016 重设计:toggle 由 checkbox 改开/关按钮(vm 轨
+                                    // checkbox 不渲染;按钮双轨可靠,激活态 bg-primary)。
                                     if e.kind == "toggle" {
-                                        label (style: "toggle gap-[0px]") {
-                                            input ("type": "checkbox", checked: e.is_on) {
-                                                onchange: .Toggle(e, $event.target.checked)
-                                            }
-                                            span (style: "toggle-track") {
-                                                span (style: "toggle-thumb") {}
-                                            }
-                                            span (style: "toggle-text") {
-                                                if e.value == "true" {
-                                                    text (text: "On") {}
+                                        row (style: "toggle flex flex-row items-center rounded-lg bg-muted p-[3px] gap-[3px] w-fit") {
+                                            if e.is_on {
+                                                button (style: "toggle-on h-7 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground border-0", text: "开") {
+                                                    onclick: .Toggle(e, "true")
                                                 }
-                                                if e.value != "true" {
-                                                    text (text: "Off") {}
+                                                button (style: "toggle-off h-7 px-3 text-xs rounded-md text-muted-foreground border-0", text: "关") {
+                                                    onclick: .Toggle(e, "false")
+                                                }
+                                            }
+                                            if e.is_on == false {
+                                                button (style: "toggle-on h-7 px-3 text-xs rounded-md text-muted-foreground border-0", text: "开") {
+                                                    onclick: .Toggle(e, "true")
+                                                }
+                                                button (style: "toggle-off h-7 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground border-0", text: "关") {
+                                                    onclick: .Toggle(e, "false")
                                                 }
                                             }
                                         }
                                     }
                                     if e.kind == "number" {
-                                        input ("type": "number", value: e.value, style: "input text-foreground h-auto") {
+                                        input ("type": "number", value: e.value, style: "input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md") {
                                             oninput: .Draft
                                             onchange: .Apply(e, $event.target.value)
                                         }
                                     }
                                     if e.kind == "password" {
-                                        div (style: "secret gap-[0px]") {
+                                        div (style: "secret flex flex-row items-center gap-[8px] flex-1") {
                                             if .pw_show {
-                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw text-foreground h-auto") {
+                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input pw flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md") {
                                                     oninput: .Draft
                                                     onchange: .Apply(e, $event.target.value)
                                                 }
                                             }
                                             if .pw_show == false {
-                                                input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw text-foreground h-auto") {
+                                                input (value: e.value, "type": "password", placeholder: "(not set)", style: "input pw flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md") {
                                                     oninput: .Draft
                                                     onchange: .Apply(e, $event.target.value)
                                                 }
                                             }
-                                            button (style: "reveal bg-background border border-border rounded px-2 py-1 text-sm text-foreground h-auto", text: "👁") {
+                                            button (style: "reveal h-8 px-2 text-xs rounded-md bg-muted text-muted-foreground border-0", text: "👁") {
                                                 onclick: .PwToggle
                                             }
                                         }
                                     }
                                     if e.kind == "text" {
-                                        input (value: e.value, "type": "text", placeholder: "(empty)", style: "input text-foreground h-auto") {
+                                        input (value: e.value, "type": "text", placeholder: "(empty)", style: "input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md") {
                                             oninput: .Draft
                                             onchange: .Apply(e, $event.target.value)
                                         }
                                     }
+                                    // 016 重设计:select 改选项按钮组(vm 轨 select 映射为
+                                    // 空壳不渲染 option 子节点);无候选时回退自由文本输入
+                                    //(原分支保留)。
                                     if e.kind == "select" {
-                                        if e.options.len() > 0 {
-                                            select (value: e.value, style: "input") {
+                                        div (style: "fallback-text flex flex-col gap-[4px] flex-1") {
+                                            input (value: e.value, "type": "text", placeholder: "(not set)", style: "input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md") {
+                                                oninput: .Draft
                                                 onchange: .Apply(e, $event.target.value)
-                                                for o in e.options {
-                                                    option (value: o.value, text: o.label) {}
-                                                }
-                                                if e.has_current {
-                                                    option (value: e.value, text: e.value + " (current)") {}
-                                                }
                                             }
+                                            span (style: "fallback-hint text-xs text-muted-foreground", text: "free text — accepted values depend on the daemon's provider registry") {}
                                         }
-                                        if e.options.len() == 0 {
-                                            div (style: "fallback-text gap-[0px]") {
-                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input text-foreground h-auto") {
+                                    if e.options.len() == 0 {
+                                            div (style: "fallback-text flex flex-col gap-[4px] flex-1") {
+                                                input (value: e.value, "type": "text", placeholder: "(not set)", style: "input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md") {
                                                     oninput: .Draft
                                                     onchange: .Apply(e, $event.target.value)
                                                 }
-                                                span (style: "fallback-hint", text: "no options available (e.g. builtin-only) — type freely") {}
+                                                span (style: "fallback-hint text-xs text-muted-foreground", text: "no options available (e.g. builtin-only) — type freely") {}
                                             }
                                         }
                                     }
                                     if e.kind == "tags" {
-                                        div (style: "tags") {
+                                        div (style: "tags flex flex-row items-center gap-[6px] flex-1") {
                                             for t in e.items {
                                                 span (style: "tag") {
                                                     text (text: t) {}
@@ -276,89 +277,53 @@ widget ConfigEditor(module_id: str, widgets: str) {
                                                     }
                                                 }
                                             }
-                                            input (value: "", "type": "text", placeholder: "add…", style: "tag-input text-foreground h-auto") {
+                                            input (value: "", "type": "text", placeholder: "add…", style: "tag-input flex-1 h-7 px-2 text-xs text-foreground bg-background border border-border rounded-md") {
                                                 oninput: .Draft
                                                 onkeydown.enter: .TagAdd(e)
                                             }
                                         }
                                     }
                                     if e.kind == "multiselect" {
-                                        div (style: "multiselect") {
+                                        div (style: "multiselect flex flex-row items-center gap-[6px] flex-1") {
                                             if e.options.len() == 0 {
                                                 p (style: "ms-empty", text: "No options available (directory empty or missing).") {}
                                             }
                                         }
                                     }
                                     if e.kind == "table" {
-                                        div (style: "table-wrap gap-[0px]") {
-                                            table (style: "tbl") {
-                                                thead {
-                                                    tr {
-                                                        for c in e.t_cols {
-                                                            th (text: c.name, style: "bg-secondary text-muted-foreground text-xs font-semibold h-auto") {}
-                                                        }
-                                                        th (style: "row-act") {}
-                                                    }
+                                        // 016 重设计:表格改原语拼装——vm 轨 table 组件的
+                                        // th/单元格渲染不可控(表头大色块/单元格不可见),
+                                        // 改为标签行 + 输入行的原语网格(列宽对齐),
+                                        // 双轨确定性渲染。
+                                        col (style: "table-wrap flex flex-col gap-[6px] flex-1") {
+                                            row (style: "flex flex-row gap-[8px]") {
+                                                for c in e.t_cols {
+                                                    span (text: c.name, style: "w-40 text-xs font-medium text-muted-foreground") {}
                                                 }
-                                                tbody {
-                                                    for ri, r in e.t_rows {
-                                                        tr {
-                                                            for c in e.t_cols {
-                                                                td {
-                                                                    if c.kind == "select" {
-                                                                        select (value: r[c.name], style: "cell-select") {
-                                                                            onchange: .TableCell(e, ri, c.name, $event.target.value)
-                                                                            for o in c.options {
-                                                                                option (value: o.value, text: o.label) {}
-                                                                            }
-                                                                            option (value: r[c.name], text: r[c.name]) {}
-                                                                        }
-                                                                    }
-                                                                    if c.kind == "number" {
-                                                                        input (value: r[c.name], "type": "number", style: "cell-input") {
-                                                                            onchange: .TableCell(e, ri, c.name, $event.target.value)
-                                                                        }
-                                                                    }
-                                                                    if c.kind != "select" && c.kind != "number" {
-                                                                        input (value: r[c.name], "type": "text", style: "cell-input") {
-                                                                            onchange: .TableCell(e, ri, c.name, $event.target.value)
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                            td (style: "row-act") {
-                                                                button (text: "×", style: "del-row") {
-                                                                    onclick: .TableRowRemove(e, ri)
-                                                                }
-                                                            }
+                                            }
+                                            for ri, r in e.t_rows {
+                                                row (style: "flex flex-row gap-[8px] items-center") {
+                                                    for c in e.t_cols {
+                                                        input (value: r[c.name], "type": "text", style: "w-40 h-8 px-2 text-xs text-foreground bg-background border border-border rounded-md") {
+                                                            onchange: .TableCell(e, ri, c.name, $event.target.value)
                                                         }
                                                     }
-                                                    if e.t_rows.len() == 0 {
-                                                        tr {
-                                                            td (style: "empty", text: "(empty — click + Row)") {}
-                                                        }
+                                                    button (text: "×", style: "h-7 px-2 text-xs rounded-md bg-muted text-muted-foreground border-0") {
+                                                        onclick: .TableRowRemove(e, ri)
                                                     }
                                                 }
                                             }
-                                            button (text: "+ Row", style: "add-row") {
-                                                onclick: .TableRowAdd(e)
+                                            if e.t_rows.len() == 0 {
+                                                text (text: "(empty — click + Row)", style: "text-xs text-muted-foreground") {}
+                                            }
+                                            row (style: "flex flex-row") {
+                                                button (text: "+ Row", style: "add-row h-7 px-3 text-xs rounded-md bg-muted text-muted-foreground border-0") {
+                                                    onclick: .TableRowAdd(e)
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                        }
-                    }
-                }
-                div (style: "toolbar bottom gap-[0px]") {
-                    div (style: "actions gap-[0px]") {
-                        button (style: "btn primary", disabled: .saving || .dirty == false) {
-                            onclick: .Save
-                            if .saving {
-                                text (text: "Saving…") {}
-                            }
-                            if .saving == false {
-                                text (text: "Save") {}
                             }
                         }
                     }
@@ -464,12 +429,8 @@ widget ConfigEditor(module_id: str, widgets: str) {
             .pw_show = .pw_show == false
         }
 
-        .Toggle(e, on) -> {
-            var nv = "false"
-            if on {
-                nv = "true"
-            }
-            .body = editField(.body, e.key, nv)
+        .Toggle(e, v str) -> {
+            .body = editField(.body, e.key, v)
             .dirty = true
             var es = []
             let n = entriesCount(.body)

@@ -42,8 +42,6 @@ store DesktopCfg {
         // ---- 输入草稿(空 = 不写)----
         var pinned_draft str = ""
         var pinned_saved str = "0"
-        var wallpaper_draft str = ""
-        var wallpaper_saved str = "0"
         var wallpapers_dir_draft str = ""
 
         // 编辑基底(GET 的 value 文本;editField 全编辑基准)
@@ -53,8 +51,7 @@ store DesktopCfg {
     msg Msg { Init(str), Nav(str),
               PickPosition(str), PickEnabled(str), DraftPinned(str), SavePinned,
               PickNotes(str),
-              DraftWallpaper(str), SaveWallpaper,
-              DraftWallpapersDir(str), SaveWallpapersDir,
+              DraftWallpapersDir(str), SaveWallpapersDir, RequestWallpaperPick,
               PickTheme(str), PickTransparency(str), PickAccent(str) }
 
     on {
@@ -156,20 +153,22 @@ store DesktopCfg {
             }
         }
 
-        .DraftWallpaper(v) -> {
-            .wallpaper_draft = v
-        }
-
-        .SaveWallpaper -> {
-            if .wallpaper_draft != "" {
-                .cfg_wallpaper = .wallpaper_draft
-                .body = editField(.body, "wallpaper_path", .wallpaper_draft)
-                let r = putConfigSafe(.module_id, .body)
-                if r.ok == false {
-                    .error = r.error
-                }
-                .wallpaper_draft = ""
-                .wallpaper_saved = "1"
+        // 016:「切换壁纸」按钮 = 请求桌面宿主 wallpaper_pick 组合(os-019
+        // PLAN-019 机制:显示桌面(负一屏) + 壁纸 carousel,点选热应用,关闭
+        // 自动回 origin)。跨进程通道 = config.at 的 wallpaper_request 字段:
+        // 宿主 config 轮询差分臂只认值变化(不清值,config 单写方仍是
+        // daemon/设置面)。故每次点击读文件现值并翻转("1"/"2" 互斥)——
+        // 从现值翻转保证与宿主回写/设置面重启后都恒为变化。
+        .RequestWallpaperPick -> {
+            let prev = cfgField(.body, "wallpaper_request")
+            var next = "2"
+            if prev == "2" {
+                next = "1"
+            }
+            .body = editField(.body, "wallpaper_request", next)
+            let w = putConfigSafe(.module_id, .body)
+            if w.ok == false {
+                .error = w.error
             }
         }
 

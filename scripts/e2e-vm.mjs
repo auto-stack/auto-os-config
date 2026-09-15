@@ -215,7 +215,9 @@ async function runAttempt() {
   let ready = false;
   for (let i = 0; i < 20 && !ready && !channelDead; i++) {
     const snap = await call('autoui_snapshot', { include_state: false }, 1);
-    if (snap && snap.includes('AutoOS Settings') && snap.includes('button')) ready = true;
+    // PLAN-012 F2: sidebar 顶部 AutoOS Settings 标题栏删除——就绪锚改用
+    // 搜索框 placeholder(同样仅侧栏渲染,且与用户可见面零耦合)。
+    if (snap && snap.includes('Search settings') && snap.includes('button')) ready = true;
     else await sleep(1500);
   }
   if (!ready) fail('sidebar did not render (content-readiness timeout)');
@@ -301,22 +303,23 @@ async function runAttempt() {
   if (st.conn_state === '"ok"' || st.conn_state === '"fail"') pass('Test connection roundtrip (status=' + st.conn_state + ')');
   else fail(`test connection: ${st.conn_state}`);
 
-  // 3. theme — stage-1 pixel parity removed text labels from the 5 swatch
-  // buttons (empty-label buttons in snapshot). Locate them structurally: the
-  // button row directly under the "Accent color" heading, second = Coral
-  // (indigo/coral/ocean/sage/amber).
+  // 3. theme — PLAN-012 F2/F5: sidebar ThemePicker(含 "Accent color" 弹窗)
+  // 退役,accent 五圆点收编 Desktop 显示页——swatch 行紧随 主题模式 按钮行
+  // (浅色),5 个空标签 button,激活者内嵌 "✓" text 子节点。定位:浅色 行之后
+  // 顺扫 5 个空标签 button(顺序 indigo/coral/ocean/sage/amber),第 2 = Coral。
+  // 状态断言用 accent_color(theme_store 持久镜像;旧 current 字段已被
+  // DesktopCfg 的当前壁纸同名字段遮蔽——root-state 平铺命名空间碰撞)。
   let coralPressed = false;
   {
-    const lines = (await snapshot()).split(NL);
-    const ai = lines.findIndex((l) => l.includes('"Accent color"'));
-    if (ai >= 0) {
-      // The heading is immediately followed by the swatch row: 5 empty-label
-      // buttons within the next few lines (any other content lies deeper).
+    if (await pressNav('Desktop', 2500)) {
+      const lines = (await snapshot()).split(NL);
+      const qi = lines.findIndex((l) => l.includes('"浅色"'));
       const ids = [];
-      for (let j = ai + 1; j < Math.min(ai + 16, lines.length); j++) {
-        const bm = lines[j].trim().match(/^button #(vnode_\d+) ""/);
-        if (bm && !ids.includes(bm[1])) ids.push(bm[1]);
-        if (/^\s*col /.test(lines[j]) && ids.length > 0) break;
+      if (qi >= 0) {
+        for (let j = qi; j < Math.min(qi + 14, lines.length); j++) {
+          const bm = lines[j].trim().match(/^button #(vnode_\d+) ""/);
+          if (bm) ids.push(bm[1]);
+        }
       }
       if (ids.length >= 2) {
         await call('autoui_action', { element_id: ids[1], action: 'press' });
@@ -326,9 +329,9 @@ async function runAttempt() {
     }
   }
   if (!coralPressed) fail('Coral swatch not found');
-  st = await state('current');
-  if (st.current === '"coral"') pass('accent switch → coral');
-  else fail(`accent: ${st.current}`);
+  st = await state('accent_color');
+  if (st.accent_color === '"coral"') pass('accent switch → coral');
+  else fail(`accent: ${st.accent_color}`);
 
   // 3b. accent persists across an app restart (theme_store.Init reloads via
   // back.api — the daemon config is the source of truth, not process state).
@@ -345,9 +348,9 @@ async function runAttempt() {
     fail('accent persistence: app failed to reboot');
   } else {
     await sleep(2500);
-    st = await state('current');
-    if (st.current === '"coral"') pass('accent persists across restart');
-    else fail(`accent persistence: ${st.current}`);
+    st = await state('accent_color');
+    if (st.accent_color === '"coral"') pass('accent persists across restart');
+    else fail(`accent persistence: ${st.accent_color}`);
   }
 
   // 3c. swatch→nav smoke (plan010 T10): after accent switch + full app

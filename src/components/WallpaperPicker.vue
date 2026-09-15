@@ -59,6 +59,11 @@ async function Pick(path: any): Promise<void> {
 }
 
 onMounted(async () => {
+  if (props.dir == '') {images.value = [];
+  error.value = '';
+  scanned.value = true;
+  return;
+  }
   let r = await listImagesSafe(props.dir);
   if (r.ok) {let arr = [];
   let n = await imageCount(r.items);

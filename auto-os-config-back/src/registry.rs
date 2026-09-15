@@ -394,6 +394,16 @@ modules {
 
     module {
         kind : file
+        id : "ai-client"
+        file : "ai-client.at"
+        root : "client"
+        name : "AI Client"
+        icon : "📡"
+        description : "Client-side provider registry + model validation"
+    }
+
+    module {
+        kind : file
         id : "auto-musk"
         file : "apps/musk/config.at"
         root : "musk"
@@ -424,16 +434,6 @@ modules {
         icon : "🧩"
         description : "Skill registry and prompts"
         group : "Harness"
-    }
-
-    module {
-        kind : file
-        id : "ai-client"
-        file : "ai-client.at"
-        root : "client"
-        name : "AI Client"
-        icon : "📡"
-        description : "Client-side provider registry + model validation"
     }
 
     module {

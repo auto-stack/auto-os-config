@@ -97,6 +97,27 @@ for (const x of expanded.value) {out2.push(x);
 }
 out2.push(gid);
 expanded.value = out2;
+}}}}
+
+
+
+if (h == '') {if (modules.value.length > 0) {let first = modules.value[0];
+active_id.value = first.id;
+active_kind.value = first.kind;
+active_view_name.value = first.view_name;
+active_widgets.value = first.widgets;
+read_only.value = first.format == 'frontmatter-md';
+title.value = first.name;
+if (first.view_name == 'desktop_page') {desktopCfgStore.Init(first.id);
+}let gid0 = await groupOfModule(raw.value, first.id);
+if (gid0 != '') {let has3: boolean = false;
+for (const x of expanded.value) {if (x == gid0) {has3 = true;
+}}
+if (has3 == false) {let out3 = [];
+for (const x of expanded.value) {out3.push(x);
+}
+out3.push(gid0);
+expanded.value = out3;
 }}}}}
 
 

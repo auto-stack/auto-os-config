@@ -42,7 +42,8 @@ function Toggle(): void {
 
 <template>
     <div class="flex flex-col theme-picker shrink-0 pt-3 pb-4 px-5 border-t border-border gap-[0px]">
-      <div class="w-[240px] bg-card border border-border rounded-lg shadow-lg" :placement="'top-start'">
+<div v-if="open" class="fixed inset-0 z-40" @click="Close"></div>
+<div v-if="open" class="fixed z-50 w-[240px] bg-card border border-border rounded-lg shadow-lg" :style="{ left: '8px', top: '8px' }">
         <div>
           <button @click="Toggle" class="settings-trigger w-full h-9 flex flex-row items-center gap-2 px-2 rounded-md hover:bg-secondary">
             <span class="text-base leading-none">⚙️</span>
@@ -96,7 +97,7 @@ function Toggle(): void {
             </div>
           </div>
         </div>
-      </div>
+</div>
     </div>
 
 </template>

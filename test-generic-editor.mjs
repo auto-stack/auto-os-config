@@ -73,7 +73,8 @@ let info = await page.evaluate(() => {
   const fileMeta = document.querySelector('.mono')?.textContent;
   const hasError = !!document.querySelector('.state-msg.error');
   const labels = [...document.querySelectorAll('.field-label')].map((e) => e.textContent);
-  return { rowCount: rows.length, subformCount: subforms.length, passwordCount: passwordInputs.length, selectHintCount: selectRows.length, fileMeta, hasError, labels };
+    const withInput = selectRows.filter((r) => r.querySelector('input'));
+  return { rowCount: rows.length, subformCount: subforms.length, passwordCount: passwordInputs.length, selectHintCount: withInput.length, fileMeta, hasError, labels };
 });
 console.log('  fields:', info.rowCount, '| subforms:', info.subformCount, '| passwords:', info.passwordCount, '| select-hints:', info.selectHintCount);
 console.log('  file:', info.fileMeta);
@@ -104,7 +105,7 @@ else fail('no subform headers');
 const providerField = await page.evaluate(() => {
   const rows = [...document.querySelectorAll('.field-row')];
   const r = rows.find((x) => x.querySelector('.field-label')?.textContent?.toLowerCase().includes('default provider'));
-  return r ? r.querySelector('input, select')?.value : undefined;
+  return r ? r.querySelector('input')?.value : undefined;
 });
 console.log('  default_provider value:', providerField);
 if (providerField !== undefined) pass('default_provider field present');
@@ -144,7 +145,7 @@ info = await page.evaluate(() => ({
   labels: [...document.querySelectorAll('.field-label')].map((e) => e.textContent),
   hasError: !!document.querySelector('.state-msg.error'),
   file: document.querySelector('.mono')?.textContent,
-  toggleChecked: document.querySelector('.field-row input[type="checkbox"]')?.checked,
+  toggleOnActive: !!document.querySelector('.field-row button.toggle-on[class*="bg-primary"]'),
 }));
 console.log('  labels:', info.labels.join(', '));
 console.log('  file:', info.file);
@@ -158,13 +159,13 @@ else fail('auto_start_daemon field missing');
 // ── Save round-trip: toggle auto_start_daemon, save, verify file ──────────
 console.log('\n=== Save round-trip (auto_start_daemon) ===');
 const beforeToggle = await page.evaluate(() => {
-  const t = document.querySelector('.field-row input[type="checkbox"]');
-  return t ? t.checked : null;
+  const on = document.querySelector('.field-row button.toggle-on');
+  return on ? on.className.includes('bg-primary') : null;
 });
 console.log('  auto_start_daemon before:', beforeToggle);
 if (beforeToggle === null) fail('could not find auto_start_daemon toggle');
-// Plan 008 batch 3: toggle is a plain checkbox in the unified editor.
-await page.click('.field-row .toggle');
+// 016 redesign: toggle is an on/off button pair (active = bg-primary).
+await page.click(beforeToggle ? '.field-row button.toggle-off' : '.field-row button.toggle-on');
 await page.waitForTimeout(200);
 const dirtyShown = await page.evaluate(() => !!document.querySelector('.dirty'));
 if (dirtyShown) pass('dirty indicator shown after edit');
