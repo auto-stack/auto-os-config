@@ -1,12 +1,12 @@
 ---
 plan_id: OS-016
-status: executing
+status: execution_done
 feature_name: AutoUI select 组件 vm 轨缺陷——demo 示例与上游修复契约
 author: [zcode]
 created_at: 2026-09-15
 updated_at: 2026-09-15
 plan_revision: 1
-current_step: 2
+current_step: 3
 total_steps: 3
 supersedes_spec_components: []
 new_spec_components: []
@@ -132,11 +132,25 @@ vm 轨缺陷**（vue 轨原生 `<select>` 一直正常）。本计划把缺陷�
   立项引用本计划 §1/§3）` | `next: upstream（auto-lang 计划体系）;本仓
   侧完成`。
 
+- 2026-09-15 work handoff #2（/auto-plan:work,用户指令「计划016 work」
+  直接授权 T-03 实施,§10 的立项路由由用户裁定缩短）：`stage: work` |
+  `plan_id: OS-016` | `plan_revision: 1` | `outcome: pass` |
+  `code_commit: auto-lang master 445e04dc2（select 修复+demo+golden 同批;
+  他人在途 633 文档未动）` | `task_ids: T-03` | `evidence: convert_select
+  重写（D2 collect_select_options 循环展开/D3 (label,value) 平行数组+
+  选中态 value 优先/D4 $event 参数位 Typed 补位,无位保留 446-U4 单串）;
+  View::Select 结构零改动→渲染器三臂零波及;新增单测×2 绿
+  （--features ui-iced）;a2vue 套件 17 绿;模块回归 103 绿,3 失败
+  （plan055/plan050/plan626）经 stash 基线实证预存红与本次无关` |
+  `blockers: 无` | `next: review`。
+
 ## 10. 待澄清事项
 
-- auto-lang main 有在途未提交工作（PLAN-632,与 select 无关）：本计划
-  T-01/T-02 只新增文件、**不提交 auto-lang**——提交时机随上游修复计划
-  （或用户裁定代提交）。T-03 须走 auto-lang 计划体系（.next-id 分配,
-  worktree 惯例）。
+- ~~auto-lang main 有在途未提交工作（PLAN-632）~~（2026-09-15 更新：632
+  已落库、树净;T-03 经用户直接授权在 auto-lang master 实施并提交
+  445e04dc2,仅涉 select 文件,他人在途 633 文档未纳入）。
+- e2e-vm/实机走查 AC-U1（select_demo vm 渲染循环选项 N 项）待上游二进制
+  随 os-config VM 宿主再部署后走查（单测+golden 已锚契约,本计划不代跑
+  桌面宿主）。
 - 上游修复落地后,os-config config 编辑器 select 行是否从 OS-015 按钮组
   回归原生 select 下拉,属产品裁定,另批处理。
