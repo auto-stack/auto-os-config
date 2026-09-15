@@ -244,11 +244,11 @@ pub fn enum_self_providers_json(module_id: &str) -> Result<serde_json::Value, St
     Ok(serde_json::Value::Array(out))
 }
 
-/// `GET /api/enums/self/:module_id/models/:provider` → 指定 provider 块内
-/// `models[].id` 清单。
-pub fn enum_self_models_json(module_id: &str, provider: &str) -> Result<serde_json::Value, String> {
-    let (content, root, _file) = read_file_module(module_id)?;
-    let node = project::parse_root(&content, &root).map_err(|e| e.to_string())?;
+/// 指定 provider 块内 `models` 清单 → `{value,label}` 选项数组。
+/// 双形态兼容（OS-015）：字符串数组 `models : ["a","b"]`（005 provider 块
+/// parity 的实机形态）与对象数组 `models : [{id : "a"}]`（css-era 声明形态,
+/// project.rs 夹具在用）。
+pub fn enum_models_for_provider(node: &auto_val::Node, provider: &str) -> serde_json::Value {
     let mut out = Vec::new();
     for (_, kid) in node.kids_iter() {
         if let auto_val::Kid::Node(child) = kid {
@@ -256,18 +256,30 @@ pub fn enum_self_models_json(module_id: &str, provider: &str) -> Result<serde_js
                 let models = child.get_prop_of("models");
                 if let auto_val::Value::Array(arr) = models {
                     for item in &arr.values {
-                        if let auto_val::Value::Obj(o) = item {
-                            let id = o.get_str_of("id").to_string();
-                            if !id.is_empty() {
-                                out.push(serde_json::json!({ "value": id, "label": id }));
-                            }
+                        let id = match item {
+                            auto_val::Value::Obj(o) => o.get_str_of("id").to_string(),
+                            auto_val::Value::Str(s) => s.to_string(),
+                            auto_val::Value::String(s) => s.to_string(),
+                            auto_val::Value::StrSlice(s) => s.to_string(),
+                            _ => continue,
+                        };
+                        if !id.is_empty() {
+                            out.push(serde_json::json!({ "value": id, "label": id }));
                         }
                     }
                 }
             }
         }
     }
-    Ok(serde_json::Value::Array(out))
+    serde_json::Value::Array(out)
+}
+
+/// `GET /api/enums/self/:module_id/models/:provider` → 指定 provider 块内
+/// `models` 清单。
+pub fn enum_self_models_json(module_id: &str, provider: &str) -> Result<serde_json::Value, String> {
+    let (content, root, _file) = read_file_module(module_id)?;
+    let node = project::parse_root(&content, &root).map_err(|e| e.to_string())?;
+    Ok(enum_models_for_provider(&node, provider))
 }
 
 /// `GET /api/health`。
@@ -366,6 +378,45 @@ fn local_http_post_json(addr: &str, path: &str, body: &str) -> Result<(u16, Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// OS-015 AC-04:models 枚举双形态——字符串数组(实机 parity 形态,
+    /// 此前被漏收致端点返回 [])与 `[{id}]` 对象数组(css-era 声明形态)。
+    #[test]
+    fn enum_models_for_provider_accepts_string_and_object_items() {
+        let src = r#"client {
+    default_provider : zhipu
+
+    zhipu {
+        models : ["glm-5.3", "glm-5.3-flash"]
+    }
+
+    local {
+        models : ["ornith"]
+    }
+}"#;
+        let node = project::parse_root(src, "client").expect("parse ok");
+        let arr = enum_models_for_provider(&node, "zhipu")
+            .as_array()
+            .expect("array")
+            .clone();
+        assert_eq!(arr.len(), 2, "string-array models all enumerated");
+        assert_eq!(arr[0]["value"], "glm-5.3");
+        assert_eq!(arr[1]["label"], "glm-5.3-flash");
+        // provider 块不串扰
+        assert_eq!(
+            enum_models_for_provider(&node, "local").as_array().unwrap().len(),
+            1
+        );
+
+        let src_obj = r#"client {
+    zhipu {
+        models : [{ id : "glm-5.2", tier : max }]
+    }
+}"#;
+        let node_obj = project::parse_root(src_obj, "client").expect("parse ok");
+        let arr_obj = enum_models_for_provider(&node_obj, "zhipu");
+        assert_eq!(arr_obj[0]["value"], "glm-5.2", "object-array id form");
+    }
 
     /// T4:/api/modules 形状——内置模块数与旧 daemon 同名字段(Plan 540 desktop 注册后 8)。
     #[test]

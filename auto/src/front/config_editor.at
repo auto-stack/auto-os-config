@@ -256,18 +256,33 @@ widget ConfigEditor(module_id: str, widgets: str) {
                                             onchange: .Apply(e, $event.target.value)
                                         }
                                     }
-                                    // 016 重设计:select 改选项按钮组(vm 轨 select 映射为
-                                    // 空壳不渲染 option 子节点);无候选时回退自由文本输入
-                                    //(原分支保留)。
+                                    // OS-015:016 意图落地——有候选=分段按钮组(vm 轨
+                                    // select 空壳不可用;toggle 同款分段形态双轨可靠,
+                                    // 当前值 bg-primary 高亮,点选即 Apply)。016 批此
+                                    // 分支整体丢失且空候选双渲染,本次修复。
                                     if e.kind == "select" {
-                                        div (style: "fallback-text flex flex-col gap-[4px] flex-1") {
-                                            input (value: e.value, "type": "text", placeholder: "(not set)", style: "input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md") {
-                                                oninput: .Draft
-                                                onchange: .Apply(e, $event.target.value)
+                                        if e.options.len() > 0 {
+                                            row (style: "select-group flex flex-row flex-wrap items-center gap-[3px] w-fit rounded-lg bg-muted p-[3px]") {
+                                                for o in e.options {
+                                                    if o.value == e.value {
+                                                        button (style: "h-7 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground border-0", text: o.label) {
+                                                            onclick: .Apply(e, o.value)
+                                                        }
+                                                    }
+                                                    if o.value != e.value {
+                                                        button (style: "h-7 px-3 text-xs rounded-md text-muted-foreground border-0 hover:bg-background", text: o.label) {
+                                                            onclick: .Apply(e, o.value)
+                                                        }
+                                                    }
+                                                }
+                                                if e.has_current == false && e.value != "" {
+                                                    button (style: "h-7 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground border-0", text: e.value + " (current)") {
+                                                        onclick: .Apply(e, e.value)
+                                                    }
+                                                }
                                             }
-                                            span (style: "fallback-hint text-xs text-muted-foreground", text: "free text — accepted values depend on the daemon's provider registry") {}
                                         }
-                                    if e.options.len() == 0 {
+                                        if e.options.len() == 0 {
                                             div (style: "fallback-text flex flex-col gap-[4px] flex-1") {
                                                 input (value: e.value, "type": "text", placeholder: "(not set)", style: "input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md") {
                                                     oninput: .Draft

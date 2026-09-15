@@ -74,9 +74,16 @@ let info = await page.evaluate(() => {
   const hasError = !!document.querySelector('.state-msg.error');
   const labels = [...document.querySelectorAll('.field-label')].map((e) => e.textContent);
     const withInput = selectRows.filter((r) => r.querySelector('input'));
-  return { rowCount: rows.length, subformCount: subforms.length, passwordCount: passwordInputs.length, selectHintCount: withInput.length, fileMeta, hasError, labels };
+    // OS-015: select 行新契约——有枚举=分段按钮组(.select-group),无枚举=
+    // 恰一份自由文本回退(016 批的双渲染已修)。
+    const selectShape = selectRows.map((r) => ({
+      groupBtns: r.querySelectorAll('.select-group button').length,
+      fallbackInputs: r.querySelectorAll('.fallback-text input').length,
+      hints: r.querySelectorAll('.fallback-hint').length,
+    }));
+  return { rowCount: rows.length, subformCount: subforms.length, passwordCount: passwordInputs.length, selectHintCount: withInput.length, selectShape, fileMeta, hasError, labels };
 });
-console.log('  fields:', info.rowCount, '| subforms:', info.subformCount, '| passwords:', info.passwordCount, '| select-hints:', info.selectHintCount);
+console.log('  fields:', info.rowCount, '| subforms:', info.subformCount, '| passwords:', info.passwordCount, '| select shapes:', JSON.stringify(info.selectShape));
 console.log('  file:', info.fileMeta);
 console.log('  labels:', info.labels.join(', '));
 
@@ -90,8 +97,14 @@ if (info.hasError) {
 // auth_required:false and no api_key — so 2 password fields is correct.
 if (info.passwordCount >= 2) pass(`api_key rendered as password (${info.passwordCount} found)`);
 else fail(`expected >=2 password fields, got ${info.passwordCount}`);
-if (info.selectHintCount >= 1) pass(`select-kind fields render as free text inputs (${info.selectHintCount})`);
-else fail('no select-kind fields');
+// OS-015 contract: every select row renders EITHER a segmented option group
+// (enum yields options) OR exactly one free-text fallback — never both, never
+// a double fallback (the 016-batch regression this plan fixes).
+const badSelectRows = info.selectShape.filter((s) =>
+  (s.groupBtns > 0 && (s.fallbackInputs > 0 || s.hints > 0)) ||
+  (s.groupBtns === 0 && (s.fallbackInputs !== 1 || s.hints !== 1)));
+if (info.selectShape.length >= 1 && badSelectRows.length === 0) pass(`select rows render group-or-single-fallback (${JSON.stringify(info.selectShape)})`);
+else fail(`malformed select rows: ${JSON.stringify(info.selectShape)}`);
 if (info.labels.some((l) => l?.toLowerCase().includes('idle timeout'))) pass('scalar field (idle_timeout_min) rendered');
 else fail('idle_timeout_min field not found');
 // tier_routing lives inside provider subforms as Lite/Max/Mid/Min/Pro arrays
@@ -100,12 +113,15 @@ else fail('tier routing fields not found');
 if (info.subformCount >= 1) pass(`provider subforms rendered (${info.subformCount})`);
 else fail('no subform headers');
 
-// default_provider renders as a control (2026-08-27: real select when the
-// self-providers enum yields options, free-text fallback otherwise).
+// default_provider renders as a control (OS-015: segmented option group with
+// the current value highlighted when the self-providers enum yields options;
+// free-text fallback value otherwise).
 const providerField = await page.evaluate(() => {
   const rows = [...document.querySelectorAll('.field-row')];
   const r = rows.find((x) => x.querySelector('.field-label')?.textContent?.toLowerCase().includes('default provider'));
-  return r ? r.querySelector('input')?.value : undefined;
+  if (!r) return undefined;
+  const active = r.querySelector('.select-group button.bg-primary')?.textContent?.replace(/ \(current\)$/, '');
+  return active ?? r.querySelector('input')?.value;
 });
 console.log('  default_provider value:', providerField);
 if (providerField !== undefined) pass('default_provider field present');

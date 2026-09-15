@@ -569,10 +569,21 @@ onMounted(async () => {
                   <input class="input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md" :placeholder="'(empty)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
                 </template>
                 <template v-if="e.kind == 'select'">
-                  <div class="fallback-text flex flex-col gap-[4px] flex-1">
-                    <input class="input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
-                    <span class="fallback-hint text-xs text-muted-foreground">free text — accepted values depend on the daemon's provider registry</span>
-                  </div>
+                  <template v-if="e.options.length > 0">
+                    <div class="flex flex-row select-group flex-wrap items-center gap-[3px] w-fit rounded-lg bg-muted p-[3px]">
+                      <div v-for="(o, __for_idx) in e.options" :key="__for_idx">
+                        <template v-if="o.value == e.value">
+                          <button class="h-7 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground border-0" @click="Apply(e, o.value)">{{ o.label }}</button>
+                        </template>
+                        <template v-if="o.value != e.value">
+                          <button class="h-7 px-3 text-xs rounded-md text-muted-foreground border-0 hover:bg-background" @click="Apply(e, o.value)">{{ o.label }}</button>
+                        </template>
+                      </div>
+                      <template v-if="e.has_current == false && e.value != ''">
+                        <button class="h-7 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground border-0" @click="Apply(e, e.value)">{{ e.value + ' (current)' }}</button>
+                      </template>
+                    </div>
+                  </template>
                   <template v-if="e.options.length == 0">
                     <div class="fallback-text flex flex-col gap-[4px] flex-1">
                       <input class="input flex-1 h-8 px-2 text-sm text-foreground bg-background border border-border rounded-md" :placeholder="'(not set)'" :type="'text'" :value="e.value" @change="Apply(e, ($event.target as HTMLInputElement).value)" @input="Draft(($event.target as HTMLInputElement).value)" />
