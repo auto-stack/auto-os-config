@@ -553,16 +553,22 @@ widget CollectionBrowser(module_id: str, read_only: bool) {
         .TableCell(k, ri, col, v) -> {
             let nb = setCellText(.store.body_text, k, ri, col, v)
             store.SetBodyText(nb)
+            // PLAN-034: cell edits (incl. the models provider select) must
+            // enable Save — the emit-only path left .store.dirty false, so a
+            // cell edit could never be saved from the UI (AC-06).
+            store.MarkDirty()
         }
 
         .TableRowAdd(k) -> {
             let nb = tableAddRowText(.store.body_text, k)
             store.SetBodyText(nb)
+            store.MarkDirty()
         }
 
         .TableRowRemove(k, ri) -> {
             let nb = tableRemoveRowText(.store.body_text, k, ri)
             store.SetBodyText(nb)
+            store.MarkDirty()
         }
 
         .Toggle(k, on) -> {

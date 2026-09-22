@@ -159,12 +159,17 @@ async function TableCell(k: any, ri: any, col: any, v: any): Promise<void> {
   let nb = await setCellText(store.body_text, k, ri, col, v);
   store.SetBodyText(nb);
 
+
+
+  store.MarkDirty();
+
   emit('TableCell', k, ri, col, v)
 }
 
 async function TableRowAdd(k: any): Promise<void> {
   let nb = await tableAddRowText(store.body_text, k);
   store.SetBodyText(nb);
+  store.MarkDirty();
 
   emit('TableRowAdd', k)
 }
@@ -172,6 +177,7 @@ async function TableRowAdd(k: any): Promise<void> {
 async function TableRowRemove(k: any, ri: any): Promise<void> {
   let nb = await tableRemoveRowText(store.body_text, k, ri);
   store.SetBodyText(nb);
+  store.MarkDirty();
 
   emit('TableRowRemove', k, ri)
 }
