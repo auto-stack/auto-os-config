@@ -329,8 +329,33 @@ widget ConfigEditor(module_id: str, widgets: str) {
                                             for ri, r in e.t_rows {
                                                 row (style: "flex flex-row gap-[8px] items-center") {
                                                     for c in e.t_cols {
-                                                        input (value: r[c.name], "type": "text", style: "w-40 h-8 px-2 text-xs text-foreground bg-background border border-border rounded-md") {
-                                                            onchange: .TableCell(e, ri, c.name, $event.target.value)
+                                                        // PLAN-034: a select-kind column (e.g.
+                                                        // roles `models` 的 provider 列, 选项来自
+                                                        // ai-daemon providers) renders a native
+                                                        // select — same pattern as collection_browser
+                                                        // 的 cell-select; the current value is always
+                                                        // appended as an option so out-of-enum values
+                                                        // stay visible instead of snapping to the first.
+                                                        if c.kind == "select" {
+                                                            if c.options.len() > 0 {
+                                                                select (value: r[c.name], style: "cell-select") {
+                                                                    onchange: .TableCell(e, ri, c.name, $event.target.value)
+                                                                    for o in c.options {
+                                                                        option (value: o.value, text: o.label) {}
+                                                                    }
+                                                                    option (value: r[c.name], text: r[c.name]) {}
+                                                                }
+                                                            }
+                                                            if c.options.len() == 0 {
+                                                                input (value: r[c.name], "type": "text", style: "w-40 h-8 px-2 text-xs text-foreground bg-background border border-border rounded-md") {
+                                                                    onchange: .TableCell(e, ri, c.name, $event.target.value)
+                                                                }
+                                                            }
+                                                        }
+                                                        if c.kind != "select" {
+                                                            input (value: r[c.name], "type": "text", style: "w-40 h-8 px-2 text-xs text-foreground bg-background border border-border rounded-md") {
+                                                                onchange: .TableCell(e, ri, c.name, $event.target.value)
+                                                            }
                                                         }
                                                     }
                                                     button (text: "×", style: "h-7 px-2 text-xs rounded-md bg-muted text-muted-foreground border-0") {

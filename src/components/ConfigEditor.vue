@@ -613,7 +613,22 @@ onMounted(async () => {
                       <span class="w-40 text-xs font-medium text-muted-foreground" v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))">{{ c.name }}</span>
                     </div>
                     <div class="flex flex-row gap-[8px] items-center" v-for="(r, ri) in e.t_rows" :key="(((r as any)?.id ?? r))">
-                      <input class="w-40 h-8 px-2 text-xs text-foreground bg-background border border-border rounded-md" :type="'text'" v-model="r[c.name]" @change="TableCell(e, ri, c.name, ($event.target as HTMLInputElement).value)"  v-for="c in e.t_cols" :key="(((c as any)?.id ?? c))"/>
+                      <div v-for="(c, __for_idx) in e.t_cols" :key="__for_idx">
+                        <template v-if="c.kind == 'select'">
+                          <template v-if="c.options.length > 0">
+                            <select class="cell-select" :value="r[c.name]" @change="TableCell(e, ri, c.name, ($event.target as HTMLInputElement).value)">
+                              <option :value="o.value" v-for="o in c.options" :key="(((o as any)?.id ?? o))">{{ o.label }}</option>
+                              <option :value="r[c.name]">{{ r[c.name] }}</option>
+                            </select>
+                          </template>
+                          <template v-if="c.options.length == 0">
+                            <input class="w-40 h-8 px-2 text-xs text-foreground bg-background border border-border rounded-md" :type="'text'" v-model="r[c.name]" @change="TableCell(e, ri, c.name, ($event.target as HTMLInputElement).value)" />
+                          </template>
+                        </template>
+                        <template v-if="c.kind != 'select'">
+                          <input class="w-40 h-8 px-2 text-xs text-foreground bg-background border border-border rounded-md" :type="'text'" v-model="r[c.name]" @change="TableCell(e, ri, c.name, ($event.target as HTMLInputElement).value)" />
+                        </template>
+                      </div>
                       <button class="h-7 px-2 text-xs rounded-md bg-muted text-muted-foreground border-0" @click="TableRowRemove(e, ri)">×</button>
                     </div>
                     <template v-if="e.t_rows.length == 0">

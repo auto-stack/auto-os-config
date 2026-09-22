@@ -459,6 +459,18 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  * supported (nested tables/objects inside a table cell are out of v1 scope).
  */
 export function inferColumn(key: string, value: unknown, moduleId: string): FieldSpec {
+  // PLAN-034: a `provider` column inside a table of objects (roles `models`
+  // candidates, ai-daemon tier_routing candidates) references the daemon's
+  // provider registry — cross-module by name (`ai-daemon`). Empty enum
+  // falls back to free text in the renderer.
+  if (key === 'provider') {
+    return {
+      key,
+      kind: 'select',
+      label: humanize(key),
+      optionsFrom: { kind: 'self-providers', moduleId: 'ai-daemon' },
+    }
+  }
   // Reuse inferField but force scalar kinds; tables of objects only.
   const spec = inferField(key, value, moduleId)
   if (spec.kind === 'table' || spec.kind === 'subform') {
@@ -1161,8 +1173,16 @@ export async function warmEnumsText(body: unknown, moduleId: string): Promise<bo
       const u = enumUrlOf(spec.optionsFrom)
       if (u) urls.push(u)
     } else if (spec.kind === 'table') {
+      // PLAN-034: top-level tables warm their column enums too (the roles
+      // `models` table's provider column pulls /enums/self/ai-daemon/providers).
       for (const c of tableColsOf(value, moduleId)) {
-        void c
+        const spec2 = inferColumn(
+          c.name,
+          (value as Record<string, unknown>[]).find((r: any) => c.name in r)?.[c.name],
+          moduleId,
+        )
+        const u = enumUrlOf(spec2.optionsFrom)
+        if (u) urls.push(u)
       }
     } else if (spec.kind === 'subform' && value && typeof value === 'object') {
       for (const [sk, sv] of Object.entries(value)) {

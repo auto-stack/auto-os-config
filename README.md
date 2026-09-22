@@ -54,6 +54,7 @@ key-name conventions to a control:
 | `default_provider` | self-referential | select (providers defined in the same file) |
 | `default_mode` | dir enum (empty if builtin) | select, falls back to free text + hint |
 | `[{obj, obj}]` | homogeneous objects | **table** (add/remove rows) |
+| table column `provider` | cross-module enum | **select** (providers of the `ai-daemon` module — e.g. a roles `models` candidate chain); free text when the enum is empty |
 | nested object | — | collapsible subform (recursive) |
 
 ## Desktop (VM) track — Plan 007, parity-hardened in Plan 010
