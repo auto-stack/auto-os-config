@@ -49,19 +49,39 @@ fn read_file_module(id: &str) -> Result<(String, String, String), String> {
     Ok((content, file_mod.root.clone(), file_mod.file.clone()))
 }
 
-/// Write a registered file module's content, with a `.bak` backup first.
-fn write_file_module(id: &str, new_content: &str) -> Result<String, String> {
+/// file module 的绝对路径 + 相对名（读/写/锁三方共用）。
+fn file_module_path(id: &str) -> Result<(std::path::PathBuf, String), String> {
     let module = require_module(id)?;
     let file_mod = match module {
         Module::File(f) => f,
         _ => return Err(format!("module '{id}' is a collection, not a single file")),
     };
     let path = config_root().map_err(|e| e.to_string())?.join(&file_mod.file);
-    if let Ok(old) = std::fs::read_to_string(&path) {
-        let _ = std::fs::write(format!("{}.bak", path.display()), old);
+    Ok((path, file_mod.file.clone()))
+}
+
+/// 锁内写实现（调用方已持 `<target>.lock`）：`.bak` 从当前盘值原子拷贝，
+/// 再原子替换目标——备份与替换都不可能撕裂（PLAN-044；锁路径跨仓约定
+/// 单源 = auto-lang `src/state_file.rs` 模块头，桌面宿主 save() 同锁）。
+fn write_file_module_inner(path: &std::path::Path, new_content: &str) -> Result<(), String> {
+    if let Ok(old) = std::fs::read(path) {
+        let bak = std::path::PathBuf::from(format!("{}.bak", path.display()));
+        let _ = auto_lang::state_file::atomic_write(&bak, &old);
     }
-    std::fs::write(&path, new_content).map_err(|e| format!("write failed: {e}"))?;
-    Ok(file_mod.file.clone())
+    auto_lang::state_file::atomic_write(path, new_content.as_bytes())
+        .map_err(|e| format!("write failed: {e}"))
+}
+
+/// Write a registered file module's content, with a `.bak` backup first
+/// （`<target>.lock` 互斥下原子完成；锁超时 best-effort 降级放行，语义同
+/// auto-lang `state_file::with_lock`）。
+fn write_file_module(id: &str, new_content: &str) -> Result<String, String> {
+    let (path, rel) = file_module_path(id)?;
+    auto_lang::state_file::with_lock(&path, auto_lang::state_file::LOCK_TIMEOUT, || {
+        write_file_module_inner(&path, new_content)
+    })
+    .into_inner()?;
+    Ok(rel)
 }
 
 // ── Shape A(single-file config,Plan 005)────────────────────────────────────
@@ -79,9 +99,21 @@ pub fn get_config_json(id: &str) -> Result<serde_json::Value, String> {
 /// `PUT /api/config/:module_id`(body `{ "value": <body> }`):merge 进当前
 /// AST 后序列化写盘(.bak 先行)。响应 `{ok, file, note}`。
 pub fn put_config_json(id: &str, value: &serde_json::Value) -> Result<serde_json::Value, String> {
-    let (content, root, _file) = read_file_module(id)?;
-    let new_source = project::write_file_body(&content, &root, value).map_err(|e| e.to_string())?;
-    let written = write_file_module(id, &new_source)?;
+    // PLAN-044：read→merge→write 整段 RMW 在 `<target>.lock` 内完成
+    // （桌面宿主 save() 与本端点同一把锁，交错不再互相冲字段）。
+    let (path, _rel) = file_module_path(id)?;
+    let written = auto_lang::state_file::with_lock(
+        &path,
+        auto_lang::state_file::LOCK_TIMEOUT,
+        || -> Result<String, String> {
+            let (content, root, file) = read_file_module(id)?;
+            let new_source =
+                project::write_file_body(&content, &root, value).map_err(|e| e.to_string())?;
+            write_file_module_inner(&path, &new_source)?;
+            Ok(file)
+        },
+    )
+    .into_inner()?;
     Ok(serde_json::json!({
         "ok": true,
         "file": written,
@@ -91,12 +123,24 @@ pub fn put_config_json(id: &str, value: &serde_json::Value) -> Result<serde_json
 
 /// `DELETE /api/config/:module_id/blocks/:name` — 结构化删块(.bak 先行)。
 pub fn delete_block_json(id: &str, name: &str) -> Result<serde_json::Value, String> {
-    let (content, root, _file) = read_file_module(id)?;
-    let new_source = project::delete_child_node(&content, &root, name).map_err(|e| match e {
-        project::ProjectError::NotFound(m) => m,
-        other => other.to_string(),
-    })?;
-    let written = write_file_module(id, &new_source)?;
+    // PLAN-044：read→merge→write 整段 RMW 锁内完成（同 put_config_json）。
+    let (path, _rel) = file_module_path(id)?;
+    let written = auto_lang::state_file::with_lock(
+        &path,
+        auto_lang::state_file::LOCK_TIMEOUT,
+        || -> Result<String, String> {
+            let (content, root, file) = read_file_module(id)?;
+            let new_source = project::delete_child_node(&content, &root, name).map_err(
+                |e| match e {
+                    project::ProjectError::NotFound(m) => m,
+                    other => other.to_string(),
+                },
+            )?;
+            write_file_module_inner(&path, &new_source)?;
+            Ok(file)
+        },
+    )
+    .into_inner()?;
     Ok(serde_json::json!({
         "ok": true,
         "file": written,

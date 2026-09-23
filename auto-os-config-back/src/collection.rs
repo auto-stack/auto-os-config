@@ -220,7 +220,8 @@ pub fn create_entity_json(module_id: &str, name: &str) -> Result<JsonValue, Coll
         root = root,
         name = name,
     );
-    std::fs::write(&entity_path, &template)
+    // PLAN-044 T-05：新建同样原子替换（写中崩溃不留半截实体文件）
+    auto_lang::state_file::atomic_write(&entity_path, template.as_bytes())
         .map_err(|e| CollectionError::Internal(format!("write: {e}")))?;
     Ok(json!({ "ok": true, "name": name }))
 }
@@ -248,29 +249,42 @@ pub fn put_entity_json(
     let dir = collection_dir(&c);
     let entity_path = dir.join(format!("{}{}", name, c.entity_suffix));
 
-    let content = std::fs::read_to_string(&entity_path)
-        .map_err(|_| CollectionError::NotFound(format!("entity '{name}' not found")))?;
-    let new_source = project::write_file_body(&content, root, value)
-        .map_err(|e| CollectionError::BadRequest(e.to_string()))?;
+    // PLAN-044：read→merge→bak→write 整段 RMW 在 `<entity>.lock` 互斥下
+    // 原子完成（锁路径约定单源 = auto-lang `state_file` 模块头）。
+    auto_lang::state_file::with_lock(
+        &entity_path,
+        auto_lang::state_file::LOCK_TIMEOUT,
+        || -> Result<(), CollectionError> {
+            let content = std::fs::read_to_string(&entity_path).map_err(|_| {
+                CollectionError::NotFound(format!("entity '{name}' not found"))
+            })?;
+            let new_source = project::write_file_body(&content, root, value)
+                .map_err(|e| CollectionError::BadRequest(e.to_string()))?;
 
-    // .bak of the entity, then write.
-    let _ = std::fs::write(format!("{}.bak", entity_path.display()), &content);
-    std::fs::write(&entity_path, &new_source)
-        .map_err(|e| CollectionError::Internal(format!("write: {e}")))?;
+            // .bak of the entity（原子拷贝），then write（原子替换）。
+            let bak = std::path::PathBuf::from(format!("{}.bak", entity_path.display()));
+            let _ = auto_lang::state_file::atomic_write(&bak, content.as_bytes());
+            auto_lang::state_file::atomic_write(&entity_path, new_source.as_bytes())
+                .map_err(|e| CollectionError::Internal(format!("write: {e}")))?;
 
-    // Sidecar (e.g. soul.md) — write or clear.
-    if let Some(suffix) = &c.sidecar_suffix {
-        let sidecar_path = dir.join(format!("{}{}", name, suffix));
-        match sidecar {
-            Some(text) if !text.trim().is_empty() => {
-                let _ = std::fs::write(&sidecar_path, text);
+            // Sidecar (e.g. soul.md) — write or clear.
+            if let Some(suffix) = &c.sidecar_suffix {
+                let sidecar_path = dir.join(format!("{}{}", name, suffix));
+                match sidecar {
+                    Some(text) if !text.trim().is_empty() => {
+                        let _ =
+                            auto_lang::state_file::atomic_write(&sidecar_path, text.as_bytes());
+                    }
+                    _ => {
+                        // Empty sidecar → remove the file if it exists.
+                        let _ = std::fs::remove_file(&sidecar_path);
+                    }
+                }
             }
-            _ => {
-                // Empty sidecar → remove the file if it exists.
-                let _ = std::fs::remove_file(&sidecar_path);
-            }
-        }
-    }
+            Ok(())
+        },
+    )
+    .into_inner()?;
 
     Ok(json!({
         "ok": true,
