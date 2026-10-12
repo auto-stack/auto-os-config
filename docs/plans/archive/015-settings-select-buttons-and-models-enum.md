@@ -1,6 +1,6 @@
 ---
 plan_id: OS-015
-status: execution_done
+status: archived
 feature_name: 设置中心 select 组件修复——默认 Provider/Model 行（016 走查批回归）
 author: [zcode]
 created_at: 2026-09-15
@@ -185,6 +185,16 @@ enum_self_models_json = read_file_module → parse_root → enum_models_for_prov
   （基于 9482307）` | `task_ids: T-01,T-02` | `evidence: §8 执行勾稽——
   cargo test 41 绿（含新增双形态单测）/build 绿/三套件 PASS/e2e-vm 18/18
   PASS/探针实拍两行形态正确` | `blockers: 无` | `next: review`。
+
+- 2026-10-12 review（独立复审收口）：`stage: review` | `plan_revision: 1` |
+  `outcome: pass` | 逐项 AC 对仓核验——AC-01/03 ✓（config_editor.at select
+  分支与 §5 设计逐行一致：`options.len() > 0` 分段按钮组 + 单份 fallback，
+  `(current)` 追加条件 `has_current == false && e.value != ""` 在案；第二处
+  `options.len() == 0` 属 multiselect 分支，非双渲染）；AC-02/04 ✓
+  （`enum_models_for_provider` 纯函数 + 双形态单测在案，2026-10-12 复审日
+  重跑 `cargo test` **41 passed 0 failed**，与执行期基线 40+1 精确相符）；
+  AC-05 采信执行期前端门禁记录。无遗漏项；§10 两项（daemon 重启生效、
+  e2e-vm 宿主抖动已知域）均为如实登记的外部/上游事项。
 
 ## 10. 待澄清事项
 

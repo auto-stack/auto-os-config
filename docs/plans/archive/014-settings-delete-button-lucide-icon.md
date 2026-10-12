@@ -1,6 +1,6 @@
 ---
 plan_id: OS-014
-status: execution_done
+status: archived
 feature_name: 设置中心 Provider 删除按钮 lucide 图标化
 author: [zcode]
 created_at: 2026-09-15
@@ -163,6 +163,16 @@ lucide trash-2 几何（24×24, stroke 2, round cap/join, currentColor）：
   （基于 918b4d6）` | `task_ids: T-01,T-02` | `evidence: §8 执行勾稽——
   regen OK/build 绿/三套件 PASS/e2e-vm 全 PASS，改动面仅 config_editor.at +
   ConfigEditor.vue` | `blockers: 无` | `next: review`。
+
+- 2026-10-12 review（独立复审收口）：`stage: review` | `plan_revision: 1` |
+  `outcome: pass` | 逐项 AC 对仓核验——AC-01 ✓（config_editor.at 无 `🗑`
+  残留、trash-2 五笔划几何在案；生成物 ConfigEditor.vue 含
+  `viewBox="0 0 24 24"` svg）；AC-02 ✓（AskDelete 链路 .at:179 与生成物
+  @click 均在位）；AC-03 ✓（生成物按钮 ghost 类
+  `bg-transparent text-muted-foreground hover:text-[#c42b1c]` grep 命中）；
+  AC-04 采信执行期 e2e-vm 18 断言 PASS 记录（VM 宿主门禁需 auto.exe 二进制，
+  本次未重跑，无涉新改动面）。无遗漏项/未批 workaround；§10 执行期发现
+  （AutoTerm 产物漂移）已登记归属 OS-013。
 
 ## 10. 待澄清事项
 

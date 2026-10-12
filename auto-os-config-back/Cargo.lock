@@ -6,13 +6,14 @@ version = 4
 name = "a2r-std"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "redis",
+ "reqwest",
  "rusqlite",
  "serde",
  "serde_json",
  "sysinfo",
  "tokio",
- "ureq",
 ]
 
 [[package]]
@@ -562,12 +563,15 @@ dependencies = [
  "futures",
  "hex",
  "hmac",
+ "hyper",
+ "hyper-util",
  "iced",
  "iced_futures",
  "iced_runtime",
  "iced_tiny_skia",
  "iced_widget",
  "image",
+ "imara-diff",
  "inventory",
  "kamadak-exif",
  "lazy_static",
@@ -606,7 +610,6 @@ dependencies = [
  "toml",
  "trans",
  "tungstenite 0.24.0",
- "two-face",
  "ureq",
  "url",
  "urlencoding",
@@ -2984,6 +2987,16 @@ name = "imagesize"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edcd27d72f2f071c64249075f42e205ff93c9a4c5f6c6da53e79ed9f9832c285"
+
+[[package]]
+name = "imara-diff"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f01d462f766df78ab820dd06f5eb700233c51f0f4c2e846520eaf4ba6aa5c5c"
+dependencies = [
+ "hashbrown 0.15.5",
+ "memchr",
+]
 
 [[package]]
 name = "imgref"
@@ -6550,17 +6563,6 @@ dependencies = [
  "rand 0.10.2",
  "sha1 0.11.0",
  "thiserror 2.0.20",
-]
-
-[[package]]
-name = "two-face"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39e51b6e60e545cfdae5a4639ff423818f52372211a8d9a3e892b4b0761f76b2"
-dependencies = [
- "serde",
- "serde_derive",
- "syntect",
 ]
 
 [[package]]

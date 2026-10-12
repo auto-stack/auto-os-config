@@ -1,6 +1,6 @@
 ---
 plan_id: OS-016
-status: execution_done
+status: archived
 feature_name: AutoUI select 组件 vm 轨缺陷——demo 示例与上游修复契约
 author: [zcode]
 created_at: 2026-09-15
@@ -143,6 +143,17 @@ vm 轨缺陷**（vue 轨原生 `<select>` 一直正常）。本计划把缺陷�
   （--features ui-iced）;a2vue 套件 17 绿;模块回归 103 绿,3 失败
   （plan055/plan050/plan626）经 stash 基线实证预存红与本次无关` |
   `blockers: 无` | `next: review`。
+
+- 2026-10-12 review（独立复审收口）：`stage: review` | `plan_revision: 1` |
+  `outcome: pass` | 逐项 AC 对仓核验——AC-01 ✓（auto-lang
+  `examples/select_demo.at` 在案，S1-S3+缺陷头注）；AC-02 ✓（golden 013
+  三件套签入，`vue.rs` 钩子 `test_a2vue_select_children` 在案，
+  2026-10-12 复审日于 auto-lang master 重跑 **1 passed**）；AC-03 ✓
+  （D2/D3/D4 修复契约成文于 §1/§3，T-03 已落地：master 代码
+  `convert_select` 重写实证——`collect_select_options` 循环展开、
+  values/labels 平行数组且选中态 value 优先、静态参数位+$event 补位）。
+  无遗漏项；§10 延两项（AC-U1 实机走查待上游二进制再部署、原生 select
+  回归属产品裁定）均如实登记有主。
 
 ## 10. 待澄清事项
 
